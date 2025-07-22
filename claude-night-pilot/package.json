@@ -15,14 +15,14 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.54.1",
-    "@tauri-apps/cli": "^2.0.0",
+    "@tauri-apps/cli": "^2.7.1",
     "playwright": "^1.54.1"
   },
   "dependencies": {
-    "@tauri-apps/plugin-shell": "^2.0.0",
-    "@tauri-apps/plugin-sql": "^2.0.0",
-    "@tauri-apps/plugin-store": "^2.0.0",
-    "@tauri-apps/plugin-cli": "^2.0.0",
-    "@tauri-apps/plugin-notification": "^2.0.0"
+    "@tauri-apps/plugin-cli": "^2.4.0",
+    "@tauri-apps/plugin-notification": "^2.3.0",
+    "@tauri-apps/plugin-shell": "^2.3.0",
+    "@tauri-apps/plugin-sql": "^2.3.0",
+    "@tauri-apps/plugin-store": "^2.3.0"
   }
 }
