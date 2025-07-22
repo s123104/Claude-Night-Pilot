@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Claude Night Pilot 🌙✈️</title>
 
-    <!-- Material Design Icons -->
+    <!-- Material Design 3.0 Icons - 完整導入 -->
     <link
       href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
       rel="stylesheet"
@@ -15,348 +15,549 @@
       rel="stylesheet"
     />
 
+    <!-- Google Fonts for Material Design Typography -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+
     <!-- Pico CSS -->
     <link rel="stylesheet" href="css/pico.min.css" />
 
-    <!-- Custom Styles -->
+    <!-- Material Design 3.0 Custom Styles -->
     <link rel="stylesheet" href="styles.css" />
 
-    <!-- HTMX -->
+    <!-- HTMX for enhanced interactivity -->
     <script src="js/htmx.min.js"></script>
+
+    <!-- Material Design Color Utilities -->
+    <style>
+      :root {
+        /* Material Design 3.0 Color System */
+        --md-sys-color-primary: #2196f3;
+        --md-sys-color-on-primary: #ffffff;
+        --md-sys-color-primary-container: #d0e8ff;
+        --md-sys-color-on-primary-container: #001e30;
+
+        --md-sys-color-secondary: #006a6b;
+        --md-sys-color-on-secondary: #ffffff;
+        --md-sys-color-secondary-container: #6ff7f6;
+        --md-sys-color-on-secondary-container: #002020;
+
+        --md-sys-color-tertiary: #7d5260;
+        --md-sys-color-on-tertiary: #ffffff;
+
+        --md-sys-color-surface: #fef7ff;
+        --md-sys-color-on-surface: #1d1b20;
+        --md-sys-color-surface-variant: #e7e0ec;
+        --md-sys-color-on-surface-variant: #49454f;
+
+        --md-sys-color-background: #fef7ff;
+        --md-sys-color-on-background: #1d1b20;
+
+        --md-sys-color-error: #ba1a1a;
+        --md-sys-color-on-error: #ffffff;
+        --md-sys-color-error-container: #ffdad6;
+        --md-sys-color-on-error-container: #410002;
+
+        --md-sys-color-outline: #79747e;
+        --md-sys-color-outline-variant: #cac4d0;
+
+        /* Material Design Typography Scale */
+        --md-sys-typescale-display-large: 700 57px/64px "Roboto", sans-serif;
+        --md-sys-typescale-display-medium: 400 45px/52px "Roboto", sans-serif;
+        --md-sys-typescale-display-small: 400 36px/44px "Roboto", sans-serif;
+        --md-sys-typescale-headline-large: 400 32px/40px "Roboto", sans-serif;
+        --md-sys-typescale-headline-medium: 400 28px/36px "Roboto", sans-serif;
+        --md-sys-typescale-headline-small: 400 24px/32px "Roboto", sans-serif;
+        --md-sys-typescale-title-large: 400 22px/28px "Roboto", sans-serif;
+        --md-sys-typescale-title-medium: 500 16px/24px "Roboto", sans-serif;
+        --md-sys-typescale-title-small: 500 14px/20px "Roboto", sans-serif;
+        --md-sys-typescale-body-large: 400 16px/24px "Roboto", sans-serif;
+        --md-sys-typescale-body-medium: 400 14px/20px "Roboto", sans-serif;
+        --md-sys-typescale-body-small: 400 12px/16px "Roboto", sans-serif;
+        --md-sys-typescale-label-large: 500 14px/20px "Roboto", sans-serif;
+        --md-sys-typescale-label-medium: 500 12px/16px "Roboto", sans-serif;
+        --md-sys-typescale-label-small: 500 11px/16px "Roboto", sans-serif;
+
+        /* Material Design Shape Scale */
+        --md-sys-shape-corner-extra-small: 4px;
+        --md-sys-shape-corner-small: 8px;
+        --md-sys-shape-corner-medium: 12px;
+        --md-sys-shape-corner-large: 16px;
+        --md-sys-shape-corner-extra-large: 28px;
+
+        /* Material Design Elevation */
+        --md-sys-elevation-level0: none;
+        --md-sys-elevation-level1: 0px 1px 2px 0px rgba(0, 0, 0, 0.3),
+          0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+        --md-sys-elevation-level2: 0px 1px 2px 0px rgba(0, 0, 0, 0.3),
+          0px 2px 6px 2px rgba(0, 0, 0, 0.15);
+        --md-sys-elevation-level3: 0px 1px 3px 0px rgba(0, 0, 0, 0.3),
+          0px 4px 8px 3px rgba(0, 0, 0, 0.15);
+        --md-sys-elevation-level4: 0px 2px 3px 0px rgba(0, 0, 0, 0.3),
+          0px 6px 10px 4px rgba(0, 0, 0, 0.15);
+        --md-sys-elevation-level5: 0px 4px 4px 0px rgba(0, 0, 0, 0.3),
+          0px 8px 12px 6px rgba(0, 0, 0, 0.15);
+      }
+
+      /* Dark Theme Material Design Colors */
+      [data-theme="dark"] {
+        --md-sys-color-primary: #a1c8ff;
+        --md-sys-color-on-primary: #003258;
+        --md-sys-color-primary-container: #004881;
+        --md-sys-color-on-primary-container: #d0e8ff;
+
+        --md-sys-color-secondary: #4dd0d1;
+        --md-sys-color-on-secondary: #003738;
+        --md-sys-color-secondary-container: #004f51;
+        --md-sys-color-on-secondary-container: #6ff7f6;
+
+        --md-sys-color-surface: #141218;
+        --md-sys-color-on-surface: #e6e0e9;
+        --md-sys-color-surface-variant: #49454f;
+        --md-sys-color-on-surface-variant: #cac4d0;
+
+        --md-sys-color-background: #141218;
+        --md-sys-color-on-background: #e6e0e9;
+
+        --md-sys-color-error: #ffb4ab;
+        --md-sys-color-on-error: #690005;
+        --md-sys-color-error-container: #93000a;
+        --md-sys-color-on-error-container: #ffdad6;
+
+        --md-sys-color-outline: #938f99;
+        --md-sys-color-outline-variant: #49454f;
+      }
+    </style>
   </head>
   <body>
-    <!-- Loading Overlay -->
-    <div id="app-loader" class="app-loader">
+    <!-- Material Design Loading Overlay with Progress Indicator -->
+    <div id="app-loader" class="app-loader md-elevation-level5">
       <div class="loader-content">
         <div class="loader-icon">
           <span class="material-symbols-rounded pulse">flight</span>
         </div>
-        <h2>Claude Night Pilot</h2>
-        <p>正在啟動您的夜間自動打工仔...</p>
-        <div class="loading-progress">
-          <div class="progress-bar"></div>
+        <h2 class="md-typescale-headline-medium">Claude Night Pilot</h2>
+        <p class="md-typescale-body-large">正在啟動您的夜間自動打工仔...</p>
+
+        <!-- Material Design Linear Progress Indicator -->
+        <div class="md-linear-progress">
+          <div class="md-linear-progress-track">
+            <div class="md-linear-progress-indicator"></div>
+          </div>
+        </div>
+
+        <!-- Loading Steps Indicator -->
+        <div class="loading-steps">
+          <span class="step-indicator active" data-step="1">
+            <span class="material-symbols-outlined">terminal</span>
+          </span>
+          <span class="step-indicator" data-step="2">
+            <span class="material-symbols-outlined">database</span>
+          </span>
+          <span class="step-indicator" data-step="3">
+            <span class="material-symbols-outlined">api</span>
+          </span>
+          <span class="step-indicator" data-step="4">
+            <span class="material-symbols-outlined">check_circle</span>
+          </span>
         </div>
       </div>
     </div>
 
-    <!-- Main App Container -->
-    <div id="app" class="app-container" style="display: none">
-      <!-- Header -->
-      <header class="app-header">
-        <div class="header-content">
-          <div class="brand">
-            <span class="material-symbols-rounded brand-icon">flight</span>
-            <h1>Claude Night Pilot</h1>
-            <span class="brand-subtitle">夜間自動打工仔</span>
+    <!-- Main App Container with Material Design Structure -->
+    <div id="app" class="app-container md-surface" style="display: none">
+      <!-- Material Design Top App Bar -->
+      <header class="md-top-app-bar md-elevation-level2">
+        <div class="md-top-app-bar-content">
+          <!-- Leading Section -->
+          <div class="md-top-app-bar-leading">
+            <div class="brand-section">
+              <span class="material-symbols-rounded brand-icon">flight</span>
+              <div class="brand-text">
+                <h1 class="md-typescale-title-large">Claude Night Pilot</h1>
+                <span class="md-typescale-label-medium brand-subtitle"
+                  >夜間自動打工仔</span
+                >
+              </div>
+            </div>
           </div>
 
-          <div class="header-controls">
-            <!-- CLI Status Indicator -->
-            <div id="cli-status" class="status-indicator" title="CLI 整合狀態">
-              <span class="material-symbols-outlined status-icon"
-                >terminal</span
+          <!-- Trailing Section -->
+          <div class="md-top-app-bar-trailing">
+            <!-- Status Indicators -->
+            <div class="status-indicators">
+              <!-- CLI Status -->
+              <div id="cli-status" class="md-status-chip" title="CLI 整合狀態">
+                <span class="material-symbols-outlined status-icon"
+                  >terminal</span
+                >
+                <span class="status-text md-typescale-label-medium"
+                  >CLI 已啟用</span
+                >
+              </div>
+
+              <!-- Cooldown Status -->
+              <div
+                id="cooldown-status"
+                class="md-status-chip cooldown-status"
+                title="Claude API 狀態"
               >
-              <span class="status-text">CLI 已啟用</span>
+                <span class="material-symbols-outlined status-icon"
+                  >schedule</span
+                >
+                <span class="status-text md-typescale-label-medium"
+                  >檢查中...</span
+                >
+              </div>
             </div>
 
-            <!-- Cooldown Status -->
-            <div
-              id="cooldown-status"
-              class="status-indicator cooldown-status"
-              title="Claude API 狀態"
-            >
-              <span class="material-symbols-outlined status-icon"
-                >schedule</span
+            <!-- Action Buttons -->
+            <div class="md-top-app-bar-actions">
+              <!-- Theme Toggle -->
+              <button
+                id="theme-toggle"
+                class="md-icon-button"
+                title="切換主題"
+                aria-label="切換明暗主題"
               >
-              <span class="status-text">檢查中...</span>
+                <span class="material-symbols-outlined">light_mode</span>
+              </button>
+
+              <!-- Settings -->
+              <button
+                id="settings-btn"
+                class="md-icon-button"
+                title="設定"
+                aria-label="開啟設定"
+              >
+                <span class="material-symbols-outlined">settings</span>
+              </button>
+
+              <!-- More Options -->
+              <button
+                id="more-options-btn"
+                class="md-icon-button"
+                title="更多選項"
+                aria-label="更多選項"
+              >
+                <span class="material-symbols-outlined">more_vert</span>
+              </button>
             </div>
-
-            <!-- Theme Toggle -->
-            <button
-              id="theme-toggle"
-              class="icon-btn"
-              title="切換主題"
-              aria-label="切換明暗主題"
-            >
-              <span class="material-symbols-outlined">light_mode</span>
-            </button>
-
-            <!-- Settings -->
-            <button
-              id="settings-btn"
-              class="icon-btn"
-              title="設定"
-              aria-label="開啟設定"
-            >
-              <span class="material-symbols-outlined">settings</span>
-            </button>
           </div>
         </div>
       </header>
 
-      <!-- Main Content -->
-      <main class="main-content">
-        <!-- Navigation Tabs -->
-        <nav class="nav-tabs">
-          <button class="tab-btn active" data-tab="prompts">
-            <span class="material-symbols-outlined">chat</span>
-            <span>Prompt 管理</span>
-          </button>
-          <button class="tab-btn" data-tab="scheduler">
-            <span class="material-symbols-outlined">schedule</span>
-            <span>排程任務</span>
-          </button>
-          <button class="tab-btn" data-tab="results">
-            <span class="material-symbols-outlined">analytics</span>
-            <span>執行結果</span>
-          </button>
-          <button class="tab-btn" data-tab="system">
-            <span class="material-symbols-outlined">monitoring</span>
-            <span>系統監控</span>
-          </button>
+      <!-- Material Design Navigation Rail + Content -->
+      <div class="app-body">
+        <!-- Navigation Rail (側邊導航) -->
+        <nav class="md-navigation-rail md-elevation-level1">
+          <div class="md-navigation-rail-content">
+            <!-- Navigation Items -->
+            <div class="md-navigation-rail-items">
+              <button class="md-navigation-rail-item active" data-tab="prompts">
+                <span class="material-symbols-outlined">chat</span>
+                <span class="md-typescale-label-medium">Prompt</span>
+              </button>
+              <button class="md-navigation-rail-item" data-tab="scheduler">
+                <span class="material-symbols-outlined">schedule</span>
+                <span class="md-typescale-label-medium">排程</span>
+              </button>
+              <button class="md-navigation-rail-item" data-tab="results">
+                <span class="material-symbols-outlined">analytics</span>
+                <span class="md-typescale-label-medium">結果</span>
+              </button>
+              <button class="md-navigation-rail-item" data-tab="system">
+                <span class="material-symbols-outlined">monitoring</span>
+                <span class="md-typescale-label-medium">監控</span>
+              </button>
+            </div>
+          </div>
         </nav>
 
-        <!-- Tab Content -->
-        <div class="tab-content">
-          <!-- Prompts Tab -->
-          <section id="prompts-tab" class="tab-panel active">
-            <div class="section-header">
-              <h2>
-                <span class="material-symbols-outlined">chat</span>
-                Prompt 管理
-              </h2>
-              <button id="create-prompt-btn" class="btn btn-primary">
-                <span class="material-symbols-outlined">add</span>
-                建立新 Prompt
-              </button>
-            </div>
-
-            <!-- Prompt List -->
-            <div class="card-grid" id="prompts-list">
-              <div class="loading-skeleton">
-                <div class="skeleton-card"></div>
-                <div class="skeleton-card"></div>
-                <div class="skeleton-card"></div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Scheduler Tab -->
-          <section id="scheduler-tab" class="tab-panel">
-            <div class="section-header">
-              <h2>
-                <span class="material-symbols-outlined">schedule</span>
-                排程任務
-              </h2>
-              <button id="create-job-btn" class="btn btn-primary">
-                <span class="material-symbols-outlined">add_task</span>
-                建立新任務
-              </button>
-            </div>
-
-            <!-- Jobs List -->
-            <div class="jobs-container" id="jobs-list">
-              <div class="loading-skeleton">
-                <div class="skeleton-row"></div>
-                <div class="skeleton-row"></div>
-                <div class="skeleton-row"></div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Results Tab -->
-          <section id="results-tab" class="tab-panel">
-            <div class="section-header">
-              <h2>
-                <span class="material-symbols-outlined">analytics</span>
-                執行結果
-              </h2>
-              <div class="filter-controls">
-                <select id="results-filter" class="form-select">
-                  <option value="">所有結果</option>
-                  <option value="success">成功</option>
-                  <option value="error">錯誤</option>
-                  <option value="pending">進行中</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Results List -->
-            <div class="results-container" id="results-list">
-              <div class="loading-skeleton">
-                <div class="skeleton-row"></div>
-                <div class="skeleton-row"></div>
-              </div>
-            </div>
-          </section>
-
-          <!-- System Tab -->
-          <section id="system-tab" class="tab-panel">
-            <div class="section-header">
-              <h2>
-                <span class="material-symbols-outlined">monitoring</span>
-                系統監控
-              </h2>
-              <button id="refresh-system-btn" class="btn btn-secondary">
-                <span class="material-symbols-outlined">refresh</span>
-                刷新資訊
-              </button>
-            </div>
-
-            <!-- System Info Cards -->
-            <div class="system-grid">
-              <div class="info-card">
-                <div class="card-header">
-                  <span class="material-symbols-outlined">info</span>
-                  <h3>應用資訊</h3>
+        <!-- Main Content Area -->
+        <main class="md-main-content">
+          <!-- Tab Content Panels -->
+          <div class="md-tab-content">
+            <!-- Prompts Tab -->
+            <section id="prompts-tab" class="md-tab-panel active">
+              <div class="md-section-header">
+                <div class="section-title">
+                  <h2 class="md-typescale-headline-medium">
+                    <span class="material-symbols-outlined">chat</span>
+                    Prompt 管理
+                  </h2>
+                  <p class="md-typescale-body-medium section-subtitle">
+                    管理您的 Claude 提示模板
+                  </p>
                 </div>
-                <div class="card-content" id="app-info">
-                  <div class="loading-skeleton">
-                    <div class="skeleton-text"></div>
-                    <div class="skeleton-text"></div>
+
+                <!-- Floating Action Button -->
+                <button
+                  id="create-prompt-fab"
+                  class="md-fab md-elevation-level3"
+                >
+                  <span class="material-symbols-outlined">add</span>
+                </button>
+              </div>
+
+              <!-- Prompts Grid -->
+              <div class="md-card-grid" id="prompts-list">
+                <!-- Loading Skeleton -->
+                <div class="md-loading-skeleton">
+                  <div class="md-skeleton-card"></div>
+                  <div class="md-skeleton-card"></div>
+                  <div class="md-skeleton-card"></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Scheduler Tab -->
+            <section id="scheduler-tab" class="md-tab-panel">
+              <div class="md-section-header">
+                <div class="section-title">
+                  <h2 class="md-typescale-headline-medium">
+                    <span class="material-symbols-outlined">schedule</span>
+                    排程任務
+                  </h2>
+                  <p class="md-typescale-body-medium section-subtitle">
+                    自動化執行 Prompt 任務
+                  </p>
+                </div>
+
+                <button id="create-job-fab" class="md-fab md-elevation-level3">
+                  <span class="material-symbols-outlined">add_task</span>
+                </button>
+              </div>
+
+              <!-- Jobs List -->
+              <div class="md-list-container" id="jobs-list">
+                <div class="md-loading-skeleton">
+                  <div class="md-skeleton-list-item"></div>
+                  <div class="md-skeleton-list-item"></div>
+                  <div class="md-skeleton-list-item"></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Results Tab -->
+            <section id="results-tab" class="md-tab-panel">
+              <div class="md-section-header">
+                <div class="section-title">
+                  <h2 class="md-typescale-headline-medium">
+                    <span class="material-symbols-outlined">analytics</span>
+                    執行結果
+                  </h2>
+                  <p class="md-typescale-body-medium section-subtitle">
+                    查看 Prompt 執行結果和歷史記錄
+                  </p>
+                </div>
+
+                <!-- Filter Controls -->
+                <div class="md-filter-controls">
+                  <select id="results-filter" class="md-select">
+                    <option value="">所有結果</option>
+                    <option value="success">成功</option>
+                    <option value="error">錯誤</option>
+                    <option value="pending">進行中</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Results List -->
+              <div class="md-list-container" id="results-list">
+                <div class="md-loading-skeleton">
+                  <div class="md-skeleton-list-item"></div>
+                  <div class="md-skeleton-list-item"></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- System Tab -->
+            <section id="system-tab" class="md-tab-panel">
+              <div class="md-section-header">
+                <div class="section-title">
+                  <h2 class="md-typescale-headline-medium">
+                    <span class="material-symbols-outlined">monitoring</span>
+                    系統監控
+                  </h2>
+                  <p class="md-typescale-body-medium section-subtitle">
+                    應用程式狀態和效能監控
+                  </p>
+                </div>
+
+                <button id="refresh-system-btn" class="md-filled-button">
+                  <span class="material-symbols-outlined">refresh</span>
+                  <span>刷新資訊</span>
+                </button>
+              </div>
+
+              <!-- System Info Grid -->
+              <div class="md-system-grid">
+                <div class="md-info-card md-elevation-level1">
+                  <div class="md-card-header">
+                    <span class="material-symbols-outlined">info</span>
+                    <h3 class="md-typescale-title-medium">應用資訊</h3>
+                  </div>
+                  <div class="md-card-content" id="app-info">
+                    <div class="md-loading-skeleton">
+                      <div class="md-skeleton-text"></div>
+                      <div class="md-skeleton-text"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="md-info-card md-elevation-level1">
+                  <div class="md-card-header">
+                    <span class="material-symbols-outlined">memory</span>
+                    <h3 class="md-typescale-title-medium">效能監控</h3>
+                  </div>
+                  <div class="md-card-content" id="performance-info">
+                    <div class="md-loading-skeleton">
+                      <div class="md-skeleton-text"></div>
+                      <div class="md-skeleton-text"></div>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <div class="info-card">
-                <div class="card-header">
-                  <span class="material-symbols-outlined">memory</span>
-                  <h3>效能監控</h3>
-                </div>
-                <div class="card-content" id="performance-info">
-                  <div class="loading-skeleton">
-                    <div class="skeleton-text"></div>
-                    <div class="skeleton-text"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </main>
+            </section>
+          </div>
+        </main>
+      </div>
     </div>
 
-    <!-- Modals -->
+    <!-- Material Design Modals -->
     <!-- Create Prompt Modal -->
-    <dialog id="prompt-modal" class="modal">
-      <article class="modal-content">
-        <header class="modal-header">
-          <h3>
+    <dialog id="prompt-modal" class="md-dialog">
+      <div class="md-dialog-container md-elevation-level5">
+        <div class="md-dialog-header">
+          <h3 class="md-typescale-title-large">
             <span class="material-symbols-outlined">chat</span>
             建立新 Prompt
           </h3>
-          <button class="close-btn" aria-label="關閉">
+          <button class="md-icon-button close-btn" aria-label="關閉">
             <span class="material-symbols-outlined">close</span>
           </button>
-        </header>
+        </div>
 
-        <form id="prompt-form" class="modal-form">
-          <div class="form-group">
-            <label for="prompt-title">
+        <form id="prompt-form" class="md-dialog-content">
+          <div class="md-form-group">
+            <label for="prompt-title" class="md-typescale-label-large">
               <span class="material-symbols-outlined">title</span>
               標題
             </label>
             <input
               type="text"
               id="prompt-title"
+              name="prompt-title"
+              class="md-text-field"
               required
               placeholder="輸入 Prompt 標題"
             />
           </div>
 
-          <div class="form-group">
-            <label for="prompt-content">
+          <div class="md-form-group">
+            <label for="prompt-content" class="md-typescale-label-large">
               <span class="material-symbols-outlined">description</span>
               內容
             </label>
             <textarea
               id="prompt-content"
+              name="prompt-content"
+              class="md-text-field md-textarea"
               required
               placeholder="輸入 Prompt 內容，支援 Claude Code 語法 (@file.md)"
+              rows="6"
             ></textarea>
           </div>
 
-          <div class="form-group">
-            <label for="prompt-tags">
+          <div class="md-form-group">
+            <label for="prompt-tags" class="md-typescale-label-large">
               <span class="material-symbols-outlined">tag</span>
               標籤
             </label>
             <input
               type="text"
               id="prompt-tags"
+              name="prompt-tags"
+              class="md-text-field"
               placeholder="以逗號分隔的標籤"
             />
           </div>
-
-          <footer class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-close>
-              取消
-            </button>
-            <button type="submit" class="btn btn-primary">
-              <span class="material-symbols-outlined">save</span>
-              儲存
-            </button>
-          </footer>
         </form>
-      </article>
+
+        <div class="md-dialog-actions">
+          <button type="button" class="md-text-button" data-close>取消</button>
+          <button type="submit" form="prompt-form" class="md-filled-button">
+            <span class="material-symbols-outlined">save</span>
+            儲存
+          </button>
+        </div>
+      </div>
     </dialog>
 
     <!-- Create Job Modal -->
-    <dialog id="job-modal" class="modal">
-      <article class="modal-content">
-        <header class="modal-header">
-          <h3>
+    <dialog id="job-modal" class="md-dialog">
+      <div class="md-dialog-container md-elevation-level5">
+        <div class="md-dialog-header">
+          <h3 class="md-typescale-title-large">
             <span class="material-symbols-outlined">add_task</span>
             建立排程任務
           </h3>
-          <button class="close-btn" aria-label="關閉">
+          <button class="md-icon-button close-btn" aria-label="關閉">
             <span class="material-symbols-outlined">close</span>
           </button>
-        </header>
+        </div>
 
-        <form id="job-form" class="modal-form">
-          <div class="form-group">
-            <label for="job-prompt">
+        <form id="job-form" class="md-dialog-content">
+          <div class="md-form-group">
+            <label for="job-prompt" class="md-typescale-label-large">
               <span class="material-symbols-outlined">chat</span>
               選擇 Prompt
             </label>
-            <select id="job-prompt" required>
+            <select
+              id="job-prompt"
+              name="job-prompt"
+              class="md-select"
+              required
+            >
               <option value="">請選擇 Prompt</option>
             </select>
           </div>
 
-          <div class="form-group">
-            <label for="job-cron">
+          <div class="md-form-group">
+            <label for="job-cron" class="md-typescale-label-large">
               <span class="material-symbols-outlined">schedule</span>
               Cron 表達式
             </label>
             <input
               type="text"
               id="job-cron"
+              name="job-cron"
+              class="md-text-field"
               required
               placeholder="0 9 * * * (每日 9 點)"
             />
-            <small class="form-help">
+            <div class="md-supporting-text">
               <span class="material-symbols-outlined">help</span>
               格式：分 時 日 月 週，例如 "0 9 * * *" 表示每日 9 點執行
-            </small>
+            </div>
           </div>
-
-          <footer class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-close>
-              取消
-            </button>
-            <button type="submit" class="btn btn-primary">
-              <span class="material-symbols-outlined">schedule</span>
-              建立任務
-            </button>
-          </footer>
         </form>
-      </article>
+
+        <div class="md-dialog-actions">
+          <button type="button" class="md-text-button" data-close>取消</button>
+          <button type="submit" form="job-form" class="md-filled-button">
+            <span class="material-symbols-outlined">schedule</span>
+            建立任務
+          </button>
+        </div>
+      </div>
     </dialog>
 
-    <!-- Toast Container -->
-    <div id="toast-container" class="toast-container"></div>
+    <!-- Material Design Snackbar Container -->
+    <div id="snackbar-container" class="md-snackbar-container"></div>
 
     <!-- Scripts -->
     <script src="main.js"></script>

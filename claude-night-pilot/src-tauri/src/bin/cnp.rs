@@ -7,6 +7,7 @@ use serde_json;
 use sqlx::{sqlite::SqlitePool, Row};
 use std::path::Path;
 use tokio;
+use std::process::{Command, Stdio};
 
 // CLI 主結構
 #[derive(Parser)]
@@ -624,15 +625,127 @@ async fn handle_status() -> Result<()> {
 }
 
 async fn handle_cooldown() -> Result<()> {
-    print_info("檢查 Claude CLI 冷卻狀態...");
+    print_info("ℹ️ 檢查 Claude CLI 冷卻狀態...");
+
+    // 檢查 Claude CLI 可用性
+    let output = Command::new("claude")
+        .arg("--version")
+        .output();
+
+    match output {
+        Ok(version_output) => {
+            if version_output.status.success() {
+                let version = String::from_utf8_lossy(&version_output.stdout);
+                println!("📋 Claude CLI 版本: {}", version.trim());
+                
+                // 執行測試命令來檢查冷卻狀態
+                let test_output = Command::new("claude")
+                    .arg("測試冷卻狀態檢查")
+                    .stderr(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .output();
+                
+                match test_output {
+                    Ok(result) => {
+                        if result.status.success() {
+                            println!("✅ ✨ Claude API 可用");
+                            println!("🕐 最後檢查時間: {}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"));
+                        } else {
+                            // 解析錯誤輸出來檢測冷卻狀態
+                            let stderr = String::from_utf8_lossy(&result.stderr);
+                            
+                            if stderr.contains("usage limit") || stderr.contains("rate limit") {
+                                println!("🚫 Claude API 達到使用限制");
+                                
+                                // 嘗試解析冷卻時間
+                                if let Some(reset_time) = parse_cooldown_time(&stderr) {
+                                    println!("⏰ 預計解鎖時間: {}", reset_time);
+                                    
+                                    if let Ok(reset_datetime) = chrono::DateTime::parse_from_rfc3339(&reset_time) {
+                                        let now = chrono::Local::now();
+                                        let duration = reset_datetime.signed_duration_since(now);
+                                        
+                                        if duration.num_seconds() > 0 {
+                                            let hours = duration.num_hours();
+                                            let minutes = (duration.num_minutes() % 60);
+                                            let seconds = (duration.num_seconds() % 60);
+                                            
+                                            println!("⏳ 剩餘時間: {}小時 {}分鐘 {}秒", hours, minutes, seconds);
+                                            
+                                            // 提供建議
+                                            if hours > 0 {
+                                                println!("💡 建議: 請在 {} 後再次嘗試", 
+                                                    reset_datetime.format("%H:%M"));
+                                            } else {
+                                                println!("💡 建議: 請稍後再試，約 {}分鐘後恢復", minutes + 1);
+                                            }
+                                        } else {
+                                            println!("✅ 冷卻時間已過，可以重新嘗試");
+                                        }
+                                    }
+                                } else {
+                                    println!("⚠️ 無法解析冷卻時間，請稍後再試");
+                                }
+                            } else {
+                                println!("❌ Claude CLI 執行失敗: {}", stderr);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!("❌ 無法執行 Claude CLI 測試: {}", e);
+                    }
+                }
+            } else {
+                println!("❌ Claude CLI 版本檢查失敗");
+            }
+        }
+        Err(e) => {
+            println!("❌ Claude CLI 未安裝或無法訪問: {}", e);
+            println!("💡 請確認 Claude CLI 已正確安裝並在 PATH 中");
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_cooldown_time(error_message: &str) -> Option<String> {
+    // 解析各種可能的冷卻時間格式
+    use regex::Regex;
     
-    match SimpleClaudeExecutor::check_cooldown().await {
-        Ok(true) => print_success("✨ Claude API 可用"),
-        Ok(false) => print_warning("Claude CLI 不可用"),
-        Err(e) => print_error(&format!("無法檢查冷卻狀態: {}", e)),
+    // 匹配 ISO 時間格式
+    if let Ok(re) = Regex::new(r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})") {
+        if let Some(captures) = re.captures(error_message) {
+            return Some(captures[1].to_string());
+        }
     }
     
-    Ok(())
+    // 匹配 Unix 時間戳
+    if let Ok(re) = Regex::new(r"(\d{10})") {
+        if let Some(captures) = re.captures(error_message) {
+            if let Ok(timestamp) = captures[1].parse::<i64>() {
+                if let Some(datetime) = chrono::DateTime::from_timestamp(timestamp, 0) {
+                    return Some(datetime.to_rfc3339());
+                }
+            }
+        }
+    }
+    
+    // 匹配 "at HH:MM" 格式
+    if let Ok(re) = Regex::new(r"at (\d{1,2}:\d{2})") {
+        if let Some(captures) = re.captures(error_message) {
+            let time_str = &captures[1];
+            let today = chrono::Local::now().date_naive();
+            
+            if let Ok(time) = chrono::NaiveTime::parse_from_str(time_str, "%H:%M") {
+                let datetime = today.and_time(time);
+                if let Some(local_datetime) = chrono::Local.from_local_datetime(&datetime).single() {
+                    return Some(local_datetime.to_rfc3339());
+                }
+            }
+        }
+    }
+    
+    None
 }
 
 async fn handle_job_list(status_filter: Option<String>) -> Result<()> {
