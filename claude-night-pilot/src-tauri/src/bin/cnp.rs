@@ -1,12 +1,9 @@
 use anyhow::{bail, Result};
-use chrono::{DateTime, Utc};
-use clap::{Args, Parser, Subcommand};
+use chrono::{DateTime, Utc, TimeZone};
+use clap::{Parser, Subcommand};
 use colored::*;
 use serde::{Deserialize, Serialize};
-use serde_json;
 use sqlx::{sqlite::SqlitePool, Row};
-use std::path::Path;
-use tokio;
 use std::process::{Command, Stdio};
 
 // CLI 主結構
@@ -125,10 +122,30 @@ enum JobAction {
         /// 任務 ID
         id: i64,
     },
+    /// 刪除任務
+    Delete {
+        /// 任務 ID
+        id: i64,
+    },
+    /// 執行任務
+    Run {
+        /// 任務 ID
+        id: i64,
+        /// 執行模式 (sync/async)
+        #[arg(short, long, default_value = "sync")]
+        mode: String,
+    },
+}
+
+// 資料庫連接函數
+async fn connect_db() -> Result<SqlitePool> {
+    let database_url = "sqlite:claude-pilot.db";
+    let pool = SqlitePool::connect(database_url).await?;
+    Ok(pool)
 }
 
 // 簡化的資料結構
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 struct Prompt {
     id: Option<i64>,
     title: String,
@@ -137,7 +154,7 @@ struct Prompt {
     created_at: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 struct Job {
     id: Option<i64>,
     prompt_id: i64,
@@ -189,6 +206,7 @@ impl SimpleClaudeExecutor {
         }
     }
 
+    #[allow(dead_code)]
     async fn check_cooldown() -> Result<bool> {
         // 簡化版本，實際實現中需要解析 claude doctor 輸出
         Self::verify_claude_cli().await
@@ -453,9 +471,10 @@ async fn handle_prompt_list(tag: Option<String>) -> Result<()> {
             println!("   標籤: {}", tags.green());
         }
         
-        // 顯示內容預覽 (前 100 字元)
-        let preview = if prompt.content.len() > 100 {
-            format!("{}...", &prompt.content[..100])
+        // 顯示內容預覽 (前 100 字符)
+        let preview = if prompt.content.chars().count() > 100 {
+            let truncated: String = prompt.content.chars().take(100).collect();
+            format!("{}...", truncated)
         } else {
             prompt.content.clone()
         };
@@ -575,7 +594,7 @@ async fn handle_run(prompt: String, mode: String, cron: Option<String>) -> Resul
             }
             Err(e) => {
                 print_error(&format!("執行失敗: {}", e));
-                db.create_result(job_id, &format!("錯誤: {}", e.to_string())).await?;
+                db.create_result(job_id, &format!("錯誤: {}", e)).await?;
             }
         }
     } else {
@@ -667,8 +686,8 @@ async fn handle_cooldown() -> Result<()> {
                                         
                                         if duration.num_seconds() > 0 {
                                             let hours = duration.num_hours();
-                                            let minutes = (duration.num_minutes() % 60);
-                                            let seconds = (duration.num_seconds() % 60);
+                                            let minutes = duration.num_minutes() % 60;
+                                            let seconds = duration.num_seconds() % 60;
                                             
                                             println!("⏳ 剩餘時間: {}小時 {}分鐘 {}秒", hours, minutes, seconds);
                                             
@@ -851,7 +870,7 @@ async fn main() -> Result<()> {
                     handle_prompt_create(title, content, tags).await?
                 }
                 PromptAction::Show { id } => handle_prompt_show(id).await?,
-                PromptAction::Edit { id, title, content, tags } => {
+                PromptAction::Edit { id, title: _, content: _, tags: _ } => {
                     print_info(&format!("編輯功能開發中... (Prompt ID: {})", id));
                 }
                 PromptAction::Delete { id } => handle_prompt_delete(id).await?,
@@ -866,12 +885,136 @@ async fn main() -> Result<()> {
                 JobAction::Cancel { id } => {
                     print_info(&format!("取消任務功能開發中... (任務 ID: {})", id));
                 }
+                JobAction::Delete { id } => handle_job_delete(id).await?,
+                JobAction::Run { id, mode } => handle_job_run(id, &mode).await?,
             }
         }
         Commands::Run { prompt, mode, cron } => handle_run(prompt, mode, cron).await?,
         Commands::Status => handle_status().await?,
         Commands::Cooldown => handle_cooldown().await?,
         Commands::Results { job_id, limit } => handle_results(job_id, limit).await?,
+    }
+    
+    Ok(())
+}
+
+// ===== 新增的任務處理函數 =====
+
+async fn handle_job_delete(job_id: i64) -> Result<()> {
+    let db = connect_db().await?;
+    
+    // 首先檢查任務是否存在
+    let job_exists = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM jobs WHERE id = ?")
+        .bind(job_id)
+        .fetch_one(&db)
+        .await?;
+    
+    if job_exists == 0 {
+        print_error(&format!("任務 ID {} 不存在", job_id));
+        return Ok(());
+    }
+    
+    // 刪除任務
+    let rows_affected = sqlx::query("DELETE FROM jobs WHERE id = ?")
+        .bind(job_id)
+        .execute(&db)
+        .await?
+        .rows_affected();
+    
+    if rows_affected > 0 {
+        print_success(&format!("✅ 任務 {} 已成功刪除", job_id));
+    } else {
+        print_error(&format!("❌ 刪除任務 {} 失敗", job_id));
+    }
+    
+    Ok(())
+}
+
+async fn handle_job_run(job_id: i64, mode: &str) -> Result<()> {
+    let db = connect_db().await?;
+    
+    // 獲取任務和對應的 prompt
+    let job = sqlx::query_as::<_, Job>("SELECT * FROM jobs WHERE id = ?")
+        .bind(job_id)
+        .fetch_optional(&db)
+        .await?;
+    
+    let job = match job {
+        Some(job) => job,
+        None => {
+            print_error(&format!("任務 ID {} 不存在", job_id));
+            return Ok(());
+        }
+    };
+    
+    let prompt = sqlx::query_as::<_, Prompt>("SELECT * FROM prompts WHERE id = ?")
+        .bind(job.prompt_id)
+        .fetch_optional(&db)
+        .await?;
+    
+    let prompt = match prompt {
+        Some(prompt) => prompt,
+        None => {
+            print_error(&format!("任務關聯的 Prompt ID {} 不存在", job.prompt_id));
+            return Ok(());
+        }
+    };
+    
+    print_info(&format!("🚀 開始執行任務 {} ({})", job_id, mode));
+    print_info(&format!("Prompt: {}", prompt.title));
+    print_info(&format!("內容: {}", prompt.content));
+    
+    // 更新任務狀態為 running
+    sqlx::query("UPDATE jobs SET status = 'running' WHERE id = ?")
+        .bind(job_id)
+        .execute(&db)
+        .await?;
+    
+    // 執行 Claude CLI（或模擬執行）
+    if mode == "sync" {
+        match SimpleClaudeExecutor::run_sync(&prompt.content).await {
+            Ok(response) => {
+                print_success(&format!("✅ 任務 {} 執行成功", job_id));
+                println!("{}", response);
+                
+                // 保存結果
+                sqlx::query("INSERT INTO results (job_id, content, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)")
+                    .bind(job_id)
+                    .bind(&response)
+                    .execute(&db)
+                    .await?;
+                
+                // 更新任務狀態為 done
+                sqlx::query("UPDATE jobs SET status = 'done' WHERE id = ?")
+                    .bind(job_id)
+                    .execute(&db)
+                    .await?;
+            }
+            Err(e) => {
+                print_error(&format!("❌ 任務 {} 執行失敗: {}", job_id, e));
+                
+                // 保存錯誤訊息
+                sqlx::query("INSERT INTO results (job_id, content, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)")
+                    .bind(job_id)
+                    .bind(&format!("錯誤: {}", e))
+                    .execute(&db)
+                    .await?;
+                
+                // 更新任務狀態為 error
+                sqlx::query("UPDATE jobs SET status = 'error' WHERE id = ?")
+                    .bind(job_id)
+                    .execute(&db)
+                    .await?;
+            }
+        }
+    } else {
+        // 非同步執行（暫時只是標記為 pending）
+        print_info(&format!("📅 任務 {} 已排程為非同步執行", job_id));
+        
+        sqlx::query("UPDATE jobs SET status = 'pending' WHERE id = ?")
+            .bind(job_id)
+            .execute(&db)
+            .await?;
     }
     
     Ok(())

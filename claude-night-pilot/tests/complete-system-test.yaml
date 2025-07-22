@@ -1,0 +1,304 @@
+# Claude Night Pilot - 完整系統測試驗證方案
+# Material Design 3.0 + CLI/GUI 整合測試
+
+test_suite:
+  name: "Claude Night Pilot 系統完整性測試"
+  version: "2.0.0"
+  environment: "development"
+  target_gui: "http://localhost:1420"
+  target_cli: "/src-tauri/target/debug/cnp"
+
+# ===== Phase 1: 清除現有排程任務（CLI 層級執行） =====
+phase_1_cli_cleanup:
+  description: "清理環境，準備測試基礎"
+  
+  - task: "列出現有任務"
+    command: "cd src-tauri && ./target/debug/cnp job list"
+    expect:
+      type: "success"
+      output_format: "表格式列表"
+      fields: ["任務 ID", "狀態", "模式"]
+    description: "CLI - 檢視當前系統中的所有任務"
+
+  - task: "刪除指定任務"
+    command: "./target/debug/cnp job delete 1"
+    expect:
+      type: "success"  
+      output_contains: ["任務", "已成功刪除"]
+      status_icon: "✅"
+    description: "CLI - 測試任務刪除功能 (Material Design成功圖示)"
+
+  - task: "驗證任務已刪除"
+    command: "./target/debug/cnp job list"
+    expect:
+      type: "success"
+      not_contains: ["任務 ID: 1"]
+    description: "CLI - 確認任務成功從系統中移除"
+
+# ===== Phase 2: 新增排程任務與 Prompt 管理 =====
+phase_2_task_creation:
+  description: "建立新的測試任務和 Prompt"
+
+  - task: "建立測試 Prompt"
+    command: "./target/debug/cnp prompt create --title '系統測試Prompt' --content '@docs/PROJECT_RULES.md 請進行系統分析' --tags 'system,test,material-design'"
+    expect:
+      type: "success"
+      output_contains: ["Prompt 建立成功", "ID:"]
+      extract_id: true
+    description: "CLI - 建立支援 Claude Code 語法的測試 Prompt"
+
+  - task: "執行同步任務測試"
+    command: "./target/debug/cnp job run ${PROMPT_ID} --mode sync"
+    expect:
+      type: "success_or_mock"
+      output_contains: ["開始執行任務", "執行成功"]
+      material_icons: ["🚀", "✅"]
+    description: "CLI - 測試 run_prompt_sync 功能"
+
+  - task: "建立排程任務"
+    command: "./target/debug/cnp run --prompt ${PROMPT_ID} --mode async --cron '*/5 * * * *'"
+    expect: 
+      type: "success"
+      output_contains: ["排程", "建立"]
+      job_id_extracted: true
+    description: "CLI - 建立每5分鐘執行的排程任務"
+
+# ===== Phase 3: GUI Material Design 3.0 驗證 =====
+phase_3_gui_verification:
+  description: "驗證 GUI 正確顯示任務並符合 Material Design 規範"
+
+  - task: "檢查應用載入"
+    action_type: "gui"
+    selector: "#app-loader.md-elevation-level5"
+    expect:
+      visible: true
+      contains_icon: "flight"
+      icon_type: "material-symbols-rounded"
+      animation: "fadeIn 存在"
+    description: "GUI - Material Design 載入動畫與圖示驗證"
+
+  - task: "驗證頂部應用欄"
+    action_type: "gui"
+    selector: ".md-top-app-bar.md-elevation-level2"
+    expect:
+      exists: true
+      brand_icon: "flight (material-symbols-rounded)"
+      action_buttons: 
+        - icon: "light_mode"
+          type: "material-symbols-outlined"
+        - icon: "settings" 
+          type: "material-symbols-outlined"
+    description: "GUI - Material Design Top App Bar 結構驗證"
+
+  - task: "檢查新排程任務卡片顯示"
+    action_type: "gui"
+    selector: "#job-list .job-card[data-cron='*/5 * * * *']"
+    expect:
+      exists: true
+      material_design_card: true
+      elevation: "md-elevation-level1"
+      status_chip: ".md-status-chip"
+    description: "GUI - 即時同步顯示新建立的排程任務"
+
+# ===== Phase 4: 冷卻機制與 Material Icons 測試 =====  
+phase_4_cooldown_testing:
+  description: "測試冷卻狀態顯示與 Material Design 動畫"
+
+  - task: "冷卻狀態圖示驗證"
+    action_type: "gui"
+    selector: "#cooldown-status .status-icon"
+    expect:
+      icon_type: "material-symbols-rounded"
+      valid_icons: ["check_circle", "timer", "schedule", "error"]
+      not_emoji: true
+    description: "GUI - 確保所有狀態圖示使用 Material Design Icons"
+
+  - task: "冷卻倒數動畫條測試"
+    action_type: "gui"
+    selector: ".progress-fill, .md-linear-progress .md-linear-progress-indicator"
+    expect:
+      exists_when: "cooling"
+      animated: true
+      width_changes: true
+      duration: ">=1000ms"
+    description: "GUI - Material Design 進度條動畫效果"
+
+  - task: "剩餘時間格式驗證"
+    action_type: "gui"
+    selector: ".time-remaining .time"
+    expect:
+      format_regex: "\\d{1,2}:\\d{2}|正常|檢查中"
+      updates_every: "5 seconds"
+      font_family: "monospace"
+    description: "GUI - 時間顯示格式與自動更新機制"
+
+  - task: "狀態轉換動畫"
+    action_type: "gui_interaction"
+    trigger: "cooldown_state_change"
+    expect:
+      transition_smooth: true
+      duration: "var(--md-sys-motion-duration-medium2)"
+      easing: "var(--md-sys-motion-easing-standard)"
+    description: "GUI - Material Design 狀態轉換動畫"
+
+# ===== Phase 5: CLI 非互動式指令功能測試 =====
+phase_5_cli_comprehensive:
+  description: "全面測試 CLI 各項功能"
+
+  - task: "create_prompt 功能"
+    command: "./target/debug/cnp prompt create --title 'CLI功能測試' --content '測試 CLI 建立功能' --tags 'cli,functional'"
+    expect:
+      success_message: "Prompt 建立成功"
+      returns_id: true
+      material_feedback: "✅"
+    description: "CLI - create_prompt 指令驗證"
+
+  - task: "pause_job 功能 (如已實作)"
+    command: "./target/debug/cnp job cancel ${JOB_ID}"
+    expect:
+      type: "success_or_not_implemented"
+      message_pattern: "(已暫停|功能開發中)"
+    description: "CLI - pause_job 暫停任務功能"
+
+  - task: "delete_job 功能"
+    command: "./target/debug/cnp job delete ${JOB_ID}"
+    expect:
+      success_message: "已成功刪除"
+      material_icon: "✅"
+      database_updated: true
+    description: "CLI - delete_job 刪除任務功能"
+
+  - task: "系統狀態檢查"
+    command: "./target/debug/cnp cooldown"
+    expect:
+      type: "success"
+      status_info: true
+      material_compatible: true
+    description: "CLI - 系統冷卻狀態檢查"
+
+# ===== Phase 6: E2E 測試腳本執行 =====
+phase_6_e2e_automation:
+  description: "自動化端到端測試流程"
+
+  - task: "執行 Playwright 測試"
+    command: "npm test -- tests/material-design-e2e.spec.js"
+    expect:
+      all_tests_pass: true
+      material_design_compliance: "100%"
+      no_emoji_found: true
+    description: "E2E - 自動化測試所有 GUI 流程"
+
+  - task: "響應式設計測試"
+    test_viewports:
+      - {width: 1200, height: 800, name: "desktop"}
+      - {width: 768, height: 1024, name: "tablet"} 
+      - {width: 375, height: 667, name: "mobile"}
+    expect:
+      all_layouts_functional: true
+      material_components_responsive: true
+      icons_visible_all_sizes: true
+    description: "E2E - 跨裝置響應式設計驗證"
+
+# ===== Phase 7: Material Design 3.0 Icons 全面檢查 =====
+phase_7_icon_verification:
+  description: "確保所有 emoji 已替換為 Material Design Icons"
+
+  - task: "掃描 HTML 中的 emoji"
+    action_type: "code_scan"
+    files: ["src/index.html", "src/main.js"]
+    search_pattern: "[🌙✈️📋🎯🔧📱⚡🚀✅❌💡🔄📊]"
+    expect:
+      matches_found: 0
+      replacement_complete: true
+    description: "代碼掃描 - 確認無殘留 emoji"
+
+  - task: "Material Icons CDN 載入驗證" 
+    action_type: "gui"
+    selector: "link[href*='material-symbols']"
+    expect:
+      cdn_loaded: true
+      font_families: ["Material+Symbols+Rounded", "Material+Symbols+Outlined"]
+      status: "loaded"
+    description: "GUI - Material Design Icons 字體載入狀態"
+
+  - task: "圖示語意正確性檢查"
+    action_type: "gui_validation"
+    icon_mappings:
+      success_states: "check_circle"
+      error_states: "error"  
+      timer_states: "timer"
+      schedule_states: "schedule"
+      loading_states: "hourglass_empty"
+    expect:
+      semantic_accuracy: "100%"
+      consistent_usage: true
+    description: "GUI - Material Icons 語意使用正確性"
+
+# ===== 測試執行指引 =====
+execution_instructions:
+  pre_requirements:
+    - "Tauri 應用程式運行於 http://localhost:1420"
+    - "CLI 工具已編譯: cargo build --bin cnp"
+    - "資料庫可讀寫: claude-pilot.db"
+    - "Node.js 環境正常: npm 與 Playwright"
+
+  execution_order:
+    1. "執行 Phase 1-2: CLI 基礎功能測試"
+    2. "啟動 GUI 應用程式"
+    3. "執行 Phase 3-4: GUI Material Design 驗證"
+    4. "執行 Phase 5: CLI 進階功能測試"
+    5. "執行 Phase 6: E2E 自動化測試"
+    6. "執行 Phase 7: 最終驗證"
+
+  success_criteria:
+    cli_functionality: ">=90% 通過"
+    gui_material_design: "100% 合規"
+    icon_replacement: "100% 完成"
+    e2e_tests: ">=95% 通過"
+    performance: "載入 <3s, 響應 <100ms"
+
+# ===== 預期測試結果 =====
+expected_outcomes:
+  ✅ CLI 功能:
+    - prompt_management: "create, list, delete 指令正常"
+    - job_management: "create, run, delete 指令正常"  
+    - system_integration: "cooldown, status 檢查正常"
+
+  ✅ Material Design GUI:
+    - component_compliance: "所有組件符合 MD3 規範"
+    - icon_system: "100% Material Design Icons"
+    - animation_system: "流暢的狀態轉換動畫"
+    - elevation_system: "正確的陰影層次"
+
+  ✅ 即時同步:
+    - cli_to_gui: "CLI 操作立即反映在 GUI"
+    - status_updates: "冷卻狀態即時更新"
+    - progress_animation: "進度條動畫流暢"
+
+  ✅ 冷卻機制:
+    - status_display: "清晰的視覺狀態指示"
+    - countdown_precision: "精確的倒數計時"
+    - recovery_animation: "恢復狀態動畫效果"
+
+# ===== 故障排除指南 =====
+troubleshooting:
+  common_issues:
+    - issue: "GUI 載入失敗"
+      solution: "檢查 CooldownManager.init() 是否正確實作"
+      
+    - issue: "CLI 命令不存在"
+      solution: "確認已編譯最新版本: cargo build --bin cnp"
+      
+    - issue: "Material Icons 未載入"
+      solution: "檢查網路連接與 CDN 載入狀態"
+      
+    - issue: "資料庫錯誤"
+      solution: "確認 claude-pilot.db 檔案存在且可寫入"
+
+# ===== 測試報告格式 =====
+reporting:
+  format: "YAML + JSON 結合"
+  include_screenshots: true
+  performance_metrics: true
+  material_design_compliance_score: true
+  automated_test_coverage: true

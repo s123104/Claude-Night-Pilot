@@ -1,5 +1,4 @@
 use tauri_plugin_sql::{Migration, MigrationKind};
-use serde_json;
 
 // 宣告模組 - 公開讓 CLI 可以使用
 pub mod executor;

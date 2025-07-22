@@ -1178,6 +1178,20 @@ class CooldownManager {
   constructor() {
     this.countdownInterval = null;
     this.resetTime = null;
+    this.statusCheckInterval = null;
+  }
+
+  async init() {
+    // Initialize cooldown status polling
+    console.log("Initializing CooldownManager...");
+    await this.checkCooldownStatus();
+    
+    // Set up periodic status checks (every 30 seconds)
+    this.statusCheckInterval = setInterval(() => {
+      this.checkCooldownStatus();
+    }, 30000);
+    
+    console.log("CooldownManager initialized successfully");
   }
 
   async checkCooldownStatus() {
@@ -1211,7 +1225,7 @@ class CooldownManager {
     if (statusElement) {
       statusElement.innerHTML = `
         <div class="status-card available">
-          <div class="status-icon">✅</div>
+          <span class="material-symbols-rounded status-icon">check_circle</span>
           <div class="status-info">
             <h3>Claude API 可用</h3>
             <p>最後檢查: ${new Date().toLocaleString("zh-TW")}</p>
@@ -1234,12 +1248,12 @@ class CooldownManager {
     } else {
       statusElement.innerHTML = `
         <div class="status-card cooldown">
-          <div class="status-icon">🚫</div>
+          <span class="material-symbols-rounded status-icon">schedule</span>
           <div class="status-info">
             <h3>Claude API 使用限制</h3>
             <p>API 已達到使用限制，請稍後再試</p>
             <div class="suggestion">
-              💡 建議稍後再次檢查
+              <span class="material-symbols-rounded">lightbulb</span> 建議稍後再次檢查
             </div>
           </div>
         </div>
@@ -1260,11 +1274,12 @@ class CooldownManager {
         // 冷卻時間已過
         statusElement.innerHTML = `
           <div class="status-card ready">
-            <div class="status-icon">✅</div>
+            <span class="material-symbols-rounded status-icon">check_circle</span>
             <div class="status-info">
               <h3>冷卻時間已過</h3>
               <p>可以重新嘗試使用 Claude API</p>
               <button onclick="cooldownManager.checkCooldownStatus()" class="btn-primary">
+                <span class="material-symbols-rounded">refresh</span>
                 重新檢查
               </button>
             </div>
@@ -1304,7 +1319,7 @@ class CooldownManager {
 
       statusElement.innerHTML = `
         <div class="status-card cooldown">
-          <div class="status-icon">🚫</div>
+          <span class="material-symbols-rounded status-icon">timer</span>
           <div class="status-info">
             <h3>Claude API 使用限制</h3>
             <div class="countdown-display">
@@ -1318,7 +1333,7 @@ class CooldownManager {
               </div>
             </div>
             <div class="suggestion">
-              💡 ${suggestion}
+              <span class="material-symbols-rounded">lightbulb</span> ${suggestion}
             </div>
             <div class="progress-bar">
               <div class="progress-fill" style="width: ${this.calculateProgress()}%"></div>
@@ -1347,7 +1362,7 @@ class CooldownManager {
     if (statusElement) {
       statusElement.innerHTML = `
         <div class="status-card error">
-          <div class="status-icon">❌</div>
+          <span class="material-symbols-rounded status-icon">error</span>
           <div class="status-info">
             <h3>檢查失敗</h3>
             <p>無法檢查 Claude CLI 狀態</p>
@@ -1355,6 +1370,7 @@ class CooldownManager {
               錯誤: ${error.message || error}
             </div>
             <button onclick="cooldownManager.checkCooldownStatus()" class="btn-secondary">
+              <span class="material-symbols-rounded">refresh</span>
               重試
             </button>
           </div>
@@ -1367,6 +1383,10 @@ class CooldownManager {
     if (this.countdownInterval) {
       clearInterval(this.countdownInterval);
       this.countdownInterval = null;
+    }
+    if (this.statusCheckInterval) {
+      clearInterval(this.statusCheckInterval);
+      this.statusCheckInterval = null;
     }
   }
 }
