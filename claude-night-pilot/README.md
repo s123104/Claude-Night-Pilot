@@ -235,7 +235,7 @@ Claude Night Pilot 完全相容 Claude Code 語法：
 系統會自動解析 Claude CLI 的錯誤訊息：
 
 ```
-Claude usage limit reached. Your limit will reset at 23:30 (Asia/Taipei).
+Claude usage limit reached. Your limit will reset at 23:00 (Asia/Taipei).
 ```
 
 並顯示準確的倒數計時器。

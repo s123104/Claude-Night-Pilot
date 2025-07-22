@@ -39,5 +39,47 @@
     "license": "MIT",
     "longDescription": "現代 Claude Code 用戶的夜間自動打工仔 - 零雲端、零安裝痛苦、零學習曲線",
     "shortDescription": "Claude CLI 自動化工具"
+  },
+  "plugins": {
+    "cli": {
+      "description": "Claude Night Pilot CLI 工具",
+      "args": [
+        {
+          "name": "verbose",
+          "short": "v",
+          "description": "啟用詳細輸出"
+        },
+        {
+          "name": "config",
+          "short": "c",
+          "takesValue": true,
+          "description": "指定配置檔案路徑"
+        }
+      ],
+      "subcommands": {
+        "prompt": {
+          "description": "管理提示詞",
+          "args": [
+            {
+              "name": "action",
+              "index": 1,
+              "takesValue": true,
+              "possibleValues": ["list", "create", "delete", "run"]
+            }
+          ]
+        },
+        "job": {
+          "description": "管理排程任務",
+          "args": [
+            {
+              "name": "action",
+              "index": 1,
+              "takesValue": true,
+              "possibleValues": ["list", "create", "results"]
+            }
+          ]
+        }
+      }
+    }
   }
 }
