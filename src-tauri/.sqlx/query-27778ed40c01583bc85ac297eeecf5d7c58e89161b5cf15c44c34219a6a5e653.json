@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO prompts (title, content, tags) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "27778ed40c01583bc85ac297eeecf5d7c58e89161b5cf15c44c34219a6a5e653"
+}

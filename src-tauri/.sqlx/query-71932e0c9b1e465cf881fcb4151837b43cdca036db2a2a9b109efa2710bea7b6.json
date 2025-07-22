@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO jobs (prompt_id, cron_expr, mode, status) VALUES (?, ?, ?, 'pending')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "71932e0c9b1e465cf881fcb4151837b43cdca036db2a2a9b109efa2710bea7b6"
+}

@@ -1,0 +1,1091 @@
+/* ===== Material Design 3.0 Design System ===== */
+:root {
+  /* Material Design 3.0 Extended Color Variables */
+  --md-ref-palette-primary0: #000000;
+  --md-ref-palette-primary10: #001e30;
+  --md-ref-palette-primary20: #003258;
+  --md-ref-palette-primary30: #004881;
+  --md-ref-palette-primary40: #0062a2;
+  --md-ref-palette-primary50: #2196f3;
+  --md-ref-palette-primary60: #4facff;
+  --md-ref-palette-primary70: #79c4ff;
+  --md-ref-palette-primary80: #a1c8ff;
+  --md-ref-palette-primary90: #d0e8ff;
+  --md-ref-palette-primary95: #e8f4ff;
+  --md-ref-palette-primary99: #fefbff;
+  --md-ref-palette-primary100: #ffffff;
+
+  /* Material Design Motion System */
+  --md-sys-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --md-sys-motion-easing-standard-decelerate: cubic-bezier(0, 0, 0, 1);
+  --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-emphasized-accelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+
+  --md-sys-motion-duration-short1: 50ms;
+  --md-sys-motion-duration-short2: 100ms;
+  --md-sys-motion-duration-short3: 150ms;
+  --md-sys-motion-duration-short4: 200ms;
+  --md-sys-motion-duration-medium1: 250ms;
+  --md-sys-motion-duration-medium2: 300ms;
+  --md-sys-motion-duration-medium3: 350ms;
+  --md-sys-motion-duration-medium4: 400ms;
+  --md-sys-motion-duration-long1: 450ms;
+  --md-sys-motion-duration-long2: 500ms;
+  --md-sys-motion-duration-long3: 550ms;
+  --md-sys-motion-duration-long4: 600ms;
+  --md-sys-motion-duration-extra-long1: 700ms;
+  --md-sys-motion-duration-extra-long2: 800ms;
+  --md-sys-motion-duration-extra-long3: 900ms;
+  --md-sys-motion-duration-extra-long4: 1000ms;
+
+  /* Legacy Variables for Backwards Compatibility */
+  --primary-500: var(--md-sys-color-primary);
+  --surface-primary: var(--md-sys-color-surface);
+  --text-primary: var(--md-sys-color-on-surface);
+  --transition-fast: var(--md-sys-motion-duration-short3)
+    var(--md-sys-motion-easing-standard);
+  --transition-normal: var(--md-sys-motion-duration-medium2)
+    var(--md-sys-motion-easing-standard);
+  --radius-lg: var(--md-sys-shape-corner-medium);
+}
+
+/* ===== Base Styles ===== */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font: var(--md-sys-typescale-body-medium);
+  background: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-background);
+  margin: 0;
+  padding: 0;
+  transition: background-color var(--md-sys-motion-duration-medium2)
+      var(--md-sys-motion-easing-standard),
+    color var(--md-sys-motion-duration-medium2)
+      var(--md-sys-motion-easing-standard);
+  overflow-x: hidden;
+}
+
+/* ===== Material Design Loading System ===== */
+.app-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    var(--md-sys-color-primary),
+    var(--md-ref-palette-primary70)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn var(--md-sys-motion-duration-medium2)
+    var(--md-sys-motion-easing-standard);
+}
+
+.loader-content {
+  text-align: center;
+  color: var(--md-sys-color-on-primary);
+  max-width: 400px;
+  padding: 32px;
+}
+
+.loader-icon {
+  margin-bottom: 24px;
+}
+
+.loader-icon .material-symbols-rounded {
+  font-size: 4rem;
+  animation: pulse 2s var(--md-sys-motion-easing-standard) infinite;
+}
+
+.loader-content h2 {
+  margin: 0 0 8px;
+  font-weight: 400;
+}
+
+.loader-content p {
+  margin: 0 0 32px;
+  opacity: 0.9;
+}
+
+/* Material Design Linear Progress Indicator */
+.md-linear-progress {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.md-linear-progress-track {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.md-linear-progress-indicator {
+  height: 100%;
+  background: var(--md-sys-color-on-primary);
+  border-radius: 2px;
+  animation: linearProgress 2s var(--md-sys-motion-easing-standard) infinite;
+}
+
+/* Loading Steps Indicator */
+.loading-steps {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.step-indicator {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--md-sys-motion-duration-medium2)
+    var(--md-sys-motion-easing-standard);
+}
+
+.step-indicator.active {
+  background: var(--md-sys-color-on-primary);
+  color: var(--md-sys-color-primary);
+  transform: scale(1.1);
+}
+
+.step-indicator .material-symbols-outlined {
+  font-size: 20px;
+}
+
+/* ===== Material Design App Structure ===== */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--md-sys-color-surface);
+}
+
+/* Material Design Top App Bar */
+.md-top-app-bar {
+  background: var(--md-sys-color-surface);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  padding: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.md-top-app-bar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  min-height: 64px;
+}
+
+.md-top-app-bar-leading {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-icon {
+  font-size: 2rem;
+  color: var(--md-sys-color-primary);
+}
+
+.brand-text h1 {
+  margin: 0;
+  font-weight: 400;
+  background: linear-gradient(
+    135deg,
+    var(--md-sys-color-primary),
+    var(--md-ref-palette-primary70)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.brand-subtitle {
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-top-app-bar-trailing {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.status-indicators {
+  display: flex;
+  gap: 12px;
+}
+
+/* Material Design Status Chips */
+.md-status-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: var(--md-sys-color-secondary-container);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  transition: all var(--md-sys-motion-duration-short3)
+    var(--md-sys-motion-easing-standard);
+}
+
+.md-status-chip:hover {
+  background: var(--md-sys-color-surface-variant);
+  transform: translateY(-1px);
+}
+
+.md-status-chip .status-icon {
+  font-size: 20px;
+  color: var(--md-sys-color-secondary);
+}
+
+.md-status-chip .status-text {
+  font-weight: 500;
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.md-status-chip.cooldown-status .status-icon {
+  color: var(--md-sys-color-tertiary);
+}
+
+.md-status-chip.ready .status-icon {
+  color: var(--md-sys-color-secondary);
+}
+
+.md-status-chip.error .status-icon {
+  color: var(--md-sys-color-error);
+}
+
+.md-top-app-bar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Material Design Icon Buttons */
+.md-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  transition: all var(--md-sys-motion-duration-short3)
+    var(--md-sys-motion-easing-standard);
+  position: relative;
+  overflow: hidden;
+}
+
+.md-icon-button:hover {
+  background: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface);
+}
+
+.md-icon-button:active {
+  transform: scale(0.95);
+}
+
+.md-icon-button .material-symbols-outlined {
+  font-size: 20px;
+  transition: transform var(--md-sys-motion-duration-short3)
+    var(--md-sys-motion-easing-standard);
+}
+
+/* App Body Layout */
+.app-body {
+  display: flex;
+  flex: 1;
+}
+
+/* Material Design Navigation Rail */
+.md-navigation-rail {
+  width: 80px;
+  background: var(--md-sys-color-surface);
+  border-right: 1px solid var(--md-sys-color-outline-variant);
+  padding: 8px 0;
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+.md-navigation-rail-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.md-navigation-rail-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 0 12px;
+}
+
+.md-navigation-rail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 8px;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-large);
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  transition: all var(--md-sys-motion-duration-short3)
+    var(--md-sys-motion-easing-standard);
+  gap: 4px;
+  min-height: 64px;
+  width: 100%;
+}
+
+.md-navigation-rail-item:hover {
+  background: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface);
+}
+
+.md-navigation-rail-item.active {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.md-navigation-rail-item .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.md-navigation-rail-item span:last-child {
+  font-size: 10px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Main Content Area */
+.md-main-content {
+  flex: 1;
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Tab Content */
+.md-tab-content {
+  animation: fadeIn var(--md-sys-motion-duration-medium2)
+    var(--md-sys-motion-easing-standard);
+}
+
+.md-tab-panel {
+  display: none;
+}
+
+.md-tab-panel.active {
+  display: block;
+  animation: slideInUp var(--md-sys-motion-duration-medium2)
+    var(--md-sys-motion-easing-emphasized);
+}
+
+/* Material Design Section Headers */
+.md-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.section-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 0 8px;
+  color: var(--md-sys-color-on-surface);
+}
+
+.section-title h2 .material-symbols-outlined {
+  font-size: 28px;
+  color: var(--md-sys-color-primary);
+}
+
+.section-subtitle {
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Material Design Floating Action Button */
+.md-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-large);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--md-sys-motion-duration-short3)
+    var(--md-sys-motion-easing-standard);
+  z-index: 1000;
+}
+
+.md-fab:hover {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--md-sys-elevation-level4);
+}
+
+.md-fab:active {
+  transform: translateY(0);
+}
+
+.md-fab .material-symbols-outlined {
+  font-size: 24px;
+}
+
+/* Material Design Buttons */
+.md-filled-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  font: var(--md-sys-typescale-label-large);
+  cursor: pointer;
+  transition: all var(--md-sys-motion-duration-short3)
+    var(--md-sys-motion-easing-standard);
+  position: relative;
+  overflow: hidden;
+}
+
+.md-filled-button:hover {
+  background: var(--md-ref-palette-primary60);
+  transform: translateY(-1px);
+  box-shadow: var(--md-sys-elevation-level2);
+}
+
+.md-filled-button:active {
+  transform: translateY(0);
+}
+
+.md-text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: transparent;
+  color: var(--md-sys-color-primary);
+  font: var(--md-sys-typescale-label-large);
+  cursor: pointer;
+  transition: all var(--md-sys-motion-duration-short3)
+    var(--md-sys-motion-easing-standard);
+}
+
+.md-text-button:hover {
+  background: var(--md-sys-color-surface-variant);
+}
+
+/* Material Design Cards */
+.md-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.md-card {
+  background: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  padding: 24px;
+  transition: all var(--md-sys-motion-duration-short3)
+    var(--md-sys-motion-easing-standard);
+  position: relative;
+  overflow: hidden;
+}
+
+.md-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--md-sys-elevation-level3);
+  border-color: var(--md-sys-color-outline);
+}
+
+.md-card-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.md-card-header h3 {
+  font: var(--md-sys-typescale-title-medium);
+  margin: 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.md-card-content {
+  color: var(--md-sys-color-on-surface-variant);
+  line-height: 1.6;
+}
+
+/* Material Design Lists */
+.md-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.md-list-item {
+  background: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  padding: 24px;
+  transition: all var(--md-sys-motion-duration-short3)
+    var(--md-sys-motion-easing-standard);
+}
+
+.md-list-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--md-sys-elevation-level2);
+}
+
+/* Material Design Form Components */
+.md-form-group {
+  margin-bottom: 24px;
+}
+
+.md-form-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--md-sys-typescale-label-large);
+  color: var(--md-sys-color-on-surface);
+  margin-bottom: 8px;
+}
+
+.md-text-field {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-small);
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font: var(--md-sys-typescale-body-large);
+  transition: all var(--md-sys-motion-duration-short3)
+    var(--md-sys-motion-easing-standard);
+}
+
+.md-text-field:focus {
+  outline: none;
+  border-color: var(--md-sys-color-primary);
+  background: var(--md-sys-color-surface-variant);
+}
+
+.md-textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.md-select {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-small);
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font: var(--md-sys-typescale-body-large);
+  cursor: pointer;
+}
+
+.md-supporting-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--md-sys-typescale-body-small);
+  color: var(--md-sys-color-on-surface-variant);
+  margin-top: 8px;
+}
+
+/* Material Design Dialog */
+.md-dialog {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: none;
+  padding: 0;
+}
+
+.md-dialog-container {
+  background: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  max-width: 500px;
+  width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: dialogSlideIn var(--md-sys-motion-duration-medium2)
+    var(--md-sys-motion-easing-emphasized);
+}
+
+.md-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-variant);
+}
+
+.md-dialog-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.md-dialog-content {
+  padding: 24px;
+}
+
+.md-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 24px;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-variant);
+}
+
+/* Material Design System Info Grid */
+.md-system-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 24px;
+}
+
+.md-info-card {
+  background: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  overflow: hidden;
+  transition: all var(--md-sys-motion-duration-short3)
+    var(--md-sys-motion-easing-standard);
+}
+
+.md-info-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--md-sys-elevation-level2);
+}
+
+.md-info-card .md-card-header {
+  background: var(--md-sys-color-surface-variant);
+  padding: 24px;
+  margin: 0;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.md-info-card .md-card-content {
+  padding: 24px;
+}
+
+/* Material Design Loading Skeletons */
+.md-loading-skeleton {
+  animation: pulse 1.5s var(--md-sys-motion-easing-standard) infinite;
+}
+
+.md-skeleton-card {
+  background: var(--md-sys-color-surface-variant);
+  border-radius: var(--md-sys-shape-corner-large);
+  height: 200px;
+  margin-bottom: 24px;
+}
+
+.md-skeleton-list-item {
+  background: var(--md-sys-color-surface-variant);
+  border-radius: var(--md-sys-shape-corner-medium);
+  height: 80px;
+  margin-bottom: 16px;
+}
+
+.md-skeleton-text {
+  background: var(--md-sys-color-surface-variant);
+  border-radius: var(--md-sys-shape-corner-extra-small);
+  height: 16px;
+  margin-bottom: 8px;
+}
+
+.md-skeleton-text:last-child {
+  width: 70%;
+}
+
+/* Material Design Snackbar */
+.md-snackbar-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 400px;
+}
+
+.md-snackbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-medium);
+  box-shadow: var(--md-sys-elevation-level3);
+  animation: snackbarSlideIn var(--md-sys-motion-duration-medium2)
+    var(--md-sys-motion-easing-emphasized);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.md-snackbar.success {
+  border-left: 4px solid var(--md-sys-color-secondary);
+}
+
+.md-snackbar.error {
+  border-left: 4px solid var(--md-sys-color-error);
+}
+
+.md-snackbar.warning {
+  border-left: 4px solid var(--md-sys-color-tertiary);
+}
+
+.md-snackbar.info {
+  border-left: 4px solid var(--md-sys-color-primary);
+}
+
+.snackbar-icon {
+  color: var(--md-sys-color-secondary);
+}
+
+.md-snackbar.error .snackbar-icon {
+  color: var(--md-sys-color-error);
+}
+
+.md-snackbar.warning .snackbar-icon {
+  color: var(--md-sys-color-tertiary);
+}
+
+.md-snackbar.info .snackbar-icon {
+  color: var(--md-sys-color-primary);
+}
+
+.snackbar-content {
+  flex: 1;
+}
+
+.snackbar-title {
+  font: var(--md-sys-typescale-label-large);
+  color: var(--md-sys-color-on-surface);
+  margin: 0 0 4px;
+}
+
+.snackbar-message {
+  font: var(--md-sys-typescale-body-small);
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+}
+
+/* ===== Material Design Animations ===== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes linearProgress {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes dialogSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes snackbarSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes snackbarSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 1200px) {
+  .md-main-content {
+    padding: 16px;
+  }
+
+  .md-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .md-system-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .md-top-app-bar-content {
+    padding: 16px;
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .md-top-app-bar-trailing {
+    justify-content: space-between;
+  }
+
+  .brand-section {
+    justify-content: center;
+  }
+
+  .brand-subtitle {
+    display: none;
+  }
+
+  .app-body {
+    flex-direction: column;
+  }
+
+  .md-navigation-rail {
+    width: 100%;
+    height: auto;
+    position: relative;
+    top: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  }
+
+  .md-navigation-rail-items {
+    flex-direction: row;
+    padding: 8px 16px;
+  }
+
+  .md-navigation-rail-item {
+    min-height: 48px;
+    padding: 8px 12px;
+  }
+
+  .md-navigation-rail-item span:last-child {
+    display: none;
+  }
+
+  .md-main-content {
+    padding: 16px;
+  }
+
+  .md-section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .md-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .md-dialog-container {
+    width: 95vw;
+    max-height: 95vh;
+  }
+
+  .md-snackbar-container {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    max-width: none;
+  }
+
+  .md-fab {
+    bottom: 16px;
+    right: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .md-top-app-bar-content {
+    padding: 12px 16px;
+  }
+
+  .brand-text h1 {
+    font-size: 1.25rem;
+  }
+
+  .md-status-chip .status-text {
+    display: none;
+  }
+
+  .md-main-content {
+    padding: 12px;
+  }
+
+  .section-title h2 {
+    font-size: 1.5rem;
+  }
+
+  .md-dialog-header,
+  .md-dialog-content,
+  .md-dialog-actions {
+    padding: 16px;
+  }
+}
+
+/* ===== Accessibility Improvements ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus indicators */
+.md-filled-button:focus-visible,
+.md-text-button:focus-visible,
+.md-icon-button:focus-visible,
+.md-navigation-rail-item:focus-visible,
+.md-fab:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  :root {
+    --md-sys-color-outline-variant: #000000;
+    --md-sys-color-on-surface-variant: #000000;
+  }
+
+  [data-theme="dark"] {
+    --md-sys-color-outline-variant: #ffffff;
+    --md-sys-color-on-surface-variant: #ffffff;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .app-loader,
+  .md-navigation-rail,
+  .md-dialog,
+  .md-snackbar-container,
+  .md-fab {
+    display: none !important;
+  }
+
+  .app-container {
+    background: white !important;
+    color: black !important;
+  }
+
+  .md-card,
+  .md-info-card {
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+  }
+}
