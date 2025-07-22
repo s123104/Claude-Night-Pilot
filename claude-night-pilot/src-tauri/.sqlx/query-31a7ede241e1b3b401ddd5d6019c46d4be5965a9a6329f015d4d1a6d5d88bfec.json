@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE jobs SET status = ?, eta_unix = ?, last_run_at = CURRENT_TIMESTAMP WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "31a7ede241e1b3b401ddd5d6019c46d4be5965a9a6329f015d4d1a6d5d88bfec"
+}

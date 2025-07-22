@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Claude Night Pilot 🌙✈️</title>
+    <link rel="stylesheet" href="css/pico.min.css" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="js/htmx.min.js"></script>
+  </head>
+
+  <body>
+    <main class="container">
+      <header>
+        <div id="version-info">載入中...</div>
+        <h1>🌙 Claude Night Pilot</h1>
+        <p>現代 Claude Code 用戶的「夜間自動打工仔」</p>
+        <div class="eta-display" id="cooldown-display">
+          冷卻狀態：<span id="cooldown-status">載入中...</span>
+        </div>
+      </header>
+
+      <!-- CLI 整合區域將由 JavaScript 動態添加 -->
+
+      <section id="content">
+        <!-- Prompt 管理區域 -->
+        <section id="prompt-management">
+          <h2>📝 Prompt 管理</h2>
+
+          <fieldset>
+            <legend>建立新 Prompt</legend>
+            <div class="grid">
+              <div>
+                <label for="prompt-title">Prompt 標題</label>
+                <input
+                  type="text"
+                  id="prompt-title"
+                  placeholder="例：分析 Claude Code 文檔"
+                  required
+                />
+              </div>
+              <div>
+                <label for="prompt-tags">標籤 (可選)</label>
+                <input
+                  type="text"
+                  id="prompt-tags"
+                  placeholder="例：claude-code,analysis,docs"
+                />
+              </div>
+            </div>
+            <div>
+              <label for="prompt-content">Prompt 內容</label>
+              <textarea
+                id="prompt-content"
+                rows="4"
+                placeholder="例：@claude-code-zh-tw.md 請分析這個文檔的主要內容並總結重點"
+                required
+              ></textarea>
+              <small>
+                支援 Claude Code 語法：@file.md, @src/*.js, 編輯指令等
+              </small>
+            </div>
+            <button onclick="createPrompt()" class="primary">
+              建立 Prompt
+            </button>
+          </fieldset>
+
+          <div>
+            <h3>📚 已儲存的 Prompts</h3>
+            <div id="prompt-list">載入中...</div>
+          </div>
+        </section>
+
+        <!-- 任務控制台 -->
+        <section id="job-console">
+          <h2>🔧 任務控制台</h2>
+          <div id="job-list">載入中...</div>
+        </section>
+      </section>
+
+      <!-- 排程設定對話框 -->
+      <dialog id="schedule-dialog">
+        <article>
+          <header>
+            <button
+              aria-label="Close"
+              rel="prev"
+              onclick="closeDialog('schedule-dialog')"
+            ></button>
+            <h3>⏰ 排程設定</h3>
+          </header>
+          <form id="schedule-form">
+            <fieldset>
+              <legend>排程參數</legend>
+              <div>
+                <label for="cron-expression">Cron 表達式</label>
+                <input
+                  type="text"
+                  id="cron-expression"
+                  placeholder="例：0 9 * * * (每日上午 9 點)"
+                  required
+                />
+                <small>
+                  常用範例：
+                  <br />
+                  • 每小時：0 * * * *
+                  <br />
+                  • 每日 9AM：0 9 * * *
+                  <br />
+                  • 週一到週五 2PM：0 14 * * 1-5
+                </small>
+              </div>
+              <div>
+                <label for="execution-mode">執行模式</label>
+                <select id="execution-mode">
+                  <option value="async">非同步背景執行</option>
+                  <option value="sync">同步立即執行</option>
+                </select>
+              </div>
+            </fieldset>
+          </form>
+          <footer>
+            <button class="secondary" onclick="closeDialog('schedule-dialog')">
+              取消
+            </button>
+            <button onclick="createScheduledJob()" class="primary">
+              建立排程
+            </button>
+          </footer>
+        </article>
+      </dialog>
+    </main>
+
+    <script type="module" src="./main.js"></script>
+
+    <!-- 動態內容加載提示 -->
+    <script>
+      // 顯示載入動畫
+      function showLoading(selector) {
+        const element = document.querySelector(selector);
+        if (element) {
+          element.classList.add("loading");
+        }
+      }
+
+      function hideLoading(selector) {
+        const element = document.querySelector(selector);
+        if (element) {
+          element.classList.remove("loading");
+        }
+      }
+
+      // 錯誤處理
+      window.addEventListener("error", (event) => {
+        console.error("應用錯誤:", event.error);
+      });
+
+      // 離線檢測
+      window.addEventListener("online", () => {
+        console.log("網路連線已恢復");
+      });
+
+      window.addEventListener("offline", () => {
+        console.log("網路連線中斷");
+      });
+    </script>
+  </body>
+</html>
