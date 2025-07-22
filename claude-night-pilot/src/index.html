@@ -1,168 +1,364 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" data-theme="auto">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Claude Night Pilot 🌙✈️</title>
+
+    <!-- Material Design Icons -->
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+      rel="stylesheet"
+    />
+
+    <!-- Pico CSS -->
     <link rel="stylesheet" href="css/pico.min.css" />
+
+    <!-- Custom Styles -->
     <link rel="stylesheet" href="styles.css" />
+
+    <!-- HTMX -->
     <script src="js/htmx.min.js"></script>
   </head>
-
   <body>
-    <main class="container">
-      <header>
-        <div id="version-info">載入中...</div>
-        <h1>🌙 Claude Night Pilot</h1>
-        <p>現代 Claude Code 用戶的「夜間自動打工仔」</p>
-        <div class="eta-display" id="cooldown-display">
-          冷卻狀態：<span id="cooldown-status">載入中...</span>
+    <!-- Loading Overlay -->
+    <div id="app-loader" class="app-loader">
+      <div class="loader-content">
+        <div class="loader-icon">
+          <span class="material-symbols-rounded pulse">flight</span>
+        </div>
+        <h2>Claude Night Pilot</h2>
+        <p>正在啟動您的夜間自動打工仔...</p>
+        <div class="loading-progress">
+          <div class="progress-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app" class="app-container" style="display: none">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-content">
+          <div class="brand">
+            <span class="material-symbols-rounded brand-icon">flight</span>
+            <h1>Claude Night Pilot</h1>
+            <span class="brand-subtitle">夜間自動打工仔</span>
+          </div>
+
+          <div class="header-controls">
+            <!-- CLI Status Indicator -->
+            <div id="cli-status" class="status-indicator" title="CLI 整合狀態">
+              <span class="material-symbols-outlined status-icon"
+                >terminal</span
+              >
+              <span class="status-text">CLI 已啟用</span>
+            </div>
+
+            <!-- Cooldown Status -->
+            <div
+              id="cooldown-status"
+              class="status-indicator cooldown-status"
+              title="Claude API 狀態"
+            >
+              <span class="material-symbols-outlined status-icon"
+                >schedule</span
+              >
+              <span class="status-text">檢查中...</span>
+            </div>
+
+            <!-- Theme Toggle -->
+            <button
+              id="theme-toggle"
+              class="icon-btn"
+              title="切換主題"
+              aria-label="切換明暗主題"
+            >
+              <span class="material-symbols-outlined">light_mode</span>
+            </button>
+
+            <!-- Settings -->
+            <button
+              id="settings-btn"
+              class="icon-btn"
+              title="設定"
+              aria-label="開啟設定"
+            >
+              <span class="material-symbols-outlined">settings</span>
+            </button>
+          </div>
         </div>
       </header>
 
-      <!-- CLI 整合區域將由 JavaScript 動態添加 -->
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+          <button class="tab-btn active" data-tab="prompts">
+            <span class="material-symbols-outlined">chat</span>
+            <span>Prompt 管理</span>
+          </button>
+          <button class="tab-btn" data-tab="scheduler">
+            <span class="material-symbols-outlined">schedule</span>
+            <span>排程任務</span>
+          </button>
+          <button class="tab-btn" data-tab="results">
+            <span class="material-symbols-outlined">analytics</span>
+            <span>執行結果</span>
+          </button>
+          <button class="tab-btn" data-tab="system">
+            <span class="material-symbols-outlined">monitoring</span>
+            <span>系統監控</span>
+          </button>
+        </nav>
 
-      <section id="content">
-        <!-- Prompt 管理區域 -->
-        <section id="prompt-management">
-          <h2>📝 Prompt 管理</h2>
+        <!-- Tab Content -->
+        <div class="tab-content">
+          <!-- Prompts Tab -->
+          <section id="prompts-tab" class="tab-panel active">
+            <div class="section-header">
+              <h2>
+                <span class="material-symbols-outlined">chat</span>
+                Prompt 管理
+              </h2>
+              <button id="create-prompt-btn" class="btn btn-primary">
+                <span class="material-symbols-outlined">add</span>
+                建立新 Prompt
+              </button>
+            </div>
 
-          <fieldset>
-            <legend>建立新 Prompt</legend>
-            <div class="grid">
-              <div>
-                <label for="prompt-title">Prompt 標題</label>
-                <input
-                  type="text"
-                  id="prompt-title"
-                  placeholder="例：分析 Claude Code 文檔"
-                  required
-                />
-              </div>
-              <div>
-                <label for="prompt-tags">標籤 (可選)</label>
-                <input
-                  type="text"
-                  id="prompt-tags"
-                  placeholder="例：claude-code,analysis,docs"
-                />
+            <!-- Prompt List -->
+            <div class="card-grid" id="prompts-list">
+              <div class="loading-skeleton">
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
               </div>
             </div>
-            <div>
-              <label for="prompt-content">Prompt 內容</label>
-              <textarea
-                id="prompt-content"
-                rows="4"
-                placeholder="例：@claude-code-zh-tw.md 請分析這個文檔的主要內容並總結重點"
-                required
-              ></textarea>
-              <small>
-                支援 Claude Code 語法：@file.md, @src/*.js, 編輯指令等
-              </small>
+          </section>
+
+          <!-- Scheduler Tab -->
+          <section id="scheduler-tab" class="tab-panel">
+            <div class="section-header">
+              <h2>
+                <span class="material-symbols-outlined">schedule</span>
+                排程任務
+              </h2>
+              <button id="create-job-btn" class="btn btn-primary">
+                <span class="material-symbols-outlined">add_task</span>
+                建立新任務
+              </button>
             </div>
-            <button onclick="createPrompt()" class="primary">
-              建立 Prompt
-            </button>
-          </fieldset>
 
-          <div>
-            <h3>📚 已儲存的 Prompts</h3>
-            <div id="prompt-list">載入中...</div>
-          </div>
-        </section>
-
-        <!-- 任務控制台 -->
-        <section id="job-console">
-          <h2>🔧 任務控制台</h2>
-          <div id="job-list">載入中...</div>
-        </section>
-      </section>
-
-      <!-- 排程設定對話框 -->
-      <dialog id="schedule-dialog">
-        <article>
-          <header>
-            <button
-              aria-label="Close"
-              rel="prev"
-              onclick="closeDialog('schedule-dialog')"
-            ></button>
-            <h3>⏰ 排程設定</h3>
-          </header>
-          <form id="schedule-form">
-            <fieldset>
-              <legend>排程參數</legend>
-              <div>
-                <label for="cron-expression">Cron 表達式</label>
-                <input
-                  type="text"
-                  id="cron-expression"
-                  placeholder="例：0 9 * * * (每日上午 9 點)"
-                  required
-                />
-                <small>
-                  常用範例：
-                  <br />
-                  • 每小時：0 * * * *
-                  <br />
-                  • 每日 9AM：0 9 * * *
-                  <br />
-                  • 週一到週五 2PM：0 14 * * 1-5
-                </small>
+            <!-- Jobs List -->
+            <div class="jobs-container" id="jobs-list">
+              <div class="loading-skeleton">
+                <div class="skeleton-row"></div>
+                <div class="skeleton-row"></div>
+                <div class="skeleton-row"></div>
               </div>
-              <div>
-                <label for="execution-mode">執行模式</label>
-                <select id="execution-mode">
-                  <option value="async">非同步背景執行</option>
-                  <option value="sync">同步立即執行</option>
+            </div>
+          </section>
+
+          <!-- Results Tab -->
+          <section id="results-tab" class="tab-panel">
+            <div class="section-header">
+              <h2>
+                <span class="material-symbols-outlined">analytics</span>
+                執行結果
+              </h2>
+              <div class="filter-controls">
+                <select id="results-filter" class="form-select">
+                  <option value="">所有結果</option>
+                  <option value="success">成功</option>
+                  <option value="error">錯誤</option>
+                  <option value="pending">進行中</option>
                 </select>
               </div>
-            </fieldset>
-          </form>
-          <footer>
-            <button class="secondary" onclick="closeDialog('schedule-dialog')">
+            </div>
+
+            <!-- Results List -->
+            <div class="results-container" id="results-list">
+              <div class="loading-skeleton">
+                <div class="skeleton-row"></div>
+                <div class="skeleton-row"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- System Tab -->
+          <section id="system-tab" class="tab-panel">
+            <div class="section-header">
+              <h2>
+                <span class="material-symbols-outlined">monitoring</span>
+                系統監控
+              </h2>
+              <button id="refresh-system-btn" class="btn btn-secondary">
+                <span class="material-symbols-outlined">refresh</span>
+                刷新資訊
+              </button>
+            </div>
+
+            <!-- System Info Cards -->
+            <div class="system-grid">
+              <div class="info-card">
+                <div class="card-header">
+                  <span class="material-symbols-outlined">info</span>
+                  <h3>應用資訊</h3>
+                </div>
+                <div class="card-content" id="app-info">
+                  <div class="loading-skeleton">
+                    <div class="skeleton-text"></div>
+                    <div class="skeleton-text"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="info-card">
+                <div class="card-header">
+                  <span class="material-symbols-outlined">memory</span>
+                  <h3>效能監控</h3>
+                </div>
+                <div class="card-content" id="performance-info">
+                  <div class="loading-skeleton">
+                    <div class="skeleton-text"></div>
+                    <div class="skeleton-text"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Create Prompt Modal -->
+    <dialog id="prompt-modal" class="modal">
+      <article class="modal-content">
+        <header class="modal-header">
+          <h3>
+            <span class="material-symbols-outlined">chat</span>
+            建立新 Prompt
+          </h3>
+          <button class="close-btn" aria-label="關閉">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <form id="prompt-form" class="modal-form">
+          <div class="form-group">
+            <label for="prompt-title">
+              <span class="material-symbols-outlined">title</span>
+              標題
+            </label>
+            <input
+              type="text"
+              id="prompt-title"
+              required
+              placeholder="輸入 Prompt 標題"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="prompt-content">
+              <span class="material-symbols-outlined">description</span>
+              內容
+            </label>
+            <textarea
+              id="prompt-content"
+              required
+              placeholder="輸入 Prompt 內容，支援 Claude Code 語法 (@file.md)"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="prompt-tags">
+              <span class="material-symbols-outlined">tag</span>
+              標籤
+            </label>
+            <input
+              type="text"
+              id="prompt-tags"
+              placeholder="以逗號分隔的標籤"
+            />
+          </div>
+
+          <footer class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-close>
               取消
             </button>
-            <button onclick="createScheduledJob()" class="primary">
-              建立排程
+            <button type="submit" class="btn btn-primary">
+              <span class="material-symbols-outlined">save</span>
+              儲存
             </button>
           </footer>
-        </article>
-      </dialog>
-    </main>
+        </form>
+      </article>
+    </dialog>
 
-    <script type="module" src="./main.js"></script>
+    <!-- Create Job Modal -->
+    <dialog id="job-modal" class="modal">
+      <article class="modal-content">
+        <header class="modal-header">
+          <h3>
+            <span class="material-symbols-outlined">add_task</span>
+            建立排程任務
+          </h3>
+          <button class="close-btn" aria-label="關閉">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
 
-    <!-- 動態內容加載提示 -->
-    <script>
-      // 顯示載入動畫
-      function showLoading(selector) {
-        const element = document.querySelector(selector);
-        if (element) {
-          element.classList.add("loading");
-        }
-      }
+        <form id="job-form" class="modal-form">
+          <div class="form-group">
+            <label for="job-prompt">
+              <span class="material-symbols-outlined">chat</span>
+              選擇 Prompt
+            </label>
+            <select id="job-prompt" required>
+              <option value="">請選擇 Prompt</option>
+            </select>
+          </div>
 
-      function hideLoading(selector) {
-        const element = document.querySelector(selector);
-        if (element) {
-          element.classList.remove("loading");
-        }
-      }
+          <div class="form-group">
+            <label for="job-cron">
+              <span class="material-symbols-outlined">schedule</span>
+              Cron 表達式
+            </label>
+            <input
+              type="text"
+              id="job-cron"
+              required
+              placeholder="0 9 * * * (每日 9 點)"
+            />
+            <small class="form-help">
+              <span class="material-symbols-outlined">help</span>
+              格式：分 時 日 月 週，例如 "0 9 * * *" 表示每日 9 點執行
+            </small>
+          </div>
 
-      // 錯誤處理
-      window.addEventListener("error", (event) => {
-        console.error("應用錯誤:", event.error);
-      });
+          <footer class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-close>
+              取消
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <span class="material-symbols-outlined">schedule</span>
+              建立任務
+            </button>
+          </footer>
+        </form>
+      </article>
+    </dialog>
 
-      // 離線檢測
-      window.addEventListener("online", () => {
-        console.log("網路連線已恢復");
-      });
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
 
-      window.addEventListener("offline", () => {
-        console.log("網路連線中斷");
-      });
-    </script>
+    <!-- Scripts -->
+    <script src="main.js"></script>
   </body>
 </html>

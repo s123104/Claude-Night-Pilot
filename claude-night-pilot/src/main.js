@@ -1,660 +1,1039 @@
-import { invoke } from "@tauri-apps/api/tauri";
-import { message } from "@tauri-apps/api/dialog";
+/**
+ * Claude Night Pilot - Modern UI/UX JavaScript
+ * 現代化的夜間自動打工仔前端應用程式
+ */
 
-// 全域狀態
-let currentPrompts = [];
-let currentJobs = [];
-let cooldownInterval = null;
-let cliIntegrated = false;
-
-// 初始化應用
-document.addEventListener("DOMContentLoaded", async () => {
-  await loadPrompts();
-  await loadJobs();
-  await updateCooldownStatus();
-  await checkSystemInfo();
-  startCooldownMonitor();
-  setupCliIntegration();
-});
-
-// 檢查系統資訊和 CLI 整合狀態
-async function checkSystemInfo() {
-  try {
-    const systemInfo = await invoke("get_system_info");
-    console.log("系統資訊:", systemInfo);
-
-    cliIntegrated = systemInfo.cli_integrated || false;
-
-    if (cliIntegrated) {
-      // 顯示 CLI 整合狀態
-      const statusElement = document.getElementById("cli-status");
-      if (statusElement) {
-        statusElement.textContent = "CLI 工具已整合";
-        statusElement.className = "success";
-      }
-
-      // 添加 CLI 功能按鈕
-      addCliButtons();
-    }
-
-    // 更新版本資訊
-    const versionElement = document.getElementById("version-info");
-    if (versionElement) {
-      versionElement.textContent = `v${systemInfo.version} (${systemInfo.platform}-${systemInfo.arch})`;
-    }
-  } catch (error) {
-    console.error("無法獲取系統資訊:", error);
-  }
-}
-
-// 設置 CLI 整合功能
-function setupCliIntegration() {
-  // 添加鍵盤快捷鍵
-  document.addEventListener("keydown", (event) => {
-    // Ctrl/Cmd + K: 快速 CLI 命令
-    if ((event.ctrlKey || event.metaKey) && event.key === "k") {
-      event.preventDefault();
-      showCliCommandDialog();
-    }
-
-    // Ctrl/Cmd + Shift + P: 快速建立 Prompt
-    if (
-      (event.ctrlKey || event.metaKey) &&
-      event.shiftKey &&
-      event.key === "P"
-    ) {
-      event.preventDefault();
-      focusPromptCreation();
-    }
-  });
-}
-
-// 添加 CLI 相關按鈕
-function addCliButtons() {
-  const container = document.querySelector(".container");
-  if (!container) return;
-
-  // 檢查是否已經添加過
-  if (document.getElementById("cli-section")) return;
-
-  const cliSection = document.createElement("section");
-  cliSection.id = "cli-section";
-  cliSection.innerHTML = `
-    <h3>🖥️ CLI 工具整合</h3>
-    <div class="cli-controls">
-      <button onclick="showCliStatus()" class="secondary">CLI 狀態</button>
-      <button onclick="showCliCommandDialog()" class="contrast">執行 CLI 命令</button>
-      <button onclick="showCliHelp()" class="outline">CLI 說明</button>
-    </div>
-    <div id="cli-output" class="cli-output" style="display: none;"></div>
-  `;
-
-  // 插入到主要內容之前
-  const mainContent = document.querySelector("#content");
-  if (mainContent) {
-    container.insertBefore(cliSection, mainContent);
-  }
-}
-
-// 顯示 CLI 狀態
-async function showCliStatus() {
-  try {
-    const result = await invoke("run_cli_command", {
-      command: "status",
-      args: [],
-    });
-
-    showCliOutput("CLI 狀態", result);
-  } catch (error) {
-    showCliOutput("CLI 狀態錯誤", error.toString());
-  }
-}
-
-// 顯示 CLI 命令對話框
-function showCliCommandDialog() {
-  const dialog = document.createElement("dialog");
-  dialog.innerHTML = `
-    <article>
-      <header>
-        <button aria-label="Close" rel="prev" onclick="this.closest('dialog').close()"></button>
-        <h3>🖥️ 執行 CLI 命令</h3>
-      </header>
-      <form id="cli-command-form">
-        <fieldset>
-          <label for="cli-command">命令</label>
-          <select id="cli-command" required>
-            <option value="">選擇命令...</option>
-            <option value="status">status - 系統狀態</option>
-            <option value="cooldown">cooldown - 冷卻狀態</option>
-            <option value="prompt list">prompt list - 列出 Prompts</option>
-            <option value="job list">job list - 列出任務</option>
-            <option value="results">results - 執行結果</option>
-          </select>
-          
-          <label for="cli-args">額外參數 (可選)</label>
-          <input type="text" id="cli-args" placeholder="例: --limit 5" />
-          
-          <div id="cli-preview" class="cli-preview"></div>
-        </fieldset>
-      </form>
-      <footer>
-        <button class="secondary" onclick="this.closest('dialog').close()">取消</button>
-        <button onclick="executeCLICommand()" class="primary">執行</button>
-      </footer>
-    </article>
-  `;
-
-  document.body.appendChild(dialog);
-  dialog.showModal();
-
-  // 命令預覽
-  const commandSelect = dialog.querySelector("#cli-command");
-  const argsInput = dialog.querySelector("#cli-args");
-  const preview = dialog.querySelector("#cli-preview");
-
-  function updatePreview() {
-    const command = commandSelect.value;
-    const args = argsInput.value.trim();
-    if (command) {
-      preview.textContent = `cnp ${command}${args ? " " + args : ""}`;
-      preview.style.display = "block";
-    } else {
-      preview.style.display = "none";
-    }
+// ===== Application State Management =====
+class AppState {
+  constructor() {
+    this.theme = localStorage.getItem("theme") || "auto";
+    this.currentTab = "prompts";
+    this.prompts = [];
+    this.jobs = [];
+    this.results = [];
+    this.isLoading = false;
+    this.cooldownStatus = "checking";
   }
 
-  commandSelect.addEventListener("change", updatePreview);
-  argsInput.addEventListener("input", updatePreview);
-
-  // 關閉對話框時清理
-  dialog.addEventListener("close", () => {
-    dialog.remove();
-  });
-}
-
-// 執行 CLI 命令
-async function executeCLICommand() {
-  const dialog = document.querySelector("dialog");
-  const command = dialog.querySelector("#cli-command").value;
-  const argsInput = dialog.querySelector("#cli-args").value.trim();
-
-  if (!command) {
-    await message("請選擇一個命令", "CLI 錯誤");
-    return;
+  setState(key, value) {
+    this[key] = value;
+    this.notifyStateChange(key, value);
   }
 
-  // 解析命令和參數
-  const commandParts = command.split(" ");
-  const baseCommand = commandParts[0];
-  const baseArgs = commandParts.slice(1);
-
-  // 解析額外參數
-  const extraArgs = argsInput
-    ? argsInput.split(" ").filter((arg) => arg.trim())
-    : [];
-  const allArgs = [...baseArgs, ...extraArgs];
-
-  dialog.close();
-
-  try {
-    showCliOutput(
-      "執行中...",
-      `cnp ${command}${argsInput ? " " + argsInput : ""}`
+  notifyStateChange(key, value) {
+    document.dispatchEvent(
+      new CustomEvent("stateChange", {
+        detail: { key, value },
+      })
     );
+  }
+}
 
-    const result = await invoke("run_cli_command", {
-      command: baseCommand,
-      args: allArgs,
-    });
+// ===== Theme Management =====
+class ThemeManager {
+  constructor() {
+    this.init();
+  }
 
-    showCliOutput(`命令執行結果: cnp ${command}`, result);
+  init() {
+    this.applyTheme(appState.theme);
+    this.bindEvents();
+  }
 
-    // 如果是會改變資料的命令，重新載入相關資料
-    if (command.startsWith("prompt") || command.startsWith("job")) {
-      await loadPrompts();
-      await loadJobs();
+  applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+    appState.setState("theme", theme);
+    this.updateThemeIcon(theme);
+  }
+
+  updateThemeIcon(theme) {
+    const themeToggle = document.getElementById("theme-toggle");
+    const icon = themeToggle?.querySelector(".material-symbols-outlined");
+
+    if (!icon) return;
+
+    if (theme === "dark") {
+      icon.textContent = "dark_mode";
+    } else if (theme === "light") {
+      icon.textContent = "light_mode";
+    } else {
+      icon.textContent = "brightness_auto";
     }
-  } catch (error) {
-    showCliOutput("命令執行錯誤", error.toString());
+  }
+
+  toggleTheme() {
+    const themes = ["auto", "light", "dark"];
+    const currentIndex = themes.indexOf(appState.theme);
+    const nextTheme = themes[(currentIndex + 1) % themes.length];
+    this.applyTheme(nextTheme);
+  }
+
+  bindEvents() {
+    const themeToggle = document.getElementById("theme-toggle");
+    themeToggle?.addEventListener("click", () => this.toggleTheme());
   }
 }
 
-// 顯示 CLI 輸出
-function showCliOutput(title, content) {
-  const outputDiv = document.getElementById("cli-output");
-  if (!outputDiv) return;
-
-  outputDiv.innerHTML = `
-    <h4>${title}</h4>
-    <pre class="cli-result">${content}</pre>
-    <button onclick="document.getElementById('cli-output').style.display='none'" class="outline">隱藏</button>
-  `;
-  outputDiv.style.display = "block";
-
-  // 滾動到輸出位置
-  outputDiv.scrollIntoView({ behavior: "smooth" });
-}
-
-// 顯示 CLI 說明
-function showCliHelp() {
-  const helpContent = `
-Claude Night Pilot CLI 工具 (cnp) 說明
-
-基本命令:
-  cnp init                 初始化資料庫
-  cnp status              顯示系統狀態
-  cnp cooldown            檢查冷卻狀態
-
-Prompt 管理:
-  cnp prompt list         列出所有 Prompts
-  cnp prompt create       建立新 Prompt
-  cnp prompt show <id>    顯示 Prompt 詳情
-  cnp prompt edit <id>    編輯 Prompt
-  cnp prompt delete <id>  刪除 Prompt
-
-任務管理:
-  cnp job list            列出所有任務
-  cnp job show <id>       顯示任務詳情
-  cnp job cancel <id>     取消任務
-
-執行命令:
-  cnp run -p <prompt>     執行 Prompt
-  cnp results             顯示執行結果
-
-快捷鍵:
-  Ctrl+K                  開啟 CLI 命令對話框
-  Ctrl+Shift+P           聚焦到 Prompt 建立
-
-範例:
-  cnp prompt create -t "測試" -c "Hello Claude"
-  cnp run -p 1 -m sync
-  cnp job list --status done
-  `;
-
-  showCliOutput("CLI 工具說明", helpContent);
-}
-
-// 聚焦到 Prompt 建立
-function focusPromptCreation() {
-  const titleInput = document.getElementById("prompt-title");
-  if (titleInput) {
-    titleInput.focus();
-    titleInput.scrollIntoView({ behavior: "smooth" });
-  }
-}
-
-// 載入 Prompts
-async function loadPrompts() {
-  try {
-    const prompts = await invoke("list_prompts");
-    currentPrompts = prompts;
-    renderPromptList(prompts);
-  } catch (error) {
-    console.error("載入 Prompts 失敗:", error);
-    await message(`載入 Prompts 失敗: ${error}`, "錯誤");
-  }
-}
-
-// 載入任務
-async function loadJobs() {
-  try {
-    const jobs = await invoke("list_jobs");
-    currentJobs = jobs;
-    renderJobList(jobs);
-  } catch (error) {
-    console.error("載入任務失敗:", error);
-  }
-}
-
-// 渲染 Prompt 列表
-function renderPromptList(prompts) {
-  const container = document.getElementById("prompt-list");
-  if (!container) return;
-
-  if (prompts.length === 0) {
-    container.innerHTML = "<p>尚無 Prompt 記錄</p>";
-    return;
+// ===== Toast Notification System =====
+class NotificationManager {
+  constructor() {
+    this.container = document.getElementById("toast-container");
+    this.toasts = new Map();
   }
 
-  container.innerHTML = prompts
-    .map(
-      (prompt) => `
-      <div class="prompt-item" data-id="${prompt.id}">
-        <h4>${prompt.title}</h4>
-        <p class="prompt-content">${prompt.content.substring(0, 100)}${
-        prompt.content.length > 100 ? "..." : ""
-      }</p>
-        ${
-          prompt.tags
-            ? `<div class="tags">${prompt.tags
-                .split(",")
-                .map((tag) => `<span class="tag">${tag.trim()}</span>`)
-                .join("")}</div>`
-            : ""
-        }
-        <div class="prompt-actions">
-          <button onclick="runPromptSync(${
-            prompt.id
-          })" class="primary">立即執行</button>
-          <button onclick="showScheduleDialog(${
-            prompt.id
-          })" class="secondary">排程執行</button>
-          <button onclick="editPrompt(${
-            prompt.id
-          })" class="outline">編輯</button>
-          <button onclick="deletePrompt(${
-            prompt.id
-          })" class="outline contrast">刪除</button>
-        </div>
-        <small>建立時間: ${new Date(prompt.created_at).toLocaleString()}</small>
+  show(message, type = "info", duration = 5000) {
+    const id = `toast-${Date.now()}`;
+    const toast = this.createToast(id, message, type);
+
+    this.container.appendChild(toast);
+    this.toasts.set(id, toast);
+
+    // Auto remove
+    if (duration > 0) {
+      setTimeout(() => this.remove(id), duration);
+    }
+
+    return id;
+  }
+
+  createToast(id, message, type) {
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.setAttribute("data-toast-id", id);
+
+    const icons = {
+      success: "check_circle",
+      error: "error",
+      warning: "warning",
+      info: "info",
+    };
+
+    toast.innerHTML = `
+      <span class="material-symbols-outlined toast-icon">${
+        icons[type] || icons.info
+      }</span>
+      <div class="toast-content">
+        <div class="toast-message">${message}</div>
       </div>
-    `
-    )
-    .join("");
-}
+      <button class="close-btn" onclick="notificationManager.remove('${id}')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    `;
 
-// 渲染任務列表
-function renderJobList(jobs) {
-  const container = document.getElementById("job-list");
-  if (!container) return;
-
-  if (jobs.length === 0) {
-    container.innerHTML = "<p>尚無任務記錄</p>";
-    return;
+    return toast;
   }
 
-  container.innerHTML = jobs
-    .map(
-      (job) => `
-      <div class="job-item" data-id="${job.id}">
-        <div class="job-header">
-          <h5>任務 #${job.id}</h5>
-          <span class="status ${job.status.toLowerCase()}">${getStatusText(
-        job.status
-      )}</span>
-        </div>
-        <p>Prompt ID: ${job.prompt_id} | 模式: ${job.mode}</p>
-        ${job.cron_expr !== "*" ? `<p>Cron: ${job.cron_expr}</p>` : ""}
-        ${
-          job.eta_unix && job.eta_unix > 0
-            ? `<p class="eta">冷卻倒數: ${job.eta_unix} 秒</p>`
-            : ""
-        }
-        <div class="job-actions">
-          <button onclick="viewJobResults(${
-            job.id
-          })" class="secondary">查看結果</button>
-          ${
-            job.status === "pending" || job.status === "running"
-              ? `<button onclick="cancelJob(${job.id})" class="outline">取消</button>`
-              : ""
-          }
-        </div>
-        ${
-          job.last_run_at
-            ? `<small>最後執行: ${new Date(
-                job.last_run_at
-              ).toLocaleString()}</small>`
-            : ""
-        }
-      </div>
-    `
-    )
-    .join("");
+  remove(id) {
+    const toast = this.toasts.get(id);
+    if (toast) {
+      toast.style.animation = "toastSlideOut 0.3s ease-in forwards";
+      setTimeout(() => {
+        toast.remove();
+        this.toasts.delete(id);
+      }, 300);
+    }
+  }
+
+  success(message) {
+    return this.show(message, "success");
+  }
+
+  error(message) {
+    return this.show(message, "error");
+  }
+
+  warning(message) {
+    return this.show(message, "warning");
+  }
+
+  info(message) {
+    return this.show(message, "info");
+  }
 }
 
-// 獲取狀態文字
-function getStatusText(status) {
-  const statusMap = {
-    pending: "等待中",
-    running: "執行中",
-    done: "已完成",
-    error: "錯誤",
-  };
-  return statusMap[status] || status;
-}
+// ===== Tab Navigation System =====
+class TabManager {
+  constructor() {
+    this.tabs = document.querySelectorAll(".tab-btn");
+    this.panels = document.querySelectorAll(".tab-panel");
+    this.init();
+  }
 
-// 更新冷卻狀態
-async function updateCooldownStatus() {
-  try {
-    const cooldownInfo = await invoke("get_cooldown_status");
-    const statusElement = document.getElementById("cooldown-status");
+  init() {
+    this.tabs.forEach((tab) => {
+      tab.addEventListener("click", (e) => {
+        const targetTab = e.currentTarget.dataset.tab;
+        this.switchTab(targetTab);
+      });
+    });
+  }
 
-    if (statusElement) {
-      if (cooldownInfo.is_cooling) {
-        statusElement.textContent = `冷卻中，剩餘 ${cooldownInfo.seconds_remaining} 秒`;
-        statusElement.className = "eta-display cooling";
+  switchTab(tabName) {
+    // Update tab buttons
+    this.tabs.forEach((tab) => {
+      if (tab.dataset.tab === tabName) {
+        tab.classList.add("active");
       } else {
-        statusElement.textContent = "Claude CLI 可用";
-        statusElement.className = "eta-display available";
+        tab.classList.remove("active");
+      }
+    });
+
+    // Update tab panels
+    this.panels.forEach((panel) => {
+      if (panel.id === `${tabName}-tab`) {
+        panel.classList.add("active");
+      } else {
+        panel.classList.remove("active");
+      }
+    });
+
+    appState.setState("currentTab", tabName);
+
+    // Load tab content if needed
+    this.loadTabContent(tabName);
+  }
+
+  async loadTabContent(tabName) {
+    switch (tabName) {
+      case "prompts":
+        await promptManager.loadPrompts();
+        break;
+      case "scheduler":
+        await jobManager.loadJobs();
+        break;
+      case "results":
+        await resultManager.loadResults();
+        break;
+      case "system":
+        await systemManager.loadSystemInfo();
+        break;
+    }
+  }
+}
+
+// ===== Modal Management =====
+class ModalManager {
+  constructor() {
+    this.modals = new Map();
+    this.init();
+  }
+
+  init() {
+    // Setup modal triggers
+    document
+      .getElementById("create-prompt-btn")
+      ?.addEventListener("click", () => {
+        this.open("prompt-modal");
+      });
+
+    document.getElementById("create-job-btn")?.addEventListener("click", () => {
+      this.open("job-modal");
+    });
+
+    // Setup close handlers
+    document.querySelectorAll(".close-btn, [data-close]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const modal = e.target.closest(".modal");
+        if (modal) this.close(modal.id);
+      });
+    });
+
+    // Setup form submissions
+    this.setupForms();
+  }
+
+  open(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.showModal();
+      this.modals.set(modalId, modal);
+
+      // Focus first input
+      const firstInput = modal.querySelector("input, textarea, select");
+      if (firstInput) {
+        setTimeout(() => firstInput.focus(), 100);
       }
     }
-  } catch (error) {
-    console.error("更新冷卻狀態失敗:", error);
-    const statusElement = document.getElementById("cooldown-status");
-    if (statusElement) {
-      statusElement.textContent = "狀態未知";
-      statusElement.className = "eta-display unknown";
+  }
+
+  close(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.close();
+      this.modals.delete(modalId);
+      this.resetForm(modal);
+    }
+  }
+
+  resetForm(modal) {
+    const form = modal.querySelector("form");
+    if (form) {
+      form.reset();
+    }
+  }
+
+  setupForms() {
+    // Prompt form
+    const promptForm = document.getElementById("prompt-form");
+    promptForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await this.handlePromptSubmit(e.target);
+    });
+
+    // Job form
+    const jobForm = document.getElementById("job-form");
+    jobForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await this.handleJobSubmit(e.target);
+    });
+  }
+
+  async handlePromptSubmit(form) {
+    const formData = new FormData(form);
+    const promptData = {
+      title: formData.get("prompt-title"),
+      content: formData.get("prompt-content"),
+      tags:
+        formData
+          .get("prompt-tags")
+          ?.split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean) || [],
+    };
+
+    try {
+      await promptManager.createPrompt(promptData);
+      this.close("prompt-modal");
+      notificationManager.success("Prompt 建立成功！");
+    } catch (error) {
+      notificationManager.error(`建立失敗：${error.message}`);
+    }
+  }
+
+  async handleJobSubmit(form) {
+    const formData = new FormData(form);
+    const jobData = {
+      promptId: formData.get("job-prompt"),
+      cronExpression: formData.get("job-cron"),
+    };
+
+    try {
+      await jobManager.createJob(jobData);
+      this.close("job-modal");
+      notificationManager.success("排程任務建立成功！");
+    } catch (error) {
+      notificationManager.error(`建立失敗：${error.message}`);
     }
   }
 }
 
-// 開始冷卻監控
-function startCooldownMonitor() {
-  if (cooldownInterval) {
-    clearInterval(cooldownInterval);
+// ===== API Client =====
+class APIClient {
+  constructor() {
+    this.baseURL = "";
   }
 
-  cooldownInterval = setInterval(async () => {
-    await updateCooldownStatus();
-    await loadJobs(); // 同時更新任務狀態
-  }, 5000); // 每 5 秒更新一次
-}
+  async request(endpoint, options = {}) {
+    const url = `${this.baseURL}${endpoint}`;
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      ...options,
+    };
 
-// 建立 Prompt
-async function createPrompt() {
-  const title = document.getElementById("prompt-title").value.trim();
-  const content = document.getElementById("prompt-content").value.trim();
-  const tags = document.getElementById("prompt-tags").value.trim();
-
-  if (!title || !content) {
-    await message("請填寫 Prompt 標題和內容", "輸入錯誤");
-    return;
-  }
-
-  try {
-    const promptId = await invoke("create_prompt", {
-      title,
-      content,
-      tags: tags || null,
-    });
-
-    await message("Prompt 建立成功！", "成功");
-
-    // 清空表單
-    document.getElementById("prompt-title").value = "";
-    document.getElementById("prompt-content").value = "";
-    document.getElementById("prompt-tags").value = "";
-
-    // 重新載入列表
-    await loadPrompts();
-  } catch (error) {
-    console.error("建立 Prompt 失敗:", error);
-    await message(`建立 Prompt 失敗: ${error}`, "錯誤");
-  }
-}
-
-// 刪除 Prompt
-async function deletePrompt(id) {
-  try {
-    const confirmed = await message(
-      `確定要刪除 Prompt #${id}？這個操作無法復原。`,
-      "確認刪除"
-    );
-
-    const success = await invoke("delete_prompt", { id });
-
-    if (success) {
-      await message("Prompt 已刪除", "成功");
-      await loadPrompts();
-    } else {
-      await message("刪除失敗", "錯誤");
+    if (config.body && typeof config.body === "object") {
+      config.body = JSON.stringify(config.body);
     }
-  } catch (error) {
-    console.error("刪除 Prompt 失敗:", error);
-    await message(`刪除失敗: ${error}`, "錯誤");
+
+    try {
+      const response = await fetch(url, config);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        return await response.json();
+      }
+
+      return await response.text();
+    } catch (error) {
+      console.error("API Request failed:", error);
+      throw error;
+    }
+  }
+
+  // Tauri commands
+  async invokeCommand(command, args = {}) {
+    if (window.__TAURI_API__) {
+      return await window.__TAURI_API__.invoke(command, args);
+    }
+
+    // Fallback for development
+    return this.mockResponse(command, args);
+  }
+
+  mockResponse(command, args) {
+    // Mock responses for development
+    switch (command) {
+      case "get_prompts":
+        return [
+          {
+            id: "1",
+            title: "範例 Prompt",
+            content: "@README.md 請分析這個專案的架構",
+            tags: ["example", "analysis"],
+            created_at: new Date().toISOString(),
+          },
+        ];
+
+      case "get_jobs":
+        return [
+          {
+            id: "1",
+            prompt_id: "1",
+            cron_expression: "0 9 * * *",
+            status: "active",
+            created_at: new Date().toISOString(),
+          },
+        ];
+
+      case "get_cooldown_status":
+        return {
+          status: "available",
+          next_available: null,
+          remaining_seconds: 0,
+        };
+
+      case "get_app_info":
+        return {
+          version: "0.1.0",
+          tauri_version: "2.0",
+          build_date: new Date().toISOString(),
+        };
+
+      default:
+        return {};
+    }
   }
 }
 
-// 同步執行 Prompt
-async function runPromptSync(promptId) {
-  try {
-    await message("開始執行 Prompt...", "執行中");
-
-    const result = await invoke("run_prompt_sync", {
-      promptId,
-      mode: "sync",
-      cronExpr: null,
-    });
-
-    await message("執行成功！", "成功");
-    console.log("執行結果:", result);
-
-    // 重新載入任務列表
-    await loadJobs();
-  } catch (error) {
-    console.error("執行 Prompt 失敗:", error);
-    await message(`執行失敗: ${error}`, "錯誤");
-  }
-}
-
-// 手動執行任務
-async function executeManualJob(promptId) {
-  return await runPromptSync(promptId);
-}
-
-// 顯示排程對話框
-function showScheduleDialog(promptId) {
-  const dialog = document.getElementById("schedule-dialog");
-  dialog.dataset.promptId = promptId;
-  dialog.showModal();
-}
-
-// 建立排程任務
-async function createScheduledJob() {
-  const dialog = document.getElementById("schedule-dialog");
-  const promptId = parseInt(dialog.dataset.promptId);
-  const cronExpression = document
-    .getElementById("cron-expression")
-    .value.trim();
-  const mode = document.getElementById("execution-mode").value;
-
-  if (!cronExpression) {
-    await message("請輸入 Cron 表達式", "輸入錯誤");
-    return;
+// ===== Prompt Manager =====
+class PromptManager {
+  constructor() {
+    this.prompts = [];
   }
 
-  try {
-    const result = await invoke("run_prompt_sync", {
-      promptId,
-      mode,
-      cronExpr: cronExpression,
-    });
-
-    await message("排程任務建立成功！", "成功");
-    console.log("排程結果:", result);
-
-    // 關閉對話框並清空表單
-    dialog.close();
-    document.getElementById("cron-expression").value = "";
-    document.getElementById("execution-mode").value = "async";
-
-    // 重新載入任務列表
-    await loadJobs();
-  } catch (error) {
-    console.error("建立排程任務失敗:", error);
-    await message(`建立排程任務失敗: ${error}`, "錯誤");
+  async loadPrompts() {
+    try {
+      this.showLoading("prompts-list");
+      this.prompts = await apiClient.invokeCommand("get_prompts");
+      this.renderPrompts();
+    } catch (error) {
+      notificationManager.error(`載入 Prompts 失敗：${error.message}`);
+    } finally {
+      this.hideLoading("prompts-list");
+    }
   }
-}
 
-// 查看任務結果
-async function viewJobResults(jobId) {
-  try {
-    const results = await invoke("get_job_results", { jobId });
+  async createPrompt(promptData) {
+    try {
+      const newPrompt = await apiClient.invokeCommand(
+        "create_prompt",
+        promptData
+      );
+      this.prompts.push(newPrompt);
+      this.renderPrompts();
+      return newPrompt;
+    } catch (error) {
+      throw new Error(`建立 Prompt 失敗：${error.message}`);
+    }
+  }
 
-    if (results.length === 0) {
-      await message("此任務尚無執行結果", "資訊");
+  async deletePrompt(id) {
+    try {
+      await apiClient.invokeCommand("delete_prompt", { id });
+      this.prompts = this.prompts.filter((p) => p.id !== id);
+      this.renderPrompts();
+      notificationManager.success("Prompt 已刪除");
+    } catch (error) {
+      notificationManager.error(`刪除失敗：${error.message}`);
+    }
+  }
+
+  async executePrompt(id) {
+    try {
+      const result = await apiClient.invokeCommand("execute_prompt", { id });
+      notificationManager.success("Prompt 執行成功");
+      return result;
+    } catch (error) {
+      notificationManager.error(`執行失敗：${error.message}`);
+    }
+  }
+
+  renderPrompts() {
+    const container = document.getElementById("prompts-list");
+    if (!container) return;
+
+    if (this.prompts.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <span class="material-symbols-outlined">chat</span>
+          <h3>尚無 Prompts</h3>
+          <p>建立您的第一個 Prompt 開始使用</p>
+          <button class="btn btn-primary" onclick="modalManager.open('prompt-modal')">
+            <span class="material-symbols-outlined">add</span>
+            建立 Prompt
+          </button>
+        </div>
+      `;
       return;
     }
 
-    // 顯示結果對話框
-    const dialog = document.createElement("dialog");
-    dialog.innerHTML = `
-      <article>
-        <header>
-          <button aria-label="Close" rel="prev" onclick="this.closest('dialog').close()"></button>
-          <h3>任務 #${jobId} 的執行結果</h3>
-        </header>
-        <div class="results-container">
-          ${results
-            .map(
-              (result, index) => `
-            <div class="result-item">
-              <h5>結果 #${index + 1}</h5>
-              <small>時間: ${new Date(
-                result.created_at
-              ).toLocaleString()}</small>
-              <pre class="result-content">${result.content}</pre>
+    container.innerHTML = this.prompts
+      .map(
+        (prompt) => `
+      <div class="card" data-prompt-id="${prompt.id}">
+        <div class="card-header">
+          <span class="material-symbols-outlined">chat</span>
+          <h3>${prompt.title}</h3>
+        </div>
+        <div class="card-content">
+          <p>${prompt.content}</p>
+          ${
+            prompt.tags.length > 0
+              ? `
+            <div class="tags">
+              ${prompt.tags
+                .map((tag) => `<span class="tag">${tag}</span>`)
+                .join("")}
             </div>
           `
-            )
-            .join("")}
+              : ""
+          }
         </div>
-        <footer>
-          <button onclick="this.closest('dialog').close()">關閉</button>
-        </footer>
-      </article>
-    `;
+        <div class="card-footer">
+          <span class="text-secondary">${this.formatDate(
+            prompt.created_at
+          )}</span>
+          <div class="card-actions">
+            <button class="btn btn-primary btn-sm" onclick="promptManager.executePrompt('${
+              prompt.id
+            }')">
+              <span class="material-symbols-outlined">play_arrow</span>
+              執行
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="promptManager.deletePrompt('${
+              prompt.id
+            }')">
+              <span class="material-symbols-outlined">delete</span>
+              刪除
+            </button>
+          </div>
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  }
 
-    document.body.appendChild(dialog);
-    dialog.showModal();
-
-    // 關閉對話框時清理
-    dialog.addEventListener("close", () => {
-      dialog.remove();
+  formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString("zh-TW", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
-  } catch (error) {
-    console.error("載入任務結果失敗:", error);
-    await message(`載入任務結果失敗: ${error}`, "錯誤");
+  }
+
+  showLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = `
+        <div class="loading-skeleton">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
+      `;
+    }
+  }
+
+  hideLoading(containerId) {
+    // Loading will be replaced by actual content
   }
 }
 
-// 關閉對話框
-function closeDialog(dialogId) {
-  const dialog = document.getElementById(dialogId);
-  if (dialog) {
-    dialog.close();
+// ===== Job Manager =====
+class JobManager {
+  constructor() {
+    this.jobs = [];
+  }
+
+  async loadJobs() {
+    try {
+      this.showLoading("jobs-list");
+      this.jobs = await apiClient.invokeCommand("get_jobs");
+      this.renderJobs();
+      await this.populatePromptSelect();
+    } catch (error) {
+      notificationManager.error(`載入任務失敗：${error.message}`);
+    } finally {
+      this.hideLoading("jobs-list");
+    }
+  }
+
+  async createJob(jobData) {
+    try {
+      const newJob = await apiClient.invokeCommand("create_job", jobData);
+      this.jobs.push(newJob);
+      this.renderJobs();
+      return newJob;
+    } catch (error) {
+      throw new Error(`建立任務失敗：${error.message}`);
+    }
+  }
+
+  async deleteJob(id) {
+    try {
+      await apiClient.invokeCommand("delete_job", { id });
+      this.jobs = this.jobs.filter((j) => j.id !== id);
+      this.renderJobs();
+      notificationManager.success("任務已刪除");
+    } catch (error) {
+      notificationManager.error(`刪除失敗：${error.message}`);
+    }
+  }
+
+  async populatePromptSelect() {
+    const select = document.getElementById("job-prompt");
+    if (!select) return;
+
+    const prompts = await apiClient.invokeCommand("get_prompts");
+    select.innerHTML = `
+      <option value="">請選擇 Prompt</option>
+      ${prompts
+        .map(
+          (prompt) => `
+        <option value="${prompt.id}">${prompt.title}</option>
+      `
+        )
+        .join("")}
+    `;
+  }
+
+  renderJobs() {
+    const container = document.getElementById("jobs-list");
+    if (!container) return;
+
+    if (this.jobs.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <span class="material-symbols-outlined">schedule</span>
+          <h3>尚無排程任務</h3>
+          <p>建立排程任務實現自動化執行</p>
+          <button class="btn btn-primary" onclick="modalManager.open('job-modal')">
+            <span class="material-symbols-outlined">add_task</span>
+            建立任務
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = this.jobs
+      .map(
+        (job) => `
+      <div class="job-item" data-job-id="${job.id}">
+        <div class="job-header">
+          <div class="job-info">
+            <h4>${this.getPromptTitle(job.prompt_id)}</h4>
+            <p class="cron-expression">
+              <span class="material-symbols-outlined">schedule</span>
+              ${job.cron_expression}
+            </p>
+          </div>
+          <div class="job-status status-${job.status}">
+            ${job.status}
+          </div>
+        </div>
+        <div class="job-actions">
+          <button class="btn btn-secondary btn-sm" onclick="jobManager.deleteJob('${
+            job.id
+          }')">
+            <span class="material-symbols-outlined">delete</span>
+            刪除
+          </button>
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  }
+
+  getPromptTitle(promptId) {
+    const prompt = promptManager.prompts.find((p) => p.id === promptId);
+    return prompt ? prompt.title : "未知 Prompt";
+  }
+
+  showLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = `
+        <div class="loading-skeleton">
+          <div class="skeleton-row"></div>
+          <div class="skeleton-row"></div>
+          <div class="skeleton-row"></div>
+        </div>
+      `;
+    }
+  }
+
+  hideLoading(containerId) {
+    // Loading will be replaced by actual content
   }
 }
 
-// 掛載到全域
-window.createPrompt = createPrompt;
-window.deletePrompt = deletePrompt;
-window.editPrompt = editPrompt;
-window.runPromptSync = runPromptSync;
-window.executeManualJob = executeManualJob;
-window.showScheduleDialog = showScheduleDialog;
-window.createScheduledJob = createScheduledJob;
-window.viewJobResults = viewJobResults;
-window.closeDialog = closeDialog;
-window.showCliStatus = showCliStatus;
-window.showCliCommandDialog = showCliCommandDialog;
-window.executeCLICommand = executeCLICommand;
-window.showCliHelp = showCliHelp;
+// ===== Result Manager =====
+class ResultManager {
+  constructor() {
+    this.results = [];
+  }
 
-// 編輯 Prompt (佔位符)
-function editPrompt(id) {
-  message("編輯功能開發中...", "Claude Night Pilot");
+  async loadResults() {
+    try {
+      this.showLoading("results-list");
+      this.results = await apiClient.invokeCommand("get_results");
+      this.renderResults();
+    } catch (error) {
+      notificationManager.error(`載入結果失敗：${error.message}`);
+    } finally {
+      this.hideLoading("results-list");
+    }
+  }
+
+  renderResults() {
+    const container = document.getElementById("results-list");
+    if (!container) return;
+
+    if (this.results.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <span class="material-symbols-outlined">analytics</span>
+          <h3>尚無執行結果</h3>
+          <p>執行 Prompts 後結果將顯示在這裡</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = this.results
+      .map(
+        (result) => `
+      <div class="result-item" data-result-id="${result.id}">
+        <div class="result-header">
+          <h4>${result.prompt_title}</h4>
+          <span class="status status-${result.status}">${result.status}</span>
+        </div>
+        <div class="result-content">
+          <pre>${result.output}</pre>
+        </div>
+        <div class="result-footer">
+          <span class="text-secondary">${this.formatDate(
+            result.created_at
+          )}</span>
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  }
+
+  formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString("zh-TW", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  showLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = `
+        <div class="loading-skeleton">
+          <div class="skeleton-row"></div>
+          <div class="skeleton-row"></div>
+        </div>
+      `;
+    }
+  }
+
+  hideLoading(containerId) {
+    // Loading will be replaced by actual content
+  }
 }
 
-console.log("🚀 Claude Night Pilot 前端初始化完成");
+// ===== System Manager =====
+class SystemManager {
+  constructor() {
+    this.systemInfo = {};
+  }
+
+  async loadSystemInfo() {
+    try {
+      this.showLoading("app-info");
+      this.showLoading("performance-info");
+
+      const appInfo = await apiClient.invokeCommand("get_app_info");
+      const performanceInfo = await apiClient.invokeCommand(
+        "get_performance_info"
+      );
+
+      this.renderAppInfo(appInfo);
+      this.renderPerformanceInfo(performanceInfo);
+    } catch (error) {
+      notificationManager.error(`載入系統資訊失敗：${error.message}`);
+    }
+  }
+
+  renderAppInfo(info) {
+    const container = document.getElementById("app-info");
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="info-item">
+        <label>版本</label>
+        <span>${info.version || "0.1.0"}</span>
+      </div>
+      <div class="info-item">
+        <label>Tauri 版本</label>
+        <span>${info.tauri_version || "2.0"}</span>
+      </div>
+      <div class="info-item">
+        <label>建置日期</label>
+        <span>${this.formatDate(
+          info.build_date || new Date().toISOString()
+        )}</span>
+      </div>
+    `;
+  }
+
+  renderPerformanceInfo(info) {
+    const container = document.getElementById("performance-info");
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="info-item">
+        <label>記憶體使用</label>
+        <span>${info.memory_usage || "未知"}</span>
+      </div>
+      <div class="info-item">
+        <label>CPU 使用率</label>
+        <span>${info.cpu_usage || "未知"}</span>
+      </div>
+      <div class="info-item">
+        <label>執行時間</label>
+        <span>${info.uptime || "未知"}</span>
+      </div>
+    `;
+  }
+
+  formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString("zh-TW", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  showLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = `
+        <div class="loading-skeleton">
+          <div class="skeleton-text"></div>
+          <div class="skeleton-text"></div>
+        </div>
+      `;
+    }
+  }
+}
+
+// ===== Cooldown Status Manager =====
+class CooldownManager {
+  constructor() {
+    this.statusElement = document.getElementById("cooldown-status");
+    this.statusInterval = null;
+  }
+
+  async init() {
+    await this.updateStatus();
+    this.startPolling();
+  }
+
+  async updateStatus() {
+    try {
+      const status = await apiClient.invokeCommand("get_cooldown_status");
+      this.renderStatus(status);
+    } catch (error) {
+      console.error("Failed to update cooldown status:", error);
+      this.renderStatus({ status: "error", message: "檢查失敗" });
+    }
+  }
+
+  renderStatus(status) {
+    const statusText = this.statusElement?.querySelector(".status-text");
+    const statusIcon = this.statusElement?.querySelector(".status-icon");
+
+    if (!statusText || !statusIcon) return;
+
+    // Remove all status classes
+    this.statusElement.classList.remove("ready", "error", "cooldown");
+
+    switch (status.status) {
+      case "available":
+        statusText.textContent = "API 可用";
+        statusIcon.textContent = "check_circle";
+        this.statusElement.classList.add("ready");
+        break;
+
+      case "cooldown":
+        statusText.textContent = `冷卻中 (${status.remaining_seconds}s)`;
+        statusIcon.textContent = "schedule";
+        this.statusElement.classList.add("cooldown");
+        break;
+
+      case "error":
+        statusText.textContent = status.message || "檢查失敗";
+        statusIcon.textContent = "error";
+        this.statusElement.classList.add("error");
+        break;
+
+      default:
+        statusText.textContent = "檢查中...";
+        statusIcon.textContent = "schedule";
+        break;
+    }
+  }
+
+  startPolling() {
+    this.statusInterval = setInterval(() => {
+      this.updateStatus();
+    }, 5000); // Update every 5 seconds
+  }
+
+  stopPolling() {
+    if (this.statusInterval) {
+      clearInterval(this.statusInterval);
+      this.statusInterval = null;
+    }
+  }
+}
+
+// ===== App Initialization =====
+class AppInitializer {
+  constructor() {
+    this.loadingOverlay = document.getElementById("app-loader");
+    this.appContainer = document.getElementById("app");
+  }
+
+  async init() {
+    try {
+      // Simulate loading process
+      await this.simulateLoading();
+
+      // Initialize managers
+      await this.initializeManagers();
+
+      // Hide loading overlay and show app
+      this.showApp();
+
+      // Load initial data
+      await this.loadInitialData();
+    } catch (error) {
+      console.error("App initialization failed:", error);
+      notificationManager.error("應用程式初始化失敗");
+    }
+  }
+
+  async simulateLoading() {
+    // Simulate loading steps
+    const steps = [
+      "載入系統元件...",
+      "初始化資料庫連接...",
+      "檢查 CLI 整合狀態...",
+      "載入使用者設定...",
+      "準備使用者介面...",
+    ];
+
+    for (let i = 0; i < steps.length; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      // Could update loading text here if needed
+    }
+  }
+
+  async initializeManagers() {
+    // Initialize all managers
+    window.themeManager = new ThemeManager();
+    window.notificationManager = new NotificationManager();
+    window.tabManager = new TabManager();
+    window.modalManager = new ModalManager();
+    window.apiClient = new APIClient();
+    window.promptManager = new PromptManager();
+    window.jobManager = new JobManager();
+    window.resultManager = new ResultManager();
+    window.systemManager = new SystemManager();
+    window.cooldownManager = new CooldownManager();
+
+    // Initialize cooldown status polling
+    await cooldownManager.init();
+  }
+
+  showApp() {
+    this.loadingOverlay.style.display = "none";
+    this.appContainer.style.display = "flex";
+  }
+
+  async loadInitialData() {
+    // Load data for the current tab
+    const currentTab = appState.currentTab;
+    await tabManager.loadTabContent(currentTab);
+  }
+}
+
+// ===== Global State and Initialization =====
+const appState = new AppState();
+
+// Initialize app when DOM is loaded
+document.addEventListener("DOMContentLoaded", async () => {
+  const appInitializer = new AppInitializer();
+  await appInitializer.init();
+});
+
+// Handle app cleanup
+window.addEventListener("beforeunload", () => {
+  if (window.cooldownManager) {
+    cooldownManager.stopPolling();
+  }
+});
+
+// Global error handler
+window.addEventListener("error", (event) => {
+  console.error("Global error:", event.error);
+  if (window.notificationManager) {
+    notificationManager.error("發生未預期的錯誤");
+  }
+});
+
+// Expose managers globally for debugging
+window.appState = appState;
