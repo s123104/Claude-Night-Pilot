@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Claude Night Pilot - 四核心模組測試", () => {
   test.beforeEach(async ({ page }) => {
     // 設置測試環境
-    await page.goto("http://localhost:1420");
+    await page.goto("http://localhost:8080");
     await page.waitForSelector('h1:has-text("Claude Night Pilot")', {
       timeout: 30000,
     });
@@ -191,7 +191,6 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
 
     test("應發送事件通知", async ({ page }) => {
       // 監聽事件
-      let eventReceived = false;
       await page.evaluate(() => {
         window.addEventListener("monitoring-event", () => {
           window.testEventReceived = true;
@@ -204,8 +203,8 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
       // 檢查事件是否被接收
       await page.waitForFunction(() => window.testEventReceived);
 
-      const eventReceived = await page.evaluate(() => window.testEventReceived);
-      expect(eventReceived).toBeTruthy();
+      const wasEventReceived = await page.evaluate(() => window.testEventReceived);
+      expect(wasEventReceived).toBeTruthy();
     });
 
     test("應追蹤監控統計", async ({ page }) => {
