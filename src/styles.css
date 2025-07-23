@@ -175,14 +175,16 @@ body {
   background: var(--md-sys-color-surface);
 }
 
-/* Material Design Top App Bar */
+/* Material Design Top App Bar - Fixed Position */
 .md-top-app-bar {
   background: var(--md-sys-color-surface);
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
   padding: 0;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 1000;
+  left: 0;
+  right: 0;
+  z-index: 1200;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -273,14 +275,319 @@ body {
 
 .md-status-chip.cooldown-status .status-icon {
   color: var(--md-sys-color-tertiary);
+  animation: gentle-rotate 4s linear infinite;
 }
 
-.md-status-chip.ready .status-icon {
+.md-status-chip.available-status {
+  background: var(--md-sys-color-secondary-container);
+  border-color: var(--md-sys-color-secondary);
+}
+
+.md-status-chip.available-status .status-icon {
   color: var(--md-sys-color-secondary);
+  animation: gentle-pulse 3s ease-in-out infinite;
 }
 
-.md-status-chip.error .status-icon {
+.md-status-chip.ready-status {
+  background: var(--md-sys-color-secondary-container);
+  border-color: var(--md-sys-color-secondary);
+}
+
+.md-status-chip.ready-status .status-icon {
+  color: var(--md-sys-color-secondary);
+  animation: gentle-bounce 2s ease-in-out infinite;
+}
+
+.md-status-chip.error-status {
+  background: var(--md-sys-color-error-container);
+  border-color: var(--md-sys-color-error);
+}
+
+.md-status-chip.error-status .status-icon {
   color: var(--md-sys-color-error);
+  animation: gentle-shake 2s ease-in-out infinite;
+}
+
+/* Enhanced Cooldown Status Cards - 2025 Minimalist Design */
+.status-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: var(--md-sys-shape-corner-large);
+  background: linear-gradient(135deg, var(--md-sys-color-surface) 0%, var(--md-sys-color-surface-variant) 100%);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  box-shadow: var(--md-sys-elevation-level1);
+  transition: all var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.status-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--md-sys-color-primary), transparent);
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard);
+}
+
+.status-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--md-sys-elevation-level3);
+}
+
+.status-card:hover::before {
+  opacity: 1;
+}
+
+.status-card .status-icon {
+  font-size: 28px;
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 28;
+  transition: all var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-emphasized);
+}
+
+.status-card .status-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.status-card .status-info h3 {
+  font: var(--md-sys-typescale-title-medium);
+  color: var(--md-sys-color-on-surface);
+  margin: 0 0 4px 0;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+}
+
+.status-card .status-info p {
+  font: var(--md-sys-typescale-body-medium);
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Available Status - Success Green with Subtle Animation */
+.status-card.available {
+  background: linear-gradient(135deg, 
+    var(--md-sys-color-secondary-container) 0%, 
+    rgba(198, 255, 221, 0.3) 100%);
+  border-color: var(--md-sys-color-secondary);
+}
+
+.status-card.available .status-icon {
+  color: var(--md-sys-color-secondary);
+  animation: gentle-pulse 3s ease-in-out infinite;
+}
+
+.status-card.available::before {
+  background: linear-gradient(90deg, transparent, var(--md-sys-color-secondary), transparent);
+}
+
+.status-card.available .version-info {
+  font: var(--md-sys-typescale-body-small);
+  color: var(--md-sys-color-on-secondary-container);
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--md-sys-shape-corner-small);
+  display: inline-block;
+}
+
+/* Cooldown Status - Warm Orange with Progress Indicator */
+.status-card.cooldown {
+  background: linear-gradient(135deg, 
+    var(--md-sys-color-tertiary-container) 0%, 
+    rgba(255, 193, 7, 0.1) 100%);
+  border-color: var(--md-sys-color-tertiary);
+}
+
+.status-card.cooldown .status-icon {
+  color: var(--md-sys-color-tertiary);
+  animation: gentle-rotate 4s linear infinite;
+}
+
+.status-card.cooldown::before {
+  background: linear-gradient(90deg, transparent, var(--md-sys-color-tertiary), transparent);
+}
+
+.countdown-display {
+  margin: 12px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.countdown-display .time-remaining,
+.countdown-display .reset-time {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.countdown-display .label {
+  font: var(--md-sys-typescale-label-small);
+  color: var(--md-sys-color-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.countdown-display .time {
+  font: var(--md-sys-typescale-title-small);
+  color: var(--md-sys-color-on-surface);
+  font-weight: 600;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--md-sys-shape-corner-small);
+  font: var(--md-sys-typescale-body-small);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.suggestion .material-symbols-rounded {
+  font-size: 16px;
+  color: var(--md-sys-color-tertiary);
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--md-sys-color-tertiary), var(--md-ref-palette-primary70));
+  border-radius: 2px;
+  transition: width var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard);
+}
+
+/* Error Status - Clean Red with Clear Actions */
+.status-card.error {
+  background: linear-gradient(135deg, 
+    var(--md-sys-color-error-container) 0%, 
+    rgba(244, 67, 54, 0.05) 100%);
+  border-color: var(--md-sys-color-error);
+}
+
+.status-card.error .status-icon {
+  color: var(--md-sys-color-error);
+  animation: gentle-shake 2s ease-in-out infinite;
+}
+
+.status-card.error::before {
+  background: linear-gradient(90deg, transparent, var(--md-sys-color-error), transparent);
+}
+
+.error-details {
+  font: var(--md-sys-typescale-body-small);
+  color: var(--md-sys-color-on-error-container);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 8px 12px;
+  border-radius: var(--md-sys-shape-corner-small);
+  margin: 8px 0;
+  font-family: 'Roboto Mono', monospace;
+}
+
+/* Ready Status - Vibrant Success */
+.status-card.ready {
+  background: linear-gradient(135deg, 
+    var(--md-sys-color-secondary-container) 0%, 
+    rgba(76, 175, 80, 0.1) 100%);
+  border-color: var(--md-sys-color-secondary);
+}
+
+.status-card.ready .status-icon {
+  color: var(--md-sys-color-secondary);
+  animation: gentle-bounce 2s ease-in-out infinite;
+}
+
+.status-card.ready::before {
+  background: linear-gradient(90deg, transparent, var(--md-sys-color-secondary), transparent);
+}
+
+/* Action Buttons in Status Cards */
+.btn-primary, .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-medium);
+  font: var(--md-sys-typescale-label-large);
+  cursor: pointer;
+  transition: all var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+  margin-top: 12px;
+}
+
+.btn-primary {
+  background: var(--md-sys-color-secondary);
+  color: var(--md-sys-color-on-secondary);
+}
+
+.btn-primary:hover {
+  background: var(--md-ref-palette-primary60);
+  transform: translateY(-1px);
+  box-shadow: var(--md-sys-elevation-level2);
+}
+
+.btn-secondary {
+  background: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.btn-secondary:hover {
+  background: var(--md-sys-color-surface);
+  transform: translateY(-1px);
+}
+
+.btn-primary .material-symbols-rounded,
+.btn-secondary .material-symbols-rounded {
+  font-size: 18px;
+}
+
+/* Subtle Animations for 2025 Design */
+@keyframes gentle-pulse {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+  50% { 
+    transform: scale(1.05); 
+    opacity: 0.8; 
+  }
+}
+
+@keyframes gentle-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes gentle-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+@keyframes gentle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 
 .md-top-app-bar-actions {
@@ -321,22 +628,27 @@ body {
     var(--md-sys-motion-easing-standard);
 }
 
-/* App Body Layout */
+/* App Body Layout - Adjusted for Fixed Header */
 .app-body {
   display: flex;
   flex: 1;
+  padding-top: 96px; /* Increased to account for header height */
 }
 
-/* Material Design Navigation Rail */
+/* Material Design Navigation Rail - Fixed Position 2025 Standard */
 .md-navigation-rail {
   width: 80px;
   background: var(--md-sys-color-surface);
   border-right: 1px solid var(--md-sys-color-outline-variant);
   padding: 8px 0;
-  position: sticky;
-  top: 64px;
-  height: calc(100vh - 64px);
+  position: fixed;
+  top: 96px;
+  left: 0;
+  height: calc(100vh - 96px);
   overflow-y: auto;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .md-navigation-rail-content {
@@ -392,13 +704,15 @@ body {
   text-align: center;
 }
 
-/* Main Content Area */
+/* Main Content Area - Adjusted for Fixed Navigation Rail and Header */
 .md-main-content {
   flex: 1;
   padding: 24px;
   max-width: 1200px;
   margin: 0 auto;
-  width: 100%;
+  width: calc(100% - 80px);
+  margin-left: 80px;
+  transition: margin-left var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard);
 }
 
 /* Tab Content */
@@ -445,7 +759,7 @@ body {
   color: var(--md-sys-color-on-surface-variant);
 }
 
-/* Material Design Floating Action Button */
+/* Enhanced Material Design Floating Action Button - 2025 Standards */
 .md-fab {
   position: fixed;
   bottom: 24px;
@@ -454,33 +768,68 @@ body {
   height: 56px;
   border: none;
   border-radius: var(--md-sys-shape-corner-large);
-  background: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
+  background: linear-gradient(135deg, 
+    var(--md-sys-color-primary), 
+    var(--md-ref-palette-primary60));
+  color: var(--md-sys-color-on-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--md-sys-motion-duration-short3)
-    var(--md-sys-motion-easing-standard);
+  transition: all var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized);
   z-index: 1000;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 24px rgba(33, 150, 243, 0.3);
+}
+
+.md-fab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.2), transparent 70%);
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+
+.md-fab:hover::before {
+  opacity: 1;
 }
 
 .md-fab:hover {
-  background: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
-  transform: translateY(-2px);
-  box-shadow: var(--md-sys-elevation-level4);
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 12px 32px rgba(33, 150, 243, 0.4);
+  background: linear-gradient(135deg, 
+    var(--md-ref-palette-primary60), 
+    var(--md-ref-palette-primary70));
 }
 
 .md-fab:active {
-  transform: translateY(0);
+  transform: translateY(-2px) scale(1.02);
+  transition-duration: 100ms;
+}
+
+.md-fab:focus-visible {
+  outline: 2px solid var(--md-sys-color-on-primary);
+  outline-offset: 2px;
 }
 
 .md-fab .material-symbols-outlined {
   font-size: 24px;
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  transition: transform var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-emphasized);
 }
 
-/* Material Design Buttons */
+.md-fab:hover .material-symbols-outlined {
+  transform: rotate(90deg);
+}
+
+/* Enhanced Material Design Buttons - 2025 Standards */
 .md-filled-button {
   display: inline-flex;
   align-items: center;
@@ -488,24 +837,48 @@ body {
   padding: 12px 24px;
   border: none;
   border-radius: var(--md-sys-shape-corner-medium);
-  background: var(--md-sys-color-primary);
+  background: linear-gradient(135deg, var(--md-sys-color-primary), var(--md-ref-palette-primary60));
   color: var(--md-sys-color-on-primary);
   font: var(--md-sys-typescale-label-large);
   cursor: pointer;
-  transition: all var(--md-sys-motion-duration-short3)
-    var(--md-sys-motion-easing-standard);
+  transition: all var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-emphasized);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.md-filled-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+
+.md-filled-button:hover::before {
+  opacity: 1;
 }
 
 .md-filled-button:hover {
-  background: var(--md-ref-palette-primary60);
-  transform: translateY(-1px);
-  box-shadow: var(--md-sys-elevation-level2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(33, 150, 243, 0.3);
+  background: linear-gradient(135deg, var(--md-ref-palette-primary60), var(--md-ref-palette-primary70));
 }
 
 .md-filled-button:active {
-  transform: translateY(0);
+  transform: translateY(-1px);
+  transition-duration: 50ms;
+}
+
+.md-filled-button:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
 }
 
 .md-text-button {
@@ -519,36 +892,96 @@ body {
   color: var(--md-sys-color-primary);
   font: var(--md-sys-typescale-label-large);
   cursor: pointer;
-  transition: all var(--md-sys-motion-duration-short3)
-    var(--md-sys-motion-easing-standard);
+  transition: all var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-emphasized);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+}
+
+.md-text-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--md-sys-color-primary);
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+
+.md-text-button:hover::before {
+  opacity: 0.04;
 }
 
 .md-text-button:hover {
   background: var(--md-sys-color-surface-variant);
+  transform: translateY(-1px);
+  border-color: var(--md-sys-color-outline-variant);
 }
 
-/* Material Design Cards */
+.md-text-button:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+/* Enhanced Material Design Cards - 2025 Minimalist Design */
 .md-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 24px;
+  container-type: inline-size;
 }
 
 .md-card {
-  background: var(--md-sys-color-surface);
+  background: linear-gradient(135deg, 
+    var(--md-sys-color-surface) 0%, 
+    var(--md-sys-color-surface-variant) 100%);
   border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: var(--md-sys-shape-corner-extra-large);
   padding: 24px;
-  transition: all var(--md-sys-motion-duration-short3)
-    var(--md-sys-motion-easing-standard);
+  transition: all var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.md-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    var(--md-sys-color-primary), 
+    var(--md-ref-palette-primary70), 
+    transparent);
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard);
 }
 
 .md-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--md-sys-elevation-level3);
-  border-color: var(--md-sys-color-outline);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  border-color: var(--md-sys-color-primary);
+}
+
+.md-card:hover::before {
+  opacity: 1;
+}
+
+/* Card Container Query Responsive Design */
+@container (max-width: 350px) {
+  .md-card {
+    padding: 16px;
+  }
+  
+  .md-card-footer {
+    gap: 12px;
+  }
 }
 
 .md-card-header {
@@ -569,25 +1002,167 @@ body {
   line-height: 1.6;
 }
 
-/* Material Design Lists */
-.md-list-container {
+/* Enhanced Card Footer Layout - 2025 Design Standards */
+.md-card-footer {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.md-card-footer-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.md-card-footer-timestamp {
+  font: var(--md-sys-typescale-body-small);
+  color: var(--md-sys-color-on-surface-variant);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.md-card-footer-timestamp::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--md-sys-color-outline);
+}
+
+.md-card-footer-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* Responsive Card Footer */
+@media (max-width: 480px) {
+  .md-card-footer {
+    gap: 12px;
+  }
+  
+  .md-card-footer-meta {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  
+  .md-card-footer-actions {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+/* Enhanced Material Design Lists - 2025 Standards */
+.md-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 8px 0;
 }
 
 .md-list-item {
-  background: var(--md-sys-color-surface);
+  background: linear-gradient(135deg, 
+    var(--md-sys-color-surface) 0%, 
+    var(--md-sys-color-surface-variant) 100%);
   border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: var(--md-sys-shape-corner-extra-large);
   padding: 24px;
-  transition: all var(--md-sys-motion-duration-short3)
-    var(--md-sys-motion-easing-standard);
+  transition: all var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.md-list-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, 
+    rgba(33, 150, 243, 0.05) 0%, 
+    transparent 50%);
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized);
+  pointer-events: none;
 }
 
 .md-list-item:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--md-sys-elevation-level2);
+  transform: translateY(-4px);
+  box-shadow: var(--md-sys-elevation-level4);
+  border-color: var(--md-sys-color-primary);
+  background: linear-gradient(135deg, 
+    var(--md-sys-color-surface) 0%, 
+    var(--md-sys-color-primary-container) 100%);
+}
+
+.md-list-item:hover::before {
+  opacity: 1;
+}
+
+/* Enhanced Result Item Content */
+.md-list-item h4 {
+  color: var(--md-sys-color-on-surface);
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0 16px 0 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.md-list-item h4::before {
+  content: '📄';
+  font-size: 20px;
+  opacity: 0.8;
+}
+
+/* Simple Status Chips for Results */
+.md-list-item .md-status-chip {
+  min-width: 80px;
+  height: 32px;
+  font-weight: 500;
+  border-radius: var(--md-sys-shape-corner-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  flex-shrink: 0;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  transition: all var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+
+.md-list-item .md-status-chip.status-success {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  border-color: var(--md-sys-color-secondary);
+}
+
+.md-list-item .md-status-chip.status-error {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+  border-color: var(--md-sys-color-error);
+}
+
+.md-list-item .md-status-chip.status-pending {
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+  border-color: var(--md-sys-color-tertiary);
 }
 
 /* Material Design Form Components */
@@ -694,9 +1269,232 @@ body {
   align-items: center;
   justify-content: flex-end;
   gap: 16px;
-  padding: 24px;
-  border-top: 1px solid var(--md-sys-color-outline-variant);
-  background: var(--md-sys-color-surface-variant);
+  padding: 20px 24px 24px;
+  border-top: none;
+  background: transparent;
+  flex-wrap: wrap;
+}
+
+.md-dialog-actions button {
+  flex: 1;
+  min-width: 120px;
+  max-width: 160px;
+  height: 48px;
+  border-radius: var(--md-sys-shape-corner-large);
+  font: var(--md-sys-typescale-label-large);
+  font-weight: 600;
+  letter-spacing: 0.25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-emphasized);
+  position: relative;
+  overflow: hidden;
+}
+
+@media (max-width: 480px) {
+  .md-dialog-actions {
+    justify-content: stretch;
+    gap: 12px;
+  }
+  
+  .md-dialog-actions button {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+.md-dialog-actions .md-text-button {
+  background: transparent;
+  color: var(--md-sys-color-primary);
+  border: 2px solid var(--md-sys-color-outline-variant);
+}
+
+.md-dialog-actions .md-text-button:hover {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  border-color: var(--md-sys-color-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--md-sys-elevation-level2);
+}
+
+.md-dialog-actions .md-filled-button {
+  background: linear-gradient(135deg, var(--md-sys-color-primary), var(--md-ref-palette-primary70));
+  color: var(--md-sys-color-on-primary);
+  border: none;
+  box-shadow: var(--md-sys-elevation-level1);
+}
+
+.md-dialog-actions .md-filled-button:hover {
+  background: linear-gradient(135deg, var(--md-ref-palette-primary60), var(--md-sys-color-primary));
+  transform: translateY(-2px);
+  box-shadow: var(--md-sys-elevation-level3);
+}
+
+.md-dialog-actions .md-filled-button:focus {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.md-dialog-actions .md-text-button:focus {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+/* Enhanced Detailed Cooldown Info Display - 2025 Standards */
+#detailed-cooldown-info {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#detailed-cooldown-info .info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: linear-gradient(135deg, 
+    var(--md-sys-color-surface-variant) 0%, 
+    transparent 100%);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-medium);
+  transition: all var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+  position: relative;
+  overflow: hidden;
+}
+
+#detailed-cooldown-info .info-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--md-sys-color-primary);
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+
+#detailed-cooldown-info .info-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--md-sys-elevation-level2);
+  border-color: var(--md-sys-color-primary);
+}
+
+#detailed-cooldown-info .info-item:hover::before {
+  opacity: 1;
+}
+
+#detailed-cooldown-info .info-item label {
+  color: var(--md-sys-color-on-surface-variant);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+#detailed-cooldown-info .info-item span {
+  color: var(--md-sys-color-on-surface);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Status-specific styling */
+#detailed-cooldown-info .status-available {
+  color: var(--md-sys-color-secondary);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#detailed-cooldown-info .status-cooldown {
+  color: var(--md-sys-color-tertiary);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#detailed-cooldown-info .status-error {
+  color: var(--md-sys-color-error);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#detailed-cooldown-info .error-details {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+  padding: 12px 16px;
+  border-radius: var(--md-sys-shape-corner-small);
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  border: 1px solid var(--md-sys-color-error);
+  word-break: break-word;
+}
+
+/* Enhanced Progress Bar for Detailed Info */
+.progress-item {
+  background: linear-gradient(135deg, 
+    var(--md-sys-color-tertiary-container) 0%, 
+    transparent 100%) !important;
+  border-color: var(--md-sys-color-tertiary) !important;
+}
+
+.progress-item::before {
+  background: var(--md-sys-color-tertiary) !important;
+}
+
+.detailed-progress-bar {
+  position: relative;
+  height: 48px;
+  background: var(--md-sys-color-surface);
+  border: 2px solid var(--md-sys-color-tertiary);
+  border-radius: var(--md-sys-shape-corner-large);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.detailed-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    var(--md-sys-color-tertiary), 
+    var(--md-ref-palette-primary70));
+  transition: width var(--md-sys-motion-duration-long2) var(--md-sys-motion-easing-emphasized);
+  border-radius: var(--md-sys-shape-corner-medium);
+}
+
+.detailed-progress-bar .progress-text {
+  position: relative;
+  z-index: 1;
+  color: var(--md-sys-color-on-surface);
+  font: var(--md-sys-typescale-label-large);
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  mix-blend-mode: difference;
+}
+
+/* Responsive adjustments for detailed info */
+@media (max-width: 800px) {
+  #detailed-cooldown-info .info-item {
+    padding: 12px;
+  }
+  
+  .detailed-progress-bar {
+    height: 40px;
+  }
 }
 
 /* Material Design System Info Grid */
@@ -704,6 +1502,12 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: 24px;
+}
+
+@media (min-width: 1200px) {
+  .md-system-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .md-info-card {
@@ -927,7 +1731,15 @@ body {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 800px) {
+  .md-top-app-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1200;
+  }
+
   .md-top-app-bar-content {
     padding: 16px;
     flex-direction: column;
@@ -949,33 +1761,44 @@ body {
 
   .app-body {
     flex-direction: column;
+    padding-top: 120px;
   }
 
   .md-navigation-rail {
     width: 100%;
     height: auto;
-    position: relative;
-    top: 0;
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
     border-right: none;
-    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    padding: 8px 0;
   }
 
   .md-navigation-rail-items {
     flex-direction: row;
-    padding: 8px 16px;
+    padding: 0 16px;
+    justify-content: space-around;
   }
 
   .md-navigation-rail-item {
     min-height: 48px;
-    padding: 8px 12px;
+    padding: 8px 16px;
+    flex: 1;
+    max-width: 120px;
   }
 
   .md-navigation-rail-item span:last-child {
-    display: none;
+    font-size: 10px;
   }
 
   .md-main-content {
     padding: 16px;
+    margin-left: 0;
+    padding-bottom: 80px;
   }
 
   .md-section-header {
@@ -1066,6 +1889,164 @@ body {
     --md-sys-color-outline-variant: #ffffff;
     --md-sys-color-on-surface-variant: #ffffff;
   }
+}
+
+/* 2025 Modern UI Enhancements */
+
+/* Glassmorphism effects for modern appeal */
+.glass-effect {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Enhanced focus states for accessibility */
+:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced text selection */
+::selection {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+/* Modern scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--md-sys-color-surface-variant);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline);
+  border-radius: 4px;
+  transition: background var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-primary);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--md-sys-color-outline) var(--md-sys-color-surface-variant);
+}
+
+/* Enhanced loading states with modern shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.md-loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--md-sys-color-surface-variant) 0px,
+    rgba(255, 255, 255, 0.05) 40px,
+    var(--md-sys-color-surface-variant) 80px
+  );
+  background-size: 200px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Modern micro-interactions */
+.md-card, .md-fab, .md-filled-button, .md-text-button {
+  will-change: transform, box-shadow;
+}
+
+/* Enhanced status indicators with pulse effect */
+.status-indicator-pulse {
+  position: relative;
+}
+
+.status-indicator-pulse::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: inherit;
+  background: inherit;
+  opacity: 0.3;
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  80%, 100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* Modern card stack effect */
+.md-card-stack {
+  position: relative;
+}
+
+.md-card-stack::before,
+.md-card-stack::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: inherit;
+  background: var(--md-sys-color-surface-variant);
+  opacity: 0.3;
+  z-index: -1;
+  transition: all var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+
+.md-card-stack::after {
+  top: 8px;
+  left: 8px;
+  right: -8px;
+  bottom: -8px;
+  opacity: 0.1;
+}
+
+.md-card-stack:hover::before,
+.md-card-stack:hover::after {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* Advanced typography with variable font features */
+.enhanced-typography {
+  font-feature-settings: 'liga' 1, 'kern' 1, 'calt' 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Modern content visibility optimization */
+.optimized-visibility {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 400px;
 }
 
 /* Print Styles */

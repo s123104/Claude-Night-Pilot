@@ -101,7 +101,7 @@
           0px 8px 12px 6px rgba(0, 0, 0, 0.15);
       }
 
-      /* Dark Theme Material Design Colors */
+      /* Enhanced Dark Theme Material Design Colors - 2025 Standards */
       [data-theme="dark"] {
         --md-sys-color-primary: #a1c8ff;
         --md-sys-color-on-primary: #003258;
@@ -113,12 +113,17 @@
         --md-sys-color-secondary-container: #004f51;
         --md-sys-color-on-secondary-container: #6ff7f6;
 
-        --md-sys-color-surface: #141218;
+        --md-sys-color-tertiary: #e0b1cc;
+        --md-sys-color-on-tertiary: #422930;
+        --md-sys-color-tertiary-container: #5a3f47;
+        --md-sys-color-on-tertiary-container: #fdd7e8;
+
+        --md-sys-color-surface: #0f0d13;
         --md-sys-color-on-surface: #e6e0e9;
         --md-sys-color-surface-variant: #49454f;
         --md-sys-color-on-surface-variant: #cac4d0;
 
-        --md-sys-color-background: #141218;
+        --md-sys-color-background: #0f0d13;
         --md-sys-color-on-background: #e6e0e9;
 
         --md-sys-color-error: #ffb4ab;
@@ -128,6 +133,10 @@
 
         --md-sys-color-outline: #938f99;
         --md-sys-color-outline-variant: #49454f;
+
+        /* Enhanced gradients for dark theme */
+        --md-ref-palette-primary60: #79c4ff;
+        --md-ref-palette-primary70: #a1c8ff;
       }
     </style>
   </head>
@@ -395,6 +404,20 @@
 
               <!-- System Info Grid -->
               <div class="md-system-grid">
+                <!-- Claude API Status Card -->
+                <div class="md-info-card md-elevation-level1">
+                  <div class="md-card-header">
+                    <span class="material-symbols-outlined">api</span>
+                    <h3 class="md-typescale-title-medium">Claude API 狀態</h3>
+                  </div>
+                  <div class="md-card-content" id="detailed-cooldown-info">
+                    <div class="md-loading-skeleton">
+                      <div class="md-skeleton-text"></div>
+                      <div class="md-skeleton-text"></div>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="md-info-card md-elevation-level1">
                   <div class="md-card-header">
                     <span class="material-symbols-outlined">info</span>

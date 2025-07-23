@@ -719,11 +719,13 @@ class PromptManager {
           `
               : ""
           }
-          <div class="md-card-footer" style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center;">
-            <span class="md-typescale-body-small" style="color: var(--md-sys-color-on-surface-variant);">
-              ${this.formatDate(prompt.created_at)}
-            </span>
-            <div style="display: flex; gap: 8px;">
+          <div class="md-card-footer">
+            <div class="md-card-footer-meta">
+              <span class="md-card-footer-timestamp">
+                ${this.formatDate(prompt.created_at)}
+              </span>
+            </div>
+            <div class="md-card-footer-actions">
               <button class="md-filled-button" onclick="promptManager.executePrompt('${
                 prompt.id
               }')">
@@ -1224,18 +1226,19 @@ class CooldownManager {
     const statusElement = document.getElementById("cooldown-status");
     if (statusElement) {
       statusElement.innerHTML = `
-        <div class="status-card available">
-          <span class="material-symbols-rounded status-icon">check_circle</span>
-          <div class="status-info">
-            <h3>Claude API 可用</h3>
-            <p>最後檢查: ${new Date().toLocaleString("zh-TW")}</p>
-            <div class="version-info">
-              版本: ${response.version || "Claude CLI 1.0.57"}
-            </div>
-          </div>
-        </div>
+        <span class="material-symbols-outlined status-icon">check_circle</span>
+        <span class="status-text md-typescale-label-medium">API 可用</span>
       `;
+      statusElement.className = "md-status-chip available-status";
     }
+
+    // Update detailed info in system tab
+    this.updateDetailedCooldownInfo({
+      status: 'available',
+      message: 'Claude API 運行正常',
+      lastCheck: new Date().toLocaleString("zh-TW"),
+      version: response.version || "Claude CLI 1.0.57"
+    });
   }
 
   displayCooldownStatus(response) {
@@ -1247,17 +1250,10 @@ class CooldownManager {
       this.startCountdown(statusElement);
     } else {
       statusElement.innerHTML = `
-        <div class="status-card cooldown">
-          <span class="material-symbols-rounded status-icon">schedule</span>
-          <div class="status-info">
-            <h3>Claude API 使用限制</h3>
-            <p>API 已達到使用限制，請稍後再試</p>
-            <div class="suggestion">
-              <span class="material-symbols-rounded">lightbulb</span> 建議稍後再次檢查
-            </div>
-          </div>
-        </div>
+        <span class="material-symbols-outlined status-icon">schedule</span>
+        <span class="status-text md-typescale-label-medium">使用限制</span>
       `;
+      statusElement.className = "md-status-chip cooldown-status";
     }
   }
 
@@ -1273,18 +1269,10 @@ class CooldownManager {
       if (difference <= 0) {
         // 冷卻時間已過
         statusElement.innerHTML = `
-          <div class="status-card ready">
-            <span class="material-symbols-rounded status-icon">check_circle</span>
-            <div class="status-info">
-              <h3>冷卻時間已過</h3>
-              <p>可以重新嘗試使用 Claude API</p>
-              <button onclick="cooldownManager.checkCooldownStatus()" class="btn-primary">
-                <span class="material-symbols-rounded">refresh</span>
-                重新檢查
-              </button>
-            </div>
-          </div>
+          <span class="material-symbols-outlined status-icon">refresh</span>
+          <span class="status-text md-typescale-label-medium">可重試</span>
         `;
+        statusElement.className = "md-status-chip ready-status";
 
         if (this.countdownInterval) {
           clearInterval(this.countdownInterval);
@@ -1317,30 +1305,23 @@ class CooldownManager {
         suggestion = "即將恢復";
       }
 
+      // 簡約顯示
       statusElement.innerHTML = `
-        <div class="status-card cooldown">
-          <span class="material-symbols-rounded status-icon">timer</span>
-          <div class="status-info">
-            <h3>Claude API 使用限制</h3>
-            <div class="countdown-display">
-              <div class="time-remaining">
-                <span class="label">剩餘時間：</span>
-                <span class="time">${timeDisplay}</span>
-              </div>
-              <div class="reset-time">
-                <span class="label">預計解鎖：</span>
-                <span class="time">${resetTimeStr}</span>
-              </div>
-            </div>
-            <div class="suggestion">
-              <span class="material-symbols-rounded">lightbulb</span> ${suggestion}
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: ${this.calculateProgress()}%"></div>
-            </div>
-          </div>
-        </div>
+        <span class="material-symbols-outlined status-icon">timer</span>
+        <span class="status-text md-typescale-label-medium">${timeDisplay}</span>
       `;
+      statusElement.className = "md-status-chip cooldown-status";
+      statusElement.title = `API 使用限制 - 預計解鎖：${resetTimeStr} (${suggestion})`;
+
+      // Update detailed info in system tab
+      this.updateDetailedCooldownInfo({
+        status: 'cooldown',
+        message: 'API 已達到使用限制',
+        timeRemaining: timeDisplay,
+        resetTime: resetTimeStr,
+        suggestion: suggestion,
+        progress: this.calculateProgress()
+      });
     };
 
     updateCountdown();
@@ -1361,22 +1342,103 @@ class CooldownManager {
     const statusElement = document.getElementById("cooldown-status");
     if (statusElement) {
       statusElement.innerHTML = `
-        <div class="status-card error">
-          <span class="material-symbols-rounded status-icon">error</span>
-          <div class="status-info">
-            <h3>檢查失敗</h3>
-            <p>無法檢查 Claude CLI 狀態</p>
-            <div class="error-details">
-              錯誤: ${error.message || error}
-            </div>
-            <button onclick="cooldownManager.checkCooldownStatus()" class="btn-secondary">
-              <span class="material-symbols-rounded">refresh</span>
-              重試
-            </button>
-          </div>
-        </div>
+        <span class="material-symbols-outlined status-icon">error</span>
+        <span class="status-text md-typescale-label-medium">檢查失敗</span>
       `;
+      statusElement.className = "md-status-chip error-status";
+      statusElement.title = `無法檢查 Claude CLI 狀態 - 錯誤: ${error.message || error}`;
     }
+
+    // Update detailed info in system tab
+    this.updateDetailedCooldownInfo({
+      status: 'error',
+      message: '狀態檢查失敗',
+      error: error.message || error,
+      lastCheck: new Date().toLocaleString("zh-TW")
+    });
+  }
+
+  updateDetailedCooldownInfo(info) {
+    const detailedContainer = document.getElementById("detailed-cooldown-info");
+    if (!detailedContainer) return;
+
+    let content = '';
+    
+    switch (info.status) {
+      case 'available':
+        content = `
+          <div class="info-item">
+            <label class="md-typescale-label-medium">狀態</label>
+            <span class="md-typescale-body-medium status-available">✅ ${info.message}</span>
+          </div>
+          <div class="info-item">
+            <label class="md-typescale-label-medium">最後檢查</label>
+            <span class="md-typescale-body-medium">${info.lastCheck}</span>
+          </div>
+          <div class="info-item">
+            <label class="md-typescale-label-medium">版本</label>
+            <span class="md-typescale-body-medium">${info.version}</span>
+          </div>
+        `;
+        break;
+      
+      case 'cooldown':
+        content = `
+          <div class="info-item">
+            <label class="md-typescale-label-medium">狀態</label>
+            <span class="md-typescale-body-medium status-cooldown">⏳ ${info.message}</span>
+          </div>
+          <div class="info-item">
+            <label class="md-typescale-label-medium">剩餘時間</label>
+            <span class="md-typescale-body-medium">${info.timeRemaining}</span>
+          </div>
+          <div class="info-item">
+            <label class="md-typescale-label-medium">預計解鎖</label>
+            <span class="md-typescale-body-medium">${info.resetTime}</span>
+          </div>
+          <div class="info-item">
+            <label class="md-typescale-label-medium">建議</label>
+            <span class="md-typescale-body-medium">${info.suggestion}</span>
+          </div>
+          ${info.progress !== undefined ? `
+          <div class="info-item progress-item">
+            <label class="md-typescale-label-medium">進度</label>
+            <div class="detailed-progress-bar">
+              <div class="detailed-progress-fill" style="width: ${info.progress}%"></div>
+              <span class="progress-text">${Math.round(info.progress)}%</span>
+            </div>
+          </div>
+          ` : ''}
+        `;
+        break;
+      
+      case 'error':
+        content = `
+          <div class="info-item">
+            <label class="md-typescale-label-medium">狀態</label>
+            <span class="md-typescale-body-medium status-error">❌ ${info.message}</span>
+          </div>
+          <div class="info-item">
+            <label class="md-typescale-label-medium">錯誤詳情</label>
+            <span class="md-typescale-body-medium error-details">${info.error}</span>
+          </div>
+          <div class="info-item">
+            <label class="md-typescale-label-medium">最後檢查</label>
+            <span class="md-typescale-body-medium">${info.lastCheck}</span>
+          </div>
+        `;
+        break;
+      
+      default:
+        content = `
+          <div class="info-item">
+            <label class="md-typescale-label-medium">狀態</label>
+            <span class="md-typescale-body-medium">🔄 檢查中...</span>
+          </div>
+        `;
+    }
+
+    detailedContainer.innerHTML = content;
   }
 
   cleanup() {
@@ -1614,6 +1676,64 @@ style.textContent = `
       transform: scale(2);
       opacity: 0;
     }
+  }
+
+  /* Enhanced Detailed Progress Bar */
+  .detailed-progress-bar {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    background: var(--md-sys-color-outline-variant);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+
+  .detailed-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--md-sys-color-tertiary), var(--md-ref-palette-primary70));
+    border-radius: 4px;
+    transition: width var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard);
+  }
+
+  .progress-text {
+    position: absolute;
+    top: -24px;
+    right: 0;
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .progress-item {
+    position: relative;
+    padding-top: 8px;
+  }
+
+  /* Status Color Indicators */
+  .status-available {
+    color: var(--md-sys-color-secondary);
+    font-weight: 500;
+  }
+
+  .status-cooldown {
+    color: var(--md-sys-color-tertiary);
+    font-weight: 500;
+  }
+
+  .status-error {
+    color: var(--md-sys-color-error);
+    font-weight: 500;
+  }
+
+  .error-details {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
+    background: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+    padding: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
+    margin-top: 4px;
+    word-break: break-all;
   }
 `;
 document.head.appendChild(style);
