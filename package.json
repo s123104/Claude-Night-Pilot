@@ -15,10 +15,13 @@
     "test:debug": "playwright test --debug",
     "cli": "cargo run --bin cnp --",
     "cli:build": "cargo build --release --bin cnp",
-    "cli:install": "cargo install --path src-tauri --bin cnp"
+    "cli:install": "cargo install --path src-tauri --bin cnp",
+    "lint": "eslint src/**/*.js --fix",
+    "lint:check": "eslint src/**/*.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.1",
+    "eslint": "^9.31.0",
     "playwright": "^1.54.1"
   },
   "dependencies": {

@@ -296,7 +296,7 @@ impl AdaptiveMonitor {
             message,
         };
 
-        if let Err(_) = self.event_sender.send(event) {
+        if self.event_sender.send(event).is_err() {
             // 沒有接收者，忽略錯誤
         }
     }

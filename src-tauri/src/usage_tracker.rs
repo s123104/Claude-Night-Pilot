@@ -110,7 +110,7 @@ impl UsageTracker {
 
     /// 嘗試執行ccusage命令並解析輸出
     async fn try_ccusage_command(&self, cmd_args: &[&str]) -> Result<UsageInfo> {
-        let output = Command::new(&cmd_args[0])
+        let output = Command::new(cmd_args[0])
             .args(&cmd_args[1..])
             .output()
             .await?;

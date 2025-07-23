@@ -303,8 +303,8 @@ impl Database {
     /// 創建mock資料庫（用於測試）
     #[cfg(test)]
     pub fn new_mock() -> Self {
-        use sqlx::SqlitePool;
-        use std::sync::Arc;
+        
+        
         
         // 創建一個mock的pool（實際上不會用到）
         let pool = unsafe { std::mem::zeroed() };

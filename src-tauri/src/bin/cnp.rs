@@ -42,6 +42,9 @@ enum Commands {
         /// Cron 表達式 (僅用於 async 模式)
         #[arg(short, long)]
         cron: Option<String>,
+        /// 危險：跳過權限檢查 (用於測試)
+        #[arg(long)]
+        dangerously_skip_permissions: bool,
     },
     /// 系統狀態檢查
     Status,
@@ -549,7 +552,7 @@ async fn handle_prompt_delete(id: i64) -> Result<()> {
     Ok(())
 }
 
-async fn handle_run(prompt: String, mode: String, cron: Option<String>) -> Result<()> {
+async fn handle_run(prompt: String, mode: String, cron: Option<String>, dangerously_skip_permissions: bool) -> Result<()> {
     let db = DatabaseManager::new().await?;
     
     // 判斷 prompt 是 ID 還是內容
@@ -580,6 +583,10 @@ async fn handle_run(prompt: String, mode: String, cron: Option<String>) -> Resul
     if mode == "sync" {
         // 同步執行
         print_info("開始執行 Claude CLI...");
+        
+        if dangerously_skip_permissions {
+            print_info("⚠️  使用 --dangerously-skip-permissions 模式 (暫時未實現安全檢查)");
+        }
         
         match SimpleClaudeExecutor::run_sync(&prompt_content).await {
             Ok(response) => {
@@ -889,7 +896,7 @@ async fn main() -> Result<()> {
                 JobAction::Run { id, mode } => handle_job_run(id, &mode).await?,
             }
         }
-        Commands::Run { prompt, mode, cron } => handle_run(prompt, mode, cron).await?,
+        Commands::Run { prompt, mode, cron, dangerously_skip_permissions } => handle_run(prompt, mode, cron, dangerously_skip_permissions).await?,
         Commands::Status => handle_status().await?,
         Commands::Cooldown => handle_cooldown().await?,
         Commands::Results { job_id, limit } => handle_results(job_id, limit).await?,

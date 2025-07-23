@@ -568,50 +568,6 @@ pub async fn get_scheduled_tasks(
 }
 
 #[tauri::command]
-pub async fn cancel_scheduled_task(
-    task_id: String,
-    state: tauri::State<'_, Arc<Mutex<SmartScheduler>>>
-) -> Result<bool, String> {
-    let scheduler = state.lock().await;
-    scheduler.cancel_task(&task_id).await.map_err(|e| e.to_string())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_time_efficiency_calculation() {
-        let config = SchedulingConfig::default();
-        
-        // 測試理想使用率 (80%)
-        assert_eq!(calculate_efficiency_score_static(100, 80), 1.0);
-        
-        // 測試緊湊使用率 (100%)
-        assert_eq!(calculate_efficiency_score_static(100, 100), 0.8);
-        
-        // 測試超出容量 (120%)
-        assert_eq!(calculate_efficiency_score_static(100, 120), 0.0);
-    }
-
-    #[test]
-    fn test_working_hours_check() {
-        let config = SchedulingConfig::default();
-        let timezone: Tz = "Asia/Taipei".parse().unwrap();
-        
-        // 測試工作時間 (14:00 台北時間)
-        let work_time = Utc::now()
-            .with_hour(6).unwrap()  // 14:00 台北 = 06:00 UTC
-            .with_minute(0).unwrap();
-        assert!(is_within_working_hours_static(work_time, &timezone, &config));
-
-        // 測試非工作時間 (22:00 台北時間)
-        let non_work_time = Utc::now()
-            .with_hour(14).unwrap()  // 22:00 台北 = 14:00 UTC
-            .with_minute(0).unwrap();
-        assert!(!is_within_working_hours_static(non_work_time, &timezone, &config));
-    }
-}
 
 // 測試輔助函數
 #[cfg(test)]
@@ -637,4 +593,48 @@ fn is_within_working_hours_static(time: DateTime<Utc>, timezone: &Tz, config: &S
     let hour = local_time.hour();
     
     hour >= config.working_hours_start && hour < config.working_hours_end
+}
+pub async fn cancel_scheduled_task(
+    task_id: String,
+    state: tauri::State<'_, Arc<Mutex<SmartScheduler>>>
+) -> Result<bool, String> {
+    let scheduler = state.lock().await;
+    scheduler.cancel_task(&task_id).await.map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_time_efficiency_calculation() {
+        let _config = SchedulingConfig::default();
+        
+        // 測試理想使用率 (80%)
+        assert_eq!(calculate_efficiency_score_static(100, 80), 1.0);
+        
+        // 測試緊湊使用率 (100%)
+        assert_eq!(calculate_efficiency_score_static(100, 100), 0.8);
+        
+        // 測試超出容量 (120%)
+        assert_eq!(calculate_efficiency_score_static(100, 120), 0.0);
+    }
+
+    #[test]
+    fn test_working_hours_check() {
+        let _config = SchedulingConfig::default();
+        let timezone: Tz = "Asia/Taipei".parse().unwrap();
+        
+        // 測試工作時間 (14:00 台北時間)
+        let work_time = Utc::now()
+            .with_hour(6).unwrap()  // 14:00 台北 = 06:00 UTC
+            .with_minute(0).unwrap();
+        assert!(is_within_working_hours_static(work_time, &timezone, &config));
+
+        // 測試非工作時間 (22:00 台北時間)
+        let non_work_time = Utc::now()
+            .with_hour(14).unwrap()  // 22:00 台北 = 14:00 UTC
+            .with_minute(0).unwrap();
+        assert!(!is_within_working_hours_static(non_work_time, &timezone, &config));
+    }
 } 
