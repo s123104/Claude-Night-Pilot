@@ -1,0 +1,349 @@
+<!-- 四大核心模組測試介面 -->
+<div id="core-modules-test-panel" style="display: none;">
+  <!-- CORE-001: ccusage API 整合模組 -->
+  <section class="core-module-section" data-testid="core-001-section">
+    <h3>CORE-001: ccusage API 整合</h3>
+    
+    <div class="module-controls">
+      <button id="check-usage-btn" data-testid="check-usage" class="md-filled-button">
+        檢查使用量
+      </button>
+      
+      <div id="usage-info" data-testid="usage-info" class="info-panel" style="display: none;">
+        <div data-testid="remaining-minutes">剩餘分鐘: --</div>
+        <div data-testid="usage-source">來源: --</div>
+        <div data-testid="cache-indicator" style="display: none;">使用快取數據</div>
+        <div data-testid="fallback-indicator" style="display: none;">使用回退方法</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CORE-002: 安全執行系統 -->
+  <section class="core-module-section" data-testid="core-002-section">
+    <h3>CORE-002: 安全執行系統</h3>
+    
+    <div class="module-controls">
+      <textarea 
+        id="prompt-input" 
+        data-testid="prompt-input" 
+        placeholder="輸入您的prompt..."
+        class="md-text-field"
+      ></textarea>
+      
+      <div class="execution-options">
+        <label>
+          <input type="checkbox" id="skip-permissions" data-testid="skip-permissions">
+          跳過權限檢查 (--dangerously-skip-permissions)
+        </label>
+        
+        <label>
+          <input type="checkbox" id="dry-run" data-testid="dry-run">
+          乾運行模式
+        </label>
+        
+        <label>
+          <input type="checkbox" id="enable-security" data-testid="enable-security" checked>
+          啟用安全檢查
+        </label>
+      </div>
+      
+      <button id="execute-prompt-btn" data-testid="execute-prompt" class="md-filled-button">
+        執行 Prompt
+      </button>
+      
+      <div id="security-warning" data-testid="security-warning" class="warning-panel" style="display: none;">
+        檢測到危險模式！
+      </div>
+      
+      <div id="permission-skipped" data-testid="permission-skipped" class="info-panel" style="display: none;">
+        已跳過權限檢查
+      </div>
+      
+      <div id="dry-run-result" data-testid="dry-run-result" class="info-panel" style="display: none;">
+        乾運行完成 - 未實際執行
+      </div>
+      
+      <div id="execution-complete" data-testid="execution-complete" class="success-panel" style="display: none;">
+        執行完成
+      </div>
+      
+      <button id="view-audit-log-btn" data-testid="view-audit-log" class="md-text-button">
+        查看審計日誌
+      </button>
+      
+      <div id="audit-log" data-testid="audit-log" class="log-panel" style="display: none;">
+        <h4>審計日誌</h4>
+        <div>SHA256: 12345...</div>
+        <div>執行選項: {"dry_run": false}</div>
+        <div>安全檢查結果: 通過</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CORE-003: 自適應監控系統 -->
+  <section class="core-module-section" data-testid="core-003-section">
+    <h3>CORE-003: 自適應監控系統</h3>
+    
+    <div class="module-controls">
+      <div id="monitor-status" data-testid="monitor-status" class="status-display">
+        監控模式: Normal
+      </div>
+      
+      <div id="monitor-interval" data-testid="monitor-interval" class="info-display">
+        檢查間隔: 10分鐘
+      </div>
+      
+      <div class="monitor-buttons">
+        <button id="start-monitoring-btn" data-testid="start-monitoring" class="md-filled-button">
+          啟動監控
+        </button>
+        
+        <button id="update-monitor-btn" data-testid="update-monitor" class="md-outlined-button">
+          更新監控
+        </button>
+        
+        <button id="check-monitor-btn" data-testid="check-monitor" class="md-text-button">
+          檢查監控
+        </button>
+        
+        <button id="trigger-monitor-event-btn" data-testid="trigger-monitor-event" class="md-text-button">
+          觸發事件
+        </button>
+        
+        <button id="view-stats-btn" data-testid="view-stats" class="md-text-button">
+          查看統計
+        </button>
+      </div>
+      
+      <div id="monitor-stats" data-testid="monitor-stats" class="stats-panel" style="display: none;">
+        <h4>監控統計</h4>
+        <div>檢查次數: 42</div>
+        <div>模式變更: 3</div>
+        <div>運行時間: 2小時15分</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CORE-004: 智能排程系統 -->
+  <section class="core-module-section" data-testid="core-004-section">
+    <h3>CORE-004: 智能排程系統</h3>
+    
+    <div class="module-controls">
+      <div class="schedule-form">
+        <textarea 
+          id="schedule-prompt" 
+          data-testid="schedule-prompt" 
+          placeholder="排程任務的prompt..."
+          class="md-text-field"
+        ></textarea>
+        
+        <input 
+          type="datetime-local" 
+          id="schedule-time" 
+          data-testid="schedule-time"
+          class="md-text-field"
+        >
+        
+        <select id="timezone-select" data-testid="timezone-select" class="md-select">
+          <option value="Asia/Taipei">Asia/Taipei</option>
+          <option value="UTC">UTC</option>
+          <option value="America/New_York">America/New_York</option>
+        </select>
+        
+        <input 
+          type="number" 
+          id="required-minutes" 
+          data-testid="required-minutes"
+          placeholder="所需分鐘數"
+          class="md-text-field"
+        >
+        
+        <button id="create-schedule-btn" data-testid="create-schedule" class="md-filled-button">
+          建立排程
+        </button>
+        
+        <button id="analyze-efficiency-btn" data-testid="analyze-efficiency" class="md-outlined-button">
+          分析效率
+        </button>
+      </div>
+      
+      <div id="schedule-info" data-testid="schedule-info" class="info-panel" style="display: none;">
+        <div>時區: Asia/Taipei</div>
+        <div>排程時間: 2025-07-24 14:30</div>
+      </div>
+      
+      <div id="block-protection" data-testid="block-protection" class="warning-panel" style="display: none;">
+        5小時塊保護: 剩餘時間不足，無法執行此任務
+      </div>
+      
+      <div id="efficiency-analysis" data-testid="efficiency-analysis" class="info-panel" style="display: none;">
+        <div>理想使用率: 80%</div>
+        <div>效率分數: 1.0</div>
+      </div>
+      
+      <div id="working-hours-warning" data-testid="working-hours-warning" class="warning-panel" style="display: none;">
+        非工作時間警告: 建議在工作時間執行
+      </div>
+      
+      <div id="retry-indicator" data-testid="retry-indicator" class="info-panel" style="display: none;">
+        任務重試中...
+      </div>
+      
+      <div id="retry-info" data-testid="retry-info" class="info-panel" style="display: none;">
+        重試次數: 2/3
+      </div>
+    </div>
+  </section>
+
+  <!-- 整合測試區域 -->
+  <section class="core-module-section" data-testid="integration-section">
+    <h3>整合測試</h3>
+    
+    <div class="module-controls">
+      <div id="integration-status" data-testid="integration-status" class="status-display">
+        等待測試...
+      </div>
+      
+      <button id="test-integration-btn" data-testid="test-integration" class="md-filled-button">
+        測試四模組整合
+      </button>
+      
+      <div id="module-error" data-testid="module-error" class="error-panel" style="display: none;">
+        模組錯誤信息
+      </div>
+      
+      <button id="check-consistency-btn" data-testid="check-consistency" class="md-outlined-button">
+        檢查一致性
+      </button>
+      
+      <div id="consistency-result" data-testid="consistency-result" class="info-panel" style="display: none;">
+        資料一致性檢查通過
+      </div>
+    </div>
+  </section>
+
+  <!-- 測試控制 -->
+  <div class="test-controls">
+    <button id="mock-ccusage-unavailable" onclick="window.mockCcusageUnavailable = true" class="md-text-button">
+      模擬 ccusage 不可用
+    </button>
+    
+    <button id="mock-usage-near-limit" onclick="window.mockUsageNearLimit = true" class="md-text-button">
+      模擬接近限制
+    </button>
+    
+    <button id="mock-remaining-minutes" onclick="window.mockRemainingMinutes = 240" class="md-text-button">
+      模擬剩餘4小時
+    </button>
+    
+    <button id="mock-task-failure" onclick="window.mockTaskFailure = true" class="md-text-button">
+      模擬任務失敗
+    </button>
+    
+    <button id="mock-ccusage-error" onclick="window.mockCcusageError = true" class="md-text-button">
+      模擬 ccusage 錯誤
+    </button>
+    
+    <button id="reset-mocks" onclick="
+      delete window.mockCcusageUnavailable;
+      delete window.mockUsageNearLimit;
+      delete window.mockRemainingMinutes;
+      delete window.mockTaskFailure;
+      delete window.mockCcusageError;
+    " class="md-outlined-button">
+      重置模擬
+    </button>
+  </div>
+</div>
+
+<style>
+.core-module-section {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.module-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.execution-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.execution-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedule-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.schedule-form textarea {
+  grid-column: 1 / -1;
+}
+
+.monitor-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.info-panel, .warning-panel, .error-panel, .success-panel, .log-panel, .stats-panel {
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.info-panel {
+  background: #e3f2fd;
+  border: 1px solid #2196f3;
+}
+
+.warning-panel {
+  background: #fff3e0;
+  border: 1px solid #ff9800;
+}
+
+.error-panel {
+  background: #ffebee;
+  border: 1px solid #f44336;
+}
+
+.success-panel {
+  background: #e8f5e8;
+  border: 1px solid #4caf50;
+}
+
+.log-panel, .stats-panel {
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+}
+
+.status-display, .info-display {
+  font-weight: bold;
+  padding: 8px;
+  background: #e8e8e8;
+  border-radius: 4px;
+}
+
+.test-controls {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f0f0f0;
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+</style> 

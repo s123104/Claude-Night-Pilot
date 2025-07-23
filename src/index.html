@@ -211,6 +211,7 @@
               <div
                 id="cooldown-status"
                 class="md-status-chip cooldown-status"
+                data-testid="cooldown-status"
                 title="Claude API 狀態"
               >
                 <span class="material-symbols-outlined status-icon"
@@ -306,13 +307,14 @@
                 <button
                   id="create-prompt-fab"
                   class="md-fab md-elevation-level3"
+                  data-testid="create-prompt"
                 >
                   <span class="material-symbols-outlined">add</span>
                 </button>
               </div>
 
               <!-- Prompts Grid -->
-              <div class="md-card-grid" id="prompts-list">
+              <div class="md-card-grid" id="prompts-list" data-testid="prompt-list">
                 <!-- Loading Skeleton -->
                 <div class="md-loading-skeleton">
                   <div class="md-skeleton-card"></div>
