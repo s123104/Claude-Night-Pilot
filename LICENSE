@@ -1,0 +1,59 @@
+MIT License
+
+Copyright (c) 2025 Claude Night Pilot Contributors
+
+Portions of this software are derived from or inspired by:
+
+- claude-code-schedule by Ian Macalinao (Apache 2.0) - https://github.com/macalinao/claude-code-schedule
+- Claude-Autopilot by benbasha (MIT) - https://github.com/benbasha/Claude-Autopilot
+- CCAutoRenew by Aniket Karne (MIT) - https://github.com/aniketkarne/CCAutoRenew
+- ClaudeNightsWatch by Aniket Karne (MIT) - https://github.com/aniketkarne/ClaudeNightsWatch
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Third-Party Acknowledgments
+
+### claude-code-schedule (Apache 2.0)
+
+Copyright by Ian Macalinao
+Original project: https://github.com/macalinao/claude-code-schedule
+Integrated features: Scheduled execution, time parsing, permission skipping
+
+### Claude-Autopilot (MIT)
+
+Copyright (c) 2025 benbasha
+Original project: https://github.com/benbasha/Claude-Autopilot
+Integrated features: Queue management, sleep prevention, configuration validation
+
+### CCAutoRenew (MIT)
+
+Copyright (c) 2025 Aniket Karne  
+Original project: https://github.com/aniketkarne/CCAutoRenew
+Integrated features: ccusage integration, adaptive monitoring, scheduled start times
+
+### ClaudeNightsWatch (MIT)
+
+Copyright (c) 2025 Aniket Karne
+Original project: https://github.com/aniketkarne/ClaudeNightsWatch  
+Integrated features: Task templates, safety rules, autonomous execution
+
+All third-party components retain their original licenses and copyright notices.
+This project complies with all applicable license requirements.

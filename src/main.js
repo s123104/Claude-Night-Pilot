@@ -1187,12 +1187,12 @@ class CooldownManager {
     // Initialize cooldown status polling
     console.log("Initializing CooldownManager...");
     await this.checkCooldownStatus();
-    
+
     // Set up periodic status checks (every 30 seconds)
     this.statusCheckInterval = setInterval(() => {
       this.checkCooldownStatus();
     }, 30000);
-    
+
     console.log("CooldownManager initialized successfully");
   }
 
@@ -1234,10 +1234,10 @@ class CooldownManager {
 
     // Update detailed info in system tab
     this.updateDetailedCooldownInfo({
-      status: 'available',
-      message: 'Claude API 運行正常',
+      status: "available",
+      message: "Claude API 運行正常",
       lastCheck: new Date().toLocaleString("zh-TW"),
-      version: response.version || "Claude CLI 1.0.57"
+      version: response.version || "Claude CLI 1.0.57",
     });
   }
 
@@ -1315,12 +1315,12 @@ class CooldownManager {
 
       // Update detailed info in system tab
       this.updateDetailedCooldownInfo({
-        status: 'cooldown',
-        message: 'API 已達到使用限制',
+        status: "cooldown",
+        message: "API 已達到使用限制",
         timeRemaining: timeDisplay,
         resetTime: resetTimeStr,
         suggestion: suggestion,
-        progress: this.calculateProgress()
+        progress: this.calculateProgress(),
       });
     };
 
@@ -1346,15 +1346,17 @@ class CooldownManager {
         <span class="status-text md-typescale-label-medium">檢查失敗</span>
       `;
       statusElement.className = "md-status-chip error-status";
-      statusElement.title = `無法檢查 Claude CLI 狀態 - 錯誤: ${error.message || error}`;
+      statusElement.title = `無法檢查 Claude CLI 狀態 - 錯誤: ${
+        error.message || error
+      }`;
     }
 
     // Update detailed info in system tab
     this.updateDetailedCooldownInfo({
-      status: 'error',
-      message: '狀態檢查失敗',
+      status: "error",
+      message: "狀態檢查失敗",
       error: error.message || error,
-      lastCheck: new Date().toLocaleString("zh-TW")
+      lastCheck: new Date().toLocaleString("zh-TW"),
     });
   }
 
@@ -1362,10 +1364,10 @@ class CooldownManager {
     const detailedContainer = document.getElementById("detailed-cooldown-info");
     if (!detailedContainer) return;
 
-    let content = '';
-    
+    let content = "";
+
     switch (info.status) {
-      case 'available':
+      case "available":
         content = `
           <div class="info-item">
             <label class="md-typescale-label-medium">狀態</label>
@@ -1381,12 +1383,14 @@ class CooldownManager {
           </div>
         `;
         break;
-      
-      case 'cooldown':
+
+      case "cooldown":
         content = `
           <div class="info-item">
             <label class="md-typescale-label-medium">狀態</label>
-            <span class="md-typescale-body-medium status-cooldown">⏳ ${info.message}</span>
+            <span class="md-typescale-body-medium status-cooldown">⏳ ${
+              info.message
+            }</span>
           </div>
           <div class="info-item">
             <label class="md-typescale-label-medium">剩餘時間</label>
@@ -1400,19 +1404,25 @@ class CooldownManager {
             <label class="md-typescale-label-medium">建議</label>
             <span class="md-typescale-body-medium">${info.suggestion}</span>
           </div>
-          ${info.progress !== undefined ? `
+          ${
+            info.progress !== undefined
+              ? `
           <div class="info-item progress-item">
             <label class="md-typescale-label-medium">進度</label>
             <div class="detailed-progress-bar">
-              <div class="detailed-progress-fill" style="width: ${info.progress}%"></div>
+              <div class="detailed-progress-fill" style="width: ${
+                info.progress
+              }%"></div>
               <span class="progress-text">${Math.round(info.progress)}%</span>
             </div>
           </div>
-          ` : ''}
+          `
+              : ""
+          }
         `;
         break;
-      
-      case 'error':
+
+      case "error":
         content = `
           <div class="info-item">
             <label class="md-typescale-label-medium">狀態</label>
@@ -1428,7 +1438,7 @@ class CooldownManager {
           </div>
         `;
         break;
-      
+
       default:
         content = `
           <div class="info-item">
