@@ -1,8 +1,12 @@
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 // 宣告模組 - 公開讓 CLI 可以使用
-pub mod executor;
 pub mod db;
+pub mod executor;
+pub mod scheduler;
+pub mod usage_tracker;
+pub mod adaptive_monitor;
+pub mod smart_scheduler;
 
 // 取得資料庫遷移
 fn get_migrations() -> Vec<Migration> {

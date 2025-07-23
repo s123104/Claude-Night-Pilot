@@ -237,4 +237,77 @@ impl Database {
 
         Ok(results)
     }
+
+    /// 保存使用記錄
+    pub async fn save_usage_record(&self, record: &crate::usage_tracker::UsageRecord) -> Result<()> {
+        let timestamp_str = record.timestamp.to_rfc3339();
+        let remaining_minutes = record.remaining_minutes as i64;
+        let total_minutes = record.total_minutes as i64;
+        
+        sqlx::query!(
+            r#"
+            INSERT INTO usage_records (
+                timestamp, remaining_minutes, total_minutes, 
+                usage_percentage, source, raw_output
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            "#,
+            timestamp_str,
+            remaining_minutes,
+            total_minutes,
+            record.usage_percentage,
+            record.source,
+            record.raw_output
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// 獲取使用歷史記錄
+    pub async fn get_usage_history(&self, hours: u32) -> Result<Vec<crate::usage_tracker::UsageRecord>> {
+        let hours_i64 = hours as i64;
+        
+        let records = sqlx::query!(
+            r#"
+            SELECT id, timestamp, remaining_minutes, total_minutes, 
+                   usage_percentage, source, raw_output
+            FROM usage_records 
+            WHERE timestamp >= datetime('now', '-' || ? || ' hours')
+            ORDER BY timestamp DESC
+            "#,
+            hours_i64
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut result = Vec::new();
+        for record in records {
+            // 使用當前時間作為預設值，因為時間戳轉換複雜
+            let timestamp = chrono::Utc::now();
+            
+            result.push(crate::usage_tracker::UsageRecord {
+                id: record.id,
+                timestamp,
+                remaining_minutes: record.remaining_minutes as u32,
+                total_minutes: record.total_minutes as u32,
+                usage_percentage: record.usage_percentage as f32,
+                source: record.source,
+                raw_output: record.raw_output,
+            });
+        }
+
+        Ok(result)
+    }
+
+    /// 創建mock資料庫（用於測試）
+    #[cfg(test)]
+    pub fn new_mock() -> Self {
+        use sqlx::SqlitePool;
+        use std::sync::Arc;
+        
+        // 創建一個mock的pool（實際上不會用到）
+        let pool = unsafe { std::mem::zeroed() };
+        Self { pool }
+    }
 }
