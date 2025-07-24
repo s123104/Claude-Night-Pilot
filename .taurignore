@@ -1,0 +1,64 @@
+# ========================
+# Claude Night Pilot - .taurignore
+# 基於 Tauri 官方最佳實踐 [Context7:tauri-apps/tauri-docs:2025-07-24T21:18:16+08:00]
+# 防止不必要的應用程式重啟
+# ========================
+
+# 建置產物
+build/
+target/
+dist/
+src-tauri/target/
+src-tauri/gen/
+
+# 生成的檔案
+src/generated/*.rs
+
+# 大型資料庫檔案變更（避免不必要重建）
+*.db
+*.sqlite
+*.sqlite3
+claude-pilot.db*
+
+# 測試結果
+test-results/
+playwright-report/
+coverage/
+
+# 文檔與配置檔案變更
+docs/
+*.md
+README.md
+CHANGELOG.md
+LICENSE
+.gitignore
+
+# 測試檔案
+tests/
+*.spec.js
+*.test.js
+
+# 配置檔案變更
+deny.toml
+.github/
+.vscode/
+.idea/
+
+# Node.js 相關
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# 日誌檔案
+logs/
+*.log
+
+# 暫存檔案
+*.tmp
+*.temp
+.temp/
+
+# 歷史檔案
+archive/
+research-projects/ 
