@@ -59,103 +59,118 @@ dist/
 .yarn-integrity
 
 # Optional files
-.node_repl_history
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-.pnp.*
+.DS_Store
+Thumbs.db
 
-# ==== Rust & Tauri ====
-# Tauri 官方最佳實踐：DO NOT commit src-tauri/target
+# ==== Rust/Tauri ====
+# Build and target directories - CRITICAL for size control
 src-tauri/target/
 target/
-
-# Tauri 官方最佳實踐：Commit Cargo.lock and Cargo.toml
-# src-tauri/Cargo.lock  # 保留 - 確保確定性建置
-# src-tauri/Cargo.toml  # 保留 - 專案元數據
-
-# Tauri generated files
-src-tauri/gen/
-
-# Rust backup files
 **/*.rs.bk
-*.pdb
 
-# ==== SQLite 資料庫 ====
-# 開發資料庫檔案 - 避免推送個人資料
-*.db
+# Generated files
+src-tauri/gen/
+src-generated/
+
+# Database files - Prevent large DB uploads
+src-tauri/*.db*
 *.sqlite
 *.sqlite3
-claude-pilot.db*
 *.db-wal
 *.db-shm
 
-# ==== IDE/編輯器檔案 ====
+# ==== 測試和報告 ====
+# Test outputs
+test-results/
+playwright-report/
+coverage/
+*.spec.js.snap
+
+# BFG 清理報告
+.bfg-report/
+
+# ==== 大檔案預防規則 ====
+# 所有大於50MB的檔案類型
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+*.dmg
+*.pkg
+*.iso
+*.img
+
+# 專案備份檔案 - 防止意外提交
+*backup*
+*BACKUP*
+project_backup_*
+*.backup
+*.bak
+
+# 大型資料檔案
+*.csv
+*.json
+*.xml
+*.txt
+
+# 媒體檔案
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.mp3
+*.wav
+*.flac
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.pdf
+
+# 編譯產物
+*.exe
+*.app
+*.dmg
+*.deb
+*.rpm
+*.msi
+
+# 開發工具
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.vscode-test
 
-# ==== 作業系統檔案 ====
+# macOS
 .DS_Store
-.DS_Store?
+.AppleDouble
+.LSOverride
+
+# Thumbnails
 ._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 
-# ==== 測試與報告 ====
-test-results/
-playwright-report/
-test-results-*
+# BFG工具
+bfg.jar
+bfg-*.jar
 
-# ==== 大型歷史檔案 - 避免推送 ====
-# 這些是造成上傳緩慢的主要原因
+# ==== 資料夾大小控制 ====
+# 歷史檔案和研究專案 - 已在遠端移除
 archive/
 research-projects/
 
-# ==== Tauri 特定忽略 ====
-# Tauri 監視忽略檔案 (.taurignore 使用)
-.taurignore
+# 其他大型目錄
+docs/screenshots/
+docs/images/
+assets/videos/
+data/
+datasets/
 
-# ==== 臨時檔案 ====
-*.tmp
-*.temp
-.temp/
-.tmp/
-
-# ==== 本地配置檔案 ====
-.claude/
-claude-code-config.json
-settings.local.json
-
-# ==== 備份檔案 ====
-*.bak
-*.backup
-*.orig
-
-# ==== 部署與發布檔案 ====
-# macOS 簽名憑證（請勿推送）
-*.p12
-*.mobileprovision
-
-# 建置輸出
-src-tauri/target/release/bundle/
-src-tauri/target/debug/bundle/
-
-# ==== 其他開發工具 ====
-# TypeScript
-*.tsbuildinfo
-
-# Cargo 快取
-.cargo/
-
-# 本地開發伺服器
-.serverless/
-.fusebox/
-.dynamodb/
-.tern-port
+# 日誌檔案
+*.log
+logs/
+log/
