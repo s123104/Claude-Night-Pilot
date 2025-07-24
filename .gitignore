@@ -174,3 +174,15 @@ datasets/
 *.log
 logs/
 log/
+
+# ==== 文檔臨時檔案 ====
+# 臨時文檔和工作中的檔案
+docs/temp/
+docs/archive/
+docs/**/*-temp.md
+docs/**/*-draft.md
+docs/**/*-wip.md
+
+# 自動生成的報告檔案
+docs/reports/auto-generated/
+docs/reports/temp/
