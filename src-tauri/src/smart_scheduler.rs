@@ -196,9 +196,9 @@ impl SmartScheduler {
             required_minutes: total_required,
             has_sufficient_time,
             is_working_hours,
-            urgency,
+            _urgency: urgency,
             would_waste_block,
-            efficiency_score: self.calculate_efficiency_score(remaining_minutes, total_required),
+            _efficiency_score: self.calculate_efficiency_score(remaining_minutes, total_required),
         }
     }
 
@@ -500,9 +500,9 @@ struct TimeSufficiencyAnalysis {
     required_minutes: u32,
     has_sufficient_time: bool,
     is_working_hours: bool,
-    urgency: TimeUrgency,
+    _urgency: TimeUrgency,
     would_waste_block: bool,
-    efficiency_score: f32,
+    _efficiency_score: f32,
 }
 
 #[derive(Debug)]
@@ -608,7 +608,7 @@ mod tests {
 
     #[test]
     fn test_time_efficiency_calculation() {
-        let _config = SchedulingConfig::default();
+        let config = SchedulingConfig::default();
         
         // 測試理想使用率 (80%)
         assert_eq!(calculate_efficiency_score_static(100, 80), 1.0);
@@ -622,7 +622,7 @@ mod tests {
 
     #[test]
     fn test_working_hours_check() {
-        let _config = SchedulingConfig::default();
+        let config = SchedulingConfig::default();
         let timezone: Tz = "Asia/Taipei".parse().unwrap();
         
         // 測試工作時間 (14:00 台北時間)

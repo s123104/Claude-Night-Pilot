@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Claude Night Pilot - 簡化核心測試", () => {
   test("應用能正確啟動並顯示基本介面", async ({ page }) => {
     // 等待更長時間讓應用啟動
-    await page.goto("http://localhost:1420", { timeout: 60000 });
+    await page.goto("http://localhost:8080", { timeout: 60000 });
 
     // 檢查是否有標題或任何內容載入
     try {
@@ -38,7 +38,7 @@ test.describe("Claude Night Pilot - 簡化核心測試", () => {
   });
 
   test("檢查頁面標題", async ({ page }) => {
-    await page.goto("http://localhost:1420", { timeout: 60000 });
+    await page.goto("http://localhost:8080", { timeout: 60000 });
 
     // 檢查頁面標題
     const title = await page.title();

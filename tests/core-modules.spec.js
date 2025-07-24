@@ -7,6 +7,12 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
     await page.waitForSelector('h1:has-text("Claude Night Pilot")', {
       timeout: 30000,
     });
+
+    // 切換到測試標籤頁
+    await page.click('[data-tab="testing"]');
+    await page.waitForSelector('[data-testid="core-001-section"]', {
+      timeout: 10000,
+    });
   });
 
   test.describe("CORE-001: ccusage API 整合模組", () => {
@@ -203,7 +209,9 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
       // 檢查事件是否被接收
       await page.waitForFunction(() => window.testEventReceived);
 
-      const wasEventReceived = await page.evaluate(() => window.testEventReceived);
+      const wasEventReceived = await page.evaluate(
+        () => window.testEventReceived
+      );
       expect(wasEventReceived).toBeTruthy();
     });
 

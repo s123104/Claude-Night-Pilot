@@ -282,6 +282,10 @@
                 <span class="material-symbols-outlined">monitoring</span>
                 <span class="md-typescale-label-medium">監控</span>
               </button>
+              <button class="md-navigation-rail-item" data-tab="testing">
+                <span class="material-symbols-outlined">science</span>
+                <span class="md-typescale-label-medium">測試</span>
+              </button>
             </div>
           </div>
         </nav>
@@ -314,7 +318,11 @@
               </div>
 
               <!-- Prompts Grid -->
-              <div class="md-card-grid" id="prompts-list" data-testid="prompt-list">
+              <div
+                class="md-card-grid"
+                id="prompts-list"
+                data-testid="prompt-list"
+              >
                 <!-- Loading Skeleton -->
                 <div class="md-loading-skeleton">
                   <div class="md-skeleton-card"></div>
@@ -446,6 +454,407 @@
                   </div>
                 </div>
               </div>
+            </section>
+
+            <!-- Testing Tab -->
+            <section id="testing-tab" class="md-tab-panel">
+              <div class="md-section-header">
+                <div class="section-title">
+                  <h2 class="md-typescale-headline-medium">
+                    <span class="material-symbols-outlined">science</span>
+                    核心模組測試
+                  </h2>
+                  <p class="md-typescale-body-medium section-subtitle">
+                    四大核心模組功能測試介面
+                  </p>
+                </div>
+              </div>
+
+              <!-- 四大核心模組測試界面 -->
+              <!-- CORE-001: ccusage API 整合模組 -->
+              <section
+                class="core-module-section"
+                data-testid="core-001-section"
+              >
+                <h3 class="md-typescale-title-medium">
+                  <span class="material-symbols-outlined">analytics</span>
+                  CORE-001: ccusage API 整合模組
+                </h3>
+                <button
+                  id="check-usage-btn"
+                  data-testid="check-usage"
+                  class="md-filled-button"
+                >
+                  <span class="material-symbols-outlined">update</span>
+                  檢查使用量
+                </button>
+                <div
+                  id="usage-info"
+                  data-testid="usage-info"
+                  class="info-panel"
+                  style="display: none"
+                >
+                  <div data-testid="remaining-minutes">剩餘分鐘: --</div>
+                  <div data-testid="usage-source">來源: --</div>
+                  <div data-testid="cache-indicator" style="display: none">
+                    使用快取數據
+                  </div>
+                  <div data-testid="fallback-indicator" style="display: none">
+                    使用回退方法
+                  </div>
+                </div>
+              </section>
+
+              <!-- CORE-002: 安全執行系統 -->
+              <section
+                class="core-module-section"
+                data-testid="core-002-section"
+              >
+                <h3 class="md-typescale-title-medium">
+                  <span class="material-symbols-outlined">security</span>
+                  CORE-002: 安全執行系統
+                </h3>
+                <div class="md-form-group">
+                  <textarea
+                    id="prompt-input"
+                    data-testid="prompt-input"
+                    class="md-text-field"
+                    placeholder="輸入測試提示..."
+                    rows="3"
+                  ></textarea>
+                </div>
+                <div class="checkbox-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      id="skip-permissions"
+                      data-testid="skip-permissions"
+                    />
+                    跳過權限檢查
+                  </label>
+                  <label>
+                    <input type="checkbox" id="dry-run" data-testid="dry-run" />
+                    乾運行模式
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      id="enable-security"
+                      data-testid="enable-security"
+                      checked
+                    />
+                    啟用安全檢查
+                  </label>
+                </div>
+                <button
+                  id="execute-prompt-btn"
+                  data-testid="execute-prompt"
+                  class="md-filled-button"
+                >
+                  <span class="material-symbols-outlined">play_arrow</span>
+                  執行提示
+                </button>
+                <div
+                  id="security-warning"
+                  data-testid="security-warning"
+                  class="warning-panel"
+                  style="display: none"
+                >
+                  <span class="material-symbols-outlined">warning</span>
+                  偵測到危險模式
+                </div>
+                <div
+                  id="permission-skipped"
+                  data-testid="permission-skipped"
+                  class="info-panel"
+                  style="display: none"
+                >
+                  <span class="material-symbols-outlined">info</span>
+                  已跳過權限檢查
+                </div>
+                <div
+                  id="dry-run-result"
+                  data-testid="dry-run-result"
+                  class="info-panel"
+                  style="display: none"
+                >
+                  <span class="material-symbols-outlined">preview</span>
+                  乾運行結果
+                </div>
+                <div
+                  id="execution-complete"
+                  data-testid="execution-complete"
+                  class="success-panel"
+                  style="display: none"
+                >
+                  <span class="material-symbols-outlined">check_circle</span>
+                  執行完成
+                </div>
+                <button
+                  id="view-audit-log-btn"
+                  data-testid="view-audit-log"
+                  class="md-text-button"
+                >
+                  <span class="material-symbols-outlined">description</span>
+                  查看審計日誌
+                </button>
+                <div
+                  id="audit-log"
+                  data-testid="audit-log"
+                  class="log-panel"
+                  style="display: none"
+                >
+                  <!-- 審計日誌內容 -->
+                </div>
+              </section>
+
+              <!-- CORE-003: 自適應監控系統 -->
+              <section
+                class="core-module-section"
+                data-testid="core-003-section"
+              >
+                <h3 class="md-typescale-title-medium">
+                  <span class="material-symbols-outlined">monitor</span>
+                  CORE-003: 自適應監控系統
+                </h3>
+                <div
+                  id="monitor-status"
+                  data-testid="monitor-status"
+                  class="status-display"
+                >
+                  當前模式: Normal
+                </div>
+                <div
+                  id="monitor-interval"
+                  data-testid="monitor-interval"
+                  class="info-display"
+                >
+                  檢查間隔: 10分鐘
+                </div>
+                <div class="button-group">
+                  <button
+                    id="start-monitoring-btn"
+                    data-testid="start-monitoring"
+                    class="md-filled-button"
+                  >
+                    <span class="material-symbols-outlined">play_arrow</span>
+                    啟動監控
+                  </button>
+                  <button
+                    id="update-monitor-btn"
+                    data-testid="update-monitor"
+                    class="md-outlined-button"
+                  >
+                    <span class="material-symbols-outlined">update</span>
+                    更新監控
+                  </button>
+                  <button
+                    id="check-monitor-btn"
+                    data-testid="check-monitor"
+                    class="md-text-button"
+                  >
+                    <span class="material-symbols-outlined">check</span>
+                    檢查狀態
+                  </button>
+                  <button
+                    id="trigger-monitor-event-btn"
+                    data-testid="trigger-monitor-event"
+                    class="md-text-button"
+                  >
+                    <span class="material-symbols-outlined">event</span>
+                    觸發事件
+                  </button>
+                  <button
+                    id="view-stats-btn"
+                    data-testid="view-stats"
+                    class="md-text-button"
+                  >
+                    <span class="material-symbols-outlined">bar_chart</span>
+                    查看統計
+                  </button>
+                </div>
+                <div
+                  id="monitor-stats"
+                  data-testid="monitor-stats"
+                  class="stats-panel"
+                  style="display: none"
+                >
+                  <!-- 監控統計內容 -->
+                </div>
+              </section>
+
+              <!-- CORE-004: 智能排程系統 -->
+              <section
+                class="core-module-section"
+                data-testid="core-004-section"
+              >
+                <h3 class="md-typescale-title-medium">
+                  <span class="material-symbols-outlined">schedule</span>
+                  CORE-004: 智能排程系統
+                </h3>
+                <div class="md-form-group">
+                  <textarea
+                    id="schedule-prompt"
+                    data-testid="schedule-prompt"
+                    class="md-text-field"
+                    placeholder="輸入排程提示..."
+                    rows="2"
+                  ></textarea>
+                </div>
+                <div class="md-form-group">
+                  <input
+                    type="datetime-local"
+                    id="schedule-time"
+                    data-testid="schedule-time"
+                    class="md-text-field"
+                  />
+                </div>
+                <div class="md-form-group">
+                  <select
+                    id="timezone-select"
+                    data-testid="timezone-select"
+                    class="md-select"
+                  >
+                    <option value="Asia/Taipei">Asia/Taipei</option>
+                    <option value="America/New_York">America/New_York</option>
+                    <option value="Europe/London">Europe/London</option>
+                  </select>
+                </div>
+                <div class="md-form-group">
+                  <input
+                    type="number"
+                    id="required-minutes"
+                    data-testid="required-minutes"
+                    class="md-text-field"
+                    placeholder="所需分鐘數"
+                    min="1"
+                  />
+                </div>
+                <div class="button-group">
+                  <button
+                    id="create-schedule-btn"
+                    data-testid="create-schedule"
+                    class="md-filled-button"
+                  >
+                    <span class="material-symbols-outlined">event</span>
+                    建立排程
+                  </button>
+                  <button
+                    id="analyze-efficiency-btn"
+                    data-testid="analyze-efficiency"
+                    class="md-outlined-button"
+                  >
+                    <span class="material-symbols-outlined">analytics</span>
+                    效率分析
+                  </button>
+                </div>
+                <div
+                  id="schedule-info"
+                  data-testid="schedule-info"
+                  class="info-panel"
+                  style="display: none"
+                >
+                  排程信息將顯示在這裡
+                </div>
+                <div
+                  id="block-protection"
+                  data-testid="block-protection"
+                  class="warning-panel"
+                  style="display: none"
+                >
+                  <span class="material-symbols-outlined">warning</span>
+                  5小時塊保護已啟動
+                </div>
+                <div
+                  id="efficiency-analysis"
+                  data-testid="efficiency-analysis"
+                  class="info-panel"
+                  style="display: none"
+                >
+                  效率分析結果
+                </div>
+                <div
+                  id="working-hours-warning"
+                  data-testid="working-hours-warning"
+                  class="warning-panel"
+                  style="display: none"
+                >
+                  <span class="material-symbols-outlined">schedule</span>
+                  非工作時間警告
+                </div>
+                <div
+                  id="retry-indicator"
+                  data-testid="retry-indicator"
+                  class="info-panel"
+                  style="display: none"
+                >
+                  <span class="material-symbols-outlined">retry</span>
+                  任務重試中
+                </div>
+                <div
+                  id="retry-info"
+                  data-testid="retry-info"
+                  class="info-panel"
+                  style="display: none"
+                >
+                  重試信息
+                </div>
+              </section>
+
+              <!-- 整合測試 -->
+              <section
+                class="core-module-section"
+                data-testid="integration-section"
+              >
+                <h3 class="md-typescale-title-medium">
+                  <span class="material-symbols-outlined"
+                    >integration_instructions</span
+                  >
+                  整合測試
+                </h3>
+                <div
+                  id="integration-status"
+                  data-testid="integration-status"
+                  class="status-display"
+                >
+                  四大模組協同狀態: 準備就緒
+                </div>
+                <div class="button-group">
+                  <button
+                    id="test-integration-btn"
+                    data-testid="test-integration"
+                    class="md-filled-button"
+                  >
+                    <span class="material-symbols-outlined">sync</span>
+                    測試整合
+                  </button>
+                  <button
+                    id="check-consistency-btn"
+                    data-testid="check-consistency"
+                    class="md-outlined-button"
+                  >
+                    <span class="material-symbols-outlined">verified</span>
+                    檢查一致性
+                  </button>
+                </div>
+                <div
+                  id="module-error"
+                  data-testid="module-error"
+                  class="error-panel"
+                  style="display: none"
+                >
+                  <span class="material-symbols-outlined">error</span>
+                  模組錯誤
+                </div>
+                <div
+                  id="consistency-result"
+                  data-testid="consistency-result"
+                  class="info-panel"
+                  style="display: none"
+                >
+                  一致性檢查結果
+                </div>
+              </section>
             </section>
           </div>
         </main>

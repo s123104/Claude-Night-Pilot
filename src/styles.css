@@ -2210,3 +2210,87 @@ html {
     box-shadow: none !important;
   }
 }
+
+/* ===== 核心模組測試介面樣式 ===== */
+.core-module-section {
+  background: var(--md-sys-color-surface-container-lowest);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.core-module-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: var(--md-sys-color-on-surface);
+}
+
+.core-module-section .material-symbols-outlined {
+  color: var(--md-sys-color-primary);
+}
+
+.info-panel,
+.warning-panel,
+.success-panel,
+.error-panel,
+.log-panel,
+.stats-panel {
+  background: var(--md-sys-color-surface-container);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+  border-left: 4px solid var(--md-sys-color-primary);
+}
+
+.warning-panel {
+  border-left-color: var(--md-sys-color-error);
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.success-panel {
+  border-left-color: var(--md-sys-color-tertiary);
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.error-panel {
+  border-left-color: var(--md-sys-color-error);
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--md-sys-color-on-surface);
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.status-display,
+.info-display {
+  background: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-weight: 500;
+}

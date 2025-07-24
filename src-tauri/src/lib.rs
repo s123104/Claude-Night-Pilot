@@ -1,4 +1,5 @@
 use tauri_plugin_sql::{Migration, MigrationKind};
+use std::sync::Arc;
 
 // 宣告模組 - 公開讓 CLI 可以使用
 pub mod db;
@@ -200,6 +201,69 @@ async fn run_cli_command(command: String, args: Vec<String>) -> Result<String, S
     }
 }
 
+// 初始化排程器
+async fn initialize_scheduler() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use crate::db::Database;
+    use crate::scheduler::TaskScheduler;
+    
+    println!("🚀 正在初始化 TaskScheduler...");
+    
+    // 創建數據庫連接
+    let db = Arc::new(Database::new("sqlite:claude-pilot.db").await?);
+    
+    // 創建並啟動排程器
+    let scheduler = TaskScheduler::new(db.clone()).await?;
+    scheduler.start().await?;
+    
+    // 載入所有待執行的 cron 任務
+    load_pending_cron_jobs(&scheduler, db).await?;
+    
+    println!("✅ TaskScheduler 初始化完成");
+    
+    // 防止排程器被回收 - 保持運行
+    tokio::spawn(async move {
+        let _scheduler = scheduler; // 保持 scheduler 存活
+        loop {
+            tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await; // 每小時檢查一次
+        }
+    });
+    
+    Ok(())
+}
+
+// 載入待執行的 cron 任務
+async fn load_pending_cron_jobs(
+    scheduler: &crate::scheduler::TaskScheduler, 
+    db: Arc<crate::db::Database>
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    println!("📋 載入待執行的 cron 任務...");
+    
+    // 獲取所有任務
+    let all_jobs = db.list_jobs().await?;
+    let mut cron_jobs_count = 0;
+    
+    for job in all_jobs {
+        // 只處理 async 模式、pending 狀態且有 cron 表達式的任務
+        if job.mode == "async" && job.status == "pending" && job.cron_expr != "*" {
+            // 獲取關聯的 prompt
+            if let Some(prompt) = db.get_prompt(job.prompt_id).await? {
+                match scheduler.register_cron_job(&job, &prompt.content).await {
+                    Ok(_) => {
+                        cron_jobs_count += 1;
+                        println!("✅ 註冊 Cron 任務: ID {} ({})", job.id.unwrap_or(0), job.cron_expr);
+                    }
+                    Err(e) => {
+                        eprintln!("❌ 註冊 Cron 任務失敗: {}", e);
+                    }
+                }
+            }
+        }
+    }
+    
+    println!("📊 已載入 {} 個 Cron 任務", cron_jobs_count);
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -213,10 +277,20 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_cli::init())
-        .setup(|_app| {
+        .setup(|app| {
             println!("Claude Night Pilot 啟動中...");
             println!("當前時間：2025-07-22T21:55:57+08:00");
             println!("CLI 整合狀態：已啟用");
+            
+            // 初始化並啟動排程器
+            let _app_handle = app.handle();
+            tauri::async_runtime::spawn(async move {
+                match initialize_scheduler().await {
+                    Ok(_) => println!("✅ 排程器啟動成功"),
+                    Err(e) => eprintln!("❌ 排程器啟動失敗: {}", e),
+                }
+            });
+            
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
