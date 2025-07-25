@@ -364,6 +364,38 @@ Currently, most Tauri commands return mock data for development. The actual Clau
 ### Research Integration
 The project includes extensive research from multiple Claude automation projects (CCAutoRenew, Claude-Autopilot, claude-code-schedule, ClaudeNightsWatch, ccusage) with detailed integration documentation in the `docs/` directory.
 
+## 自動委派 (Automatic Delegation)
+
+Claude Code 根據以下情境智慧召喚 Sub-Agent：
+
+- **code-reviewer**: 偵測 `git commit`, `git push`, 或 Pull Request 時，檢查程式碼品質、安全性、可維護性  
+- **test-runner**: Pre-Push、CI Pipeline 或 Merge Request 時，執行單元/整合/E2E 測試並生成覆蓋率  
+- **error-debugger**: 測試失敗、Build Crash 或 uncaught exception 時，定位根因並生成 Hotfix  
+- **doc-writer**: 功能合併至 `main`、公開 API 變動或 release 標籤時，更新 README、CHANGELOG、ADR
+
+### 智慧偵測機制
+
+- **語言檢測**: 自動識別 Node.js (JavaScript/TypeScript)、Rust 技術棧
+- **優先級排序**: error-debugger > code-reviewer > test-runner > doc-writer
+- **動態觸發**: 根據專案結構和檔案變更動態調整觸發條件
+
+### Sub-Agent 專案適應
+
+**Node.js/JavaScript 專案**:
+- code-reviewer: 檢查 ESLint 規則、TypeScript 類型安全
+- test-runner: 執行 `npm test`, Jest/Playwright 測試套件
+- error-debugger: 分析 Node.js stack trace、依賴衝突
+
+**Rust 專案**:
+- code-reviewer: 檢查 Clippy 建議、Cargo 依賴管理
+- test-runner: 執行 `cargo test`, 生成測試覆蓋率
+- error-debugger: 分析 Rust 編譯錯誤、記憶體安全問題
+
+**Tauri 混合專案** (本專案類型):
+- 前端 JavaScript 和後端 Rust 雙重檢測
+- 同時支援 E2E Playwright 測試和 Rust 單元測試
+- 跨語言依賴分析和安全檢查
+
 ## Important Development Notes
 
 - The frontend uses Chinese text extensively - all UI tests are in Chinese
