@@ -17,11 +17,17 @@
     "cli:build": "cargo build --release --bin cnp",
     "cli:install": "cargo install --path src-tauri --bin cnp",
     "lint": "eslint src/**/*.js --fix",
-    "lint:check": "eslint src/**/*.js"
+    "lint:check": "eslint src/**/*.js",
+    "commitlint": "commitlint --edit",
+    "commit": "git-cz",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
     "@playwright/test": "^1.54.1",
     "eslint": "^9.31.0",
+    "husky": "^9.1.7",
     "playwright": "^1.54.1"
   },
   "dependencies": {

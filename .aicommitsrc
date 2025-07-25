@@ -1,0 +1,15 @@
+{
+  "diffContextLines": 100,
+  "model": "claude-3-sonnet",
+  "generate": 3,
+  "exclude": [
+    "package-lock.json",
+    "*.log",
+    "node_modules/**",
+    "target/**",
+    ".git/**"
+  ],
+  "temperature": 0.7,
+  "prompt": "Generate a professional commit message following Conventional Commits format. Consider the scope and type based on the changes. Be concise but descriptive.",
+  "locale": "en"
+}

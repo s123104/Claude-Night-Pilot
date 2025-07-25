@@ -265,6 +265,86 @@ pub struct ExecutionOptions {
 - 執行時間與結果
 - 錯誤訊息與風險評估
 
+## 📝 Commit 訊息規範
+
+本專案採用 **Conventional Commits** 標準，並配置 commitlint 自動驗證，確保專業開源專案等級的 commit 品質。
+
+### 🎯 Commit 訊息格式
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### 📋 允許的類型 (Type)
+
+| Type | 說明 | 示例 |
+|------|------|------|
+| `feat` | 新功能 | `feat(gui): add dark mode toggle` |
+| `fix` | 修復 bug | `fix(scheduler): resolve cron parsing error` |
+| `docs` | 文檔更新 | `docs(readme): update installation guide` |
+| `style` | 格式調整 | `style(core): apply consistent code formatting` |
+| `refactor` | 重構 | `refactor(db): extract connection pooling logic` |
+| `perf` | 性能優化 | `perf(executor): reduce claude cli execution time` |
+| `test` | 測試相關 | `test(cli): add integration tests for job commands` |
+| `build` | 構建系統 | `build(deps): update tauri to v2.7.1` |
+| `ci` | CI 配置 | `ci(github): add automated testing workflow` |
+| `chore` | 其他雜項 | `chore(config): update eslint rules` |
+| `revert` | 回滾提交 | `revert: feat(gui): remove experimental feature` |
+
+### 🏷️ 專案範圍 (Scope)
+
+| Scope | 說明 | 示例 |
+|-------|------|------|
+| `core` | 核心功能 | `feat(core): add usage tracking system` |
+| `gui` | GUI 介面 | `style(gui): update material design components` |
+| `cli` | CLI 工具 | `fix(cli): handle missing database file gracefully` |
+| `db` | 資料庫 | `perf(db): optimize query performance` |
+| `scheduler` | 排程器 | `feat(scheduler): support timezone-aware cron jobs` |
+| `executor` | 執行器 | `fix(executor): improve error handling for api limits` |
+| `security` | 安全性 | `feat(security): add execution audit logging` |
+| `test` | 測試 | `test(core): increase e2e test coverage` |
+| `docs` | 文檔 | `docs(api): add missing parameter descriptions` |
+| `deps` | 依賴更新 | `build(deps): upgrade playwright to v1.54.1` |
+| `config` | 配置 | `chore(config): update commitlint rules` |
+| `ci` | CI/CD | `ci(github): optimize build caching strategy` |
+| `release` | 發布相關 | `chore(release): prepare v1.0.0 release` |
+
+### 🤖 AI 輔助 Commit 訊息生成
+
+專案支援多種 AI 工具生成符合規範的 commit 訊息：
+
+```bash
+# 限制 diff 上下文為前後 100 行（節省 token）
+git config diff.contextLines 100
+
+# 使用 aicommits (配置在 .aicommitsrc)
+aicommits
+
+# 使用 Claude Code (未來版本)
+claude code commit --diff-lines=100
+
+# 使用模板協助手動編寫
+git config commit.template .gitmessage.template
+```
+
+### ⚡ Git Hooks 自動驗證
+
+專案已配置 Husky Git hooks：
+
+- **pre-commit**: 運行 ESLint 檢查
+- **commit-msg**: 驗證 commit 訊息格式
+- 不符合規範的提交將被自動拒絕
+
+### 📏 訊息長度限制
+
+- **標題行**: 最多 100 字元
+- **內文行**: 每行最多 100 字元
+- **Footer 行**: 每行最多 100 字元
+
 ## 🤝 貢獻指南
 
 我們歡迎任何形式的貢獻！請閱讀 [貢獻指南](CONTRIBUTING.md) 了解詳情。

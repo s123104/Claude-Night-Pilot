@@ -56,6 +56,31 @@ npm run test:headed
 npm run test:debug
 ```
 
+### Commit Message Standards
+```bash
+# Lint commit messages
+npm run commitlint
+
+# Check code before commit (runs automatically via Git hooks)
+npm run lint:check
+
+# Test commit message validation
+echo "feat(core): add new feature" | npx commitlint
+```
+
+**Conventional Commit Format**:
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+**Allowed Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+
+**Project Scopes**: `core`, `gui`, `cli`, `db`, `scheduler`, `executor`, `security`, `test`, `docs`, `deps`, `config`, `ci`, `release`
+
 ### Backend Development
 ```bash
 # Inside src-tauri directory:
@@ -396,6 +421,48 @@ Claude Code 根據以下情境智慧召喚 Sub-Agent：
 - 同時支援 E2E Playwright 測試和 Rust 單元測試
 - 跨語言依賴分析和安全檢查
 
+## AI-Powered Commit Message Generation
+
+### Token-Efficient Diff Processing
+為避免 LLM token 超限，專案支援多種 diff 限制策略：
+
+```bash
+# 限制 Git diff 上下文為前後 100 行
+git config diff.contextLines 100
+
+# 使用 AI commit 工具時的配置
+export DIFF_CONTEXT_LINES=100
+
+# 在 .aicommitsrc 中配置
+echo '{"diffContextLines": 100}' > .aicommitsrc
+```
+
+### Claude Code Integration
+```bash
+# 在 ~/.claude/settings.json 中配置（未來版本）
+{
+  "diffContextLines": 100,
+  "commitPromptTemplate": "Generate commit message for: {diff}"
+}
+
+# 使用 claude code commit 命令
+claude code commit --diff-lines=100
+```
+
+### AI Commit Tools Configuration
+**支援的工具與配置**：
+- `aicommits`: `.aicommitsrc` 設置 `diffContextLines`
+- `cz-ai`: `package.json` 中配置 `cz-ai.diff_context_lines`
+- `opencommit`: 環境變數 `OCO_DIFF_LINES=100`
+- VS Code 擴充：`settings.json` 配置 `maxDiffSize`
+
+### Git Hook Integration
+專案已配置 Husky Git hooks：
+- **pre-commit**: 運行 ESLint 檢查
+- **commit-msg**: 驗證 commit 訊息格式
+- 自動觸發 commitlint 規則驗證
+- 支援 AI 生成的 commit 訊息後處理
+
 ## Important Development Notes
 
 - The frontend uses Chinese text extensively - all UI tests are in Chinese
@@ -403,3 +470,5 @@ Claude Code 根據以下情境智慧召喚 Sub-Agent：
 - The CLI tool (`cnp`) provides a complete command-line interface to all functionality
 - Security features are designed with production use in mind
 - Database schema supports future enterprise features like audit compliance
+- **Commit messages must follow Conventional Commits standard**
+- **AI commit generation tools should limit diff context to 100 lines per direction**
