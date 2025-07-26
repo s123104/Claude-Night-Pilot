@@ -462,7 +462,6 @@ claude code commit --diff-lines=100
 - **commit-msg**: 驗證 commit 訊息格式
 - 自動觸發 commitlint 規則驗證
 - 支援 AI 生成的 commit 訊息後處理
-
 ## Important Development Notes
 
 - The frontend uses Chinese text extensively - all UI tests are in Chinese
