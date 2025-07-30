@@ -9,6 +9,10 @@ pub mod usage_tracker;
 pub mod adaptive_monitor;
 pub mod smart_scheduler;
 
+// 新增核心模組系統
+pub mod core;
+pub mod enhanced_executor;
+
 // 取得資料庫遷移
 fn get_migrations() -> Vec<Migration> {
     vec![
@@ -303,7 +307,11 @@ pub fn run() {
             list_jobs,
             get_job_results,
             get_system_info,
-            run_cli_command
+            run_cli_command,
+            // 新增增強執行器命令
+            enhanced_executor::execute_enhanced_claude,
+            enhanced_executor::check_enhanced_cooldown,
+            enhanced_executor::health_check_enhanced
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

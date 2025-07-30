@@ -2,6 +2,32 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Quick Development Reference
+
+### Essential Commands (Run Before Any Code Changes)
+```bash
+# Parallel execution for fastest validation
+npm run lint:check && npm typecheck && npm test
+```
+
+### Core Development Workflow
+```bash
+# Development (GUI + CLI)
+npm run tauri dev          # Full desktop application
+npm run dev:frontend       # Frontend-only development
+npm run cli -- [args]      # CLI tool development
+
+# Quality Assurance
+npm run commitlint         # Validate commit messages
+npm test                   # Full E2E test suite
+npm run test:ui            # Interactive test debugging
+
+# Production Building
+npm run tauri build        # Desktop application
+npm run cli:build          # CLI binary
+npm run cli:install        # Install CLI globally
+```
+
 ## Project Overview
 
 Claude Night Pilot (夜間自動打工仔) is a modern automation tool for Claude CLI users, featuring:
@@ -108,6 +134,7 @@ cargo clippy
 - **Scheduling**: tokio-cron-scheduler for background jobs + adaptive monitoring
 - **Testing**: Playwright for E2E testing with comprehensive Chinese UI test coverage
 - **CLI**: Full-featured command-line interface with colored output and subcommands
+- **Integration**: Claude Code executor with stream-json parsing + usage detection
 
 ### Key Directories
 ```
@@ -120,14 +147,16 @@ cargo clippy
 │   ├── src/
 │   │   ├── lib.rs         # Main application logic & Tauri commands
 │   │   ├── db.rs          # Database models and operations
-│   │   ├── executor.rs    # Claude CLI execution wrapper
+│   │   ├── executor.rs    # Claude CLI execution wrapper with stream-json parsing
 │   │   ├── scheduler.rs   # Cron job scheduler
-│   │   ├── usage_tracker.rs # Usage tracking (new feature)
+│   │   ├── usage_tracker.rs # Usage tracking (integrated ccusage functionality)
+│   │   ├── claude_executor.rs # Enhanced Claude integration with @ symbol support
 │   │   └── bin/cnp.rs     # CLI binary entry point
 │   ├── Cargo.toml         # Rust dependencies
 │   └── tauri.conf.json    # Tauri configuration
-├── tests/                 # E2E test suite
-└── docs/                  # Documentation
+├── tests/                 # E2E test suite with Chinese UI coverage
+├── docs/                  # Documentation
+└── research-projects/     # Integration analysis and implementation guides
 ```
 
 ### Core Components
@@ -138,12 +167,14 @@ cargo clippy
 - **Schema**: Automatic table creation with foreign key relationships
 
 #### Execution Layer (`src-tauri/src/executor.rs`)
-- **ClaudeExecutor**: Wrapper for Claude CLI with error handling
+- **ClaudeExecutor**: Wrapper for Claude CLI with error handling and stream-json parsing
 - **ExecutionOptions**: Comprehensive execution configuration including security options
 - **SecurityCheckResult**: Multi-level risk assessment (Low/Medium/High/Critical)
 - **ExecutionAudit**: Detailed audit logging with SHA256 prompt hashing
 - **Cooldown Management**: Parses Claude API rate limit responses
 - **Mock Support**: Debug-mode mock executor for development
+- **Stream Processing**: Real-time parsing of Claude's stream-json output format
+- **Usage Tracking**: Integrated token and cost monitoring from JSON logs
 
 #### Scheduling Layer (`src-tauri/src/scheduler.rs`)  
 - **TaskScheduler**: Cron-based job scheduling with tokio
@@ -172,16 +203,26 @@ cargo clippy
   - `results`: View execution results and logs
 
 #### Advanced Modules
-- **usage_tracker.rs**: New usage monitoring and tracking system
+- **usage_tracker.rs**: Integrated ccusage functionality for Claude usage monitoring
+- **claude_executor.rs**: Enhanced Claude Code integration with @ symbol file reference support
 - **adaptive_monitor.rs**: Intelligent monitoring frequency adjustment
 - **smart_scheduler.rs**: Enhanced scheduling with adaptive logic
+- **prompt_parser.rs**: Advanced prompt parsing with @ symbol detection and file resolution
 
 ## Development Patterns
+
+### Core Development Workflow
+Always run these commands in parallel after making changes:
+```bash
+npm run lint:check && npm typecheck && npm test
+```
+
+### Tauri Command Pattern
 1. Define the command function in `src-tauri/src/lib.rs`:
 ```rust
 #[tauri::command]
 async fn your_command(param: String) -> Result<String, String> {
-    // Implementation
+    // Implementation with proper error handling
     Ok("result".to_string())
 }
 ```
@@ -197,6 +238,21 @@ async fn your_command(param: String) -> Result<String, String> {
 3. Call from frontend JavaScript:
 ```javascript  
 const result = await invoke('your_command', { param: 'value' });
+```
+
+### Claude Integration Pattern
+Enhanced Claude Code integration with stream processing:
+```rust
+// Enhanced executor with @ symbol support
+let claude_executor = ClaudeExecutor::new()
+    .with_file_reference_support(true)
+    .with_usage_tracking(true)
+    .with_stream_processing(true);
+
+// Parse prompts with @ symbol file references
+let parsed_prompt = PromptParser::parse(&prompt)
+    .resolve_file_references(&working_dir)
+    .validate_permissions();
 ```
 
 ### Database Operations
@@ -225,11 +281,31 @@ pub struct ExecutionOptions {
 
 Security checks include risk assessment with `RiskLevel` enum (Low/Medium/High/Critical) and detailed audit logging via `ExecutionAudit` struct.
 
+### Usage Tracking Integration
+Integrated ccusage functionality for comprehensive monitoring:
+```rust
+// Usage tracking with real-time monitoring
+let usage_tracker = UsageTracker::new()
+    .with_claude_data_directories(vec![
+        "~/.claude/projects/",
+        "~/.config/claude/projects/"
+    ])
+    .with_live_monitoring(true)
+    .with_cost_calculation(true);
+
+// Track execution with detailed metrics
+usage_tracker.track_execution(&execution_id, &prompt, &result)
+    .with_model_info(&model_info)
+    .with_token_counts(&token_usage)
+    .with_session_context(&session_id);
+```
+
 ### Error Handling
 Follow the established pattern:
 - Use `anyhow::Result` for internal errors
 - Convert to `Result<T, String>` for Tauri commands
 - Include context with `.context()` for debugging
+- Use `Result.try()` for functional error handling (ccusage pattern)
 
 ### Frontend Architecture Patterns
 The JavaScript uses a class-based architecture:
@@ -266,26 +342,38 @@ class MaterialThemeManager {
 
 ## Key Features Implementation
 
-### Prompt Management
-- Create, edit, delete prompts with tags
-- Support for Claude Code file reference syntax (`@file.md`)
-- Bulk operations and template system
+### Enhanced Prompt Management
+- Create, edit, delete prompts with advanced tagging system
+- **@ Symbol Support**: Full Claude Code file reference syntax (`@file.md`, `@folder/`, `@*.ts`)
+- **File Resolution**: Automatic file path resolution and permission validation
+- **Template System**: Advanced templating with variable substitution
+- **Bulk Operations**: Multi-prompt operations with batch processing
 
-### Job Scheduling  
-- Cron expression support for automated execution
-- Manual execution with immediate feedback
-- Status tracking: pending → running → done/error
-- Automatic retry on API cooldowns
+### Advanced Job Scheduling  
+- **Cron Expressions**: Full cron support with human-readable descriptions
+- **Real-time Execution**: Live status updates with WebSocket streaming
+- **Intelligent Retry**: Exponential backoff with cooldown awareness
+- **Status Pipeline**: pending → queued → running → completed/failed/cancelled
+- **Resource Management**: Memory and CPU usage monitoring during execution
 
-### Cooldown Detection
-- Parses Claude CLI error messages for rate limit info
-- Real-time countdown display in GUI
-- Automatic job postponement during cooldowns
+### Smart Cooldown Management
+- **Rate Limit Detection**: Advanced parsing of Claude API responses
+- **Predictive Countdown**: Real-time cooldown estimation and display
+- **Adaptive Scheduling**: Automatic job rescheduling based on rate limits
+- **Usage Optimization**: Intelligent batching to minimize API calls
 
-### Dual Interface
-- **GUI**: Tauri desktop app with htmx-powered interface
-- **CLI**: Rust binary (`cnp`) for command-line usage
-- Shared backend logic and database
+### Comprehensive Usage Tracking
+- **Real-time Monitoring**: Live token usage and cost tracking
+- **Multi-Directory Support**: Both `~/.claude/` and `~/.config/claude/` paths
+- **Cost Calculation**: Accurate pricing with LiteLLM integration
+- **Session Analytics**: Per-session usage breakdown and optimization insights
+- **Export Capabilities**: JSON/CSV export for usage analysis
+
+### Dual Interface Architecture
+- **GUI**: Tauri desktop app with Material Design 3.0 and htmx
+- **CLI**: Full-featured Rust binary (`cnp`) with colored output and subcommands
+- **API Integration**: RESTful endpoints with WebSocket streaming
+- **Cross-Platform**: Windows, macOS, Linux support with native performance
 
 ## Common Tasks
 
@@ -348,12 +436,35 @@ Database migrations are located in `src-tauri/migrations/`:
 
 ## Claude CLI Integration
 
-The application wraps the Claude CLI tool and expects it to be available in PATH. Key integration points:
+Enhanced Claude Code integration with advanced stream processing and usage tracking:
 
-- **Execution**: `claude -p "prompt" --output-format json`
-- **Status Check**: `claude doctor --json` 
-- **Error Parsing**: Rate limit detection and cooldown extraction
-- **Mock Mode**: Debug-only mock responses for development
+### Core Integration Points
+- **Stream Execution**: `npx @anthropic-ai/claude-code@latest -p --output-format=stream-json`
+- **Session Management**: Support for `--resume=session_id` continuation
+- **Permission Handling**: `--dangerously-skip-permissions` for automation
+- **Real-time Parsing**: Stream-json format processing with normalized conversation logs
+- **Status Monitoring**: `claude doctor --json` for health checks
+- **Usage Detection**: Automatic token and cost tracking from execution logs
+
+### Advanced Features
+- **@ Symbol Processing**: Full file reference resolution (`@file.md`, `@folder/`, `@*.ts`)
+- **Working Directory Management**: Git worktree integration for isolated execution
+- **Session Persistence**: Resume interrupted conversations with full context
+- **Error Recovery**: Intelligent retry with exponential backoff
+- **Rate Limit Awareness**: Proactive cooldown detection and management
+
+### Stream-JSON Processing
+Real-time parsing of Claude's output format:
+```rust
+// Process streaming JSON responses
+match json_line.get("type") {
+    "assistant" => handle_assistant_message(&content),
+    "user" => handle_user_message(&content), 
+    "system" => handle_system_message(&content),
+    "tool_use" => handle_tool_execution(&tool_name, &input),
+    _ => handle_unknown_message(&content)
+}
+```
 
 ## Performance Targets
 

@@ -54,6 +54,11 @@ futures = "0.3"                        # 異步流處理
 tokio = { version = "1.0", features = ["full"] }
 clap = { version = "4.0", features = ["derive"] }
 colored = "2.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+async-trait = "0.1"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+rand = "0.8"
 
 # Tauri 2.0 最佳實踐：效能與大小優化配置
 [profile.dev]
