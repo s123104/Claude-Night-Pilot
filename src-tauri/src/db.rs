@@ -302,12 +302,8 @@ impl Database {
 
     /// 創建mock資料庫（用於測試）
     #[cfg(test)]
-    pub fn new_mock() -> Self {
-        
-        
-        
-        // 創建一個mock的pool（實際上不會用到）
-        let pool = unsafe { std::mem::zeroed() };
-        Self { pool }
+    pub async fn new_mock() -> Result<Self> {
+        // 對於測試，使用內存數據庫
+        Self::new("sqlite::memory:").await
     }
 }

@@ -335,7 +335,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_text_output_parsing() {
-        let tracker = UsageTracker::new(Arc::new(crate::db::Database::new_mock()));
+        let tracker = UsageTracker::new(Arc::new(crate::db::Database::new_mock().await.unwrap()));
         
         // 測試不同的時間格式
         let test_cases = vec![
@@ -362,7 +362,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_fallback_mechanism() {
-        let tracker = UsageTracker::new(Arc::new(crate::db::Database::new_mock()));
+        let tracker = UsageTracker::new(Arc::new(crate::db::Database::new_mock().await.unwrap()));
         
         // 測試回退機制
         let result = tracker.fallback_time_check().await;

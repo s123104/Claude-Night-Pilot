@@ -4,6 +4,7 @@
  * 基於 Material Design 3.0 設計系統
  */
 
+/* global promptExecutor, unifiedApiClient */
 // ===== Application State Management =====
 class AppState {
   constructor() {
@@ -25,7 +26,7 @@ class AppState {
     document.dispatchEvent(
       new CustomEvent("stateChange", {
         detail: { key, value },
-      })
+      }),
     );
   }
 }
@@ -53,7 +54,7 @@ class MaterialThemeManager {
     const themeToggle = document.getElementById("theme-toggle");
     const icon = themeToggle?.querySelector(".material-symbols-outlined");
 
-    if (!icon) return;
+    if (!icon) {return;}
 
     const iconMap = {
       dark: "dark_mode",
@@ -68,7 +69,7 @@ class MaterialThemeManager {
   }
 
   addRippleEffect(element) {
-    if (!element) return;
+    if (!element) {return;}
 
     element.addEventListener("click", (e) => {
       const ripple = document.createElement("span");
@@ -172,8 +173,8 @@ class MaterialSnackbarManager {
 
     snackbar.innerHTML = `
       <span class="material-symbols-outlined snackbar-icon">${
-        icons[type] || icons.info
-      }</span>
+  icons[type] || icons.info
+}</span>
       <div class="snackbar-content">
         <div class="snackbar-message">${message}</div>
       </div>
@@ -273,18 +274,18 @@ class MaterialNavigationManager {
   async loadTabContent(tabName) {
     try {
       switch (tabName) {
-        case "prompts":
-          await promptManager.loadPrompts();
-          break;
-        case "scheduler":
-          await jobManager.loadJobs();
-          break;
-        case "results":
-          await resultManager.loadResults();
-          break;
-        case "system":
-          await systemManager.loadSystemInfo();
-          break;
+      case "prompts":
+        await promptManager.loadPrompts();
+        break;
+      case "scheduler":
+        await jobManager.loadJobs();
+        break;
+      case "results":
+        await resultManager.loadResults();
+        break;
+      case "system":
+        await systemManager.loadSystemInfo();
+        break;
       }
     } catch (error) {
       console.error(`Failed to load ${tabName} content:`, error);
@@ -316,7 +317,7 @@ class MaterialModalManager {
     document.querySelectorAll(".close-btn, [data-close]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         const modal = e.target.closest(".md-dialog");
-        if (modal) this.close(modal.id);
+        if (modal) {this.close(modal.id);}
       });
     });
 
@@ -499,125 +500,125 @@ class APIClient {
     return this.mockResponse(command, args);
   }
 
-  mockResponse(command, args) {
+  mockResponse(command, _args) {
     // Mock responses for development with more realistic data
     switch (command) {
-      case "get_prompts":
-        return [
-          {
-            id: "1",
-            title: "架構分析 Prompt",
-            content:
+    case "get_prompts":
+      return [
+        {
+          id: "1",
+          title: "架構分析 Prompt",
+          content:
               "@README.md @src/ 請分析這個專案的整體架構，包括前端、後端和資料庫設計，並提供改進建議。",
-            tags: ["architecture", "analysis", "code-review"],
-            created_at: new Date(Date.now() - 86400000).toISOString(),
-          },
-          {
-            id: "2",
-            title: "程式碼品質檢查",
-            content:
+          tags: ["architecture", "analysis", "code-review"],
+          created_at: new Date(Date.now() - 86400000).toISOString(),
+        },
+        {
+          id: "2",
+          title: "程式碼品質檢查",
+          content:
               "@src/**/*.js @src/**/*.ts 檢查程式碼品質，找出潛在的bug和效能問題。",
-            tags: ["quality", "performance", "debugging"],
-            created_at: new Date(Date.now() - 172800000).toISOString(),
-          },
-          {
-            id: "3",
-            title: "文檔生成助手",
-            content: "根據程式碼自動生成API文檔和使用說明。",
-            tags: ["documentation", "api", "automation"],
-            created_at: new Date(Date.now() - 259200000).toISOString(),
-          },
-        ];
+          tags: ["quality", "performance", "debugging"],
+          created_at: new Date(Date.now() - 172800000).toISOString(),
+        },
+        {
+          id: "3",
+          title: "文檔生成助手",
+          content: "根據程式碼自動生成API文檔和使用說明。",
+          tags: ["documentation", "api", "automation"],
+          created_at: new Date(Date.now() - 259200000).toISOString(),
+        },
+      ];
 
-      case "get_jobs":
-        return [
-          {
-            id: "1",
-            prompt_id: "1",
-            prompt_title: "架構分析 Prompt",
-            cron_expression: "0 9 * * *",
-            status: "active",
-            next_run: new Date(Date.now() + 86400000).toISOString(),
-            created_at: new Date(Date.now() - 86400000).toISOString(),
-          },
-          {
-            id: "2",
-            prompt_id: "2",
-            prompt_title: "程式碼品質檢查",
-            cron_expression: "0 12,18 * * *",
-            status: "paused",
-            next_run: null,
-            created_at: new Date(Date.now() - 172800000).toISOString(),
-          },
-        ];
+    case "get_jobs":
+      return [
+        {
+          id: "1",
+          prompt_id: "1",
+          prompt_title: "架構分析 Prompt",
+          cron_expression: "0 9 * * *",
+          status: "active",
+          next_run: new Date(Date.now() + 86400000).toISOString(),
+          created_at: new Date(Date.now() - 86400000).toISOString(),
+        },
+        {
+          id: "2",
+          prompt_id: "2",
+          prompt_title: "程式碼品質檢查",
+          cron_expression: "0 12,18 * * *",
+          status: "paused",
+          next_run: null,
+          created_at: new Date(Date.now() - 172800000).toISOString(),
+        },
+      ];
 
-      case "get_results":
-        return [
-          {
-            id: "1",
-            prompt_id: "1",
-            prompt_title: "架構分析 Prompt",
-            status: "success",
-            output:
+    case "get_results":
+      return [
+        {
+          id: "1",
+          prompt_id: "1",
+          prompt_title: "架構分析 Prompt",
+          status: "success",
+          output:
               "專案架構分析完成。\n\n✅ 前端使用 Material Design 3.0\n✅ 後端採用 Rust + Tauri\n✅ 資料庫使用 SQLite\n\n建議改進：\n- 加強錯誤處理機制\n- 增加單元測試覆蓋率\n- 優化載入效能",
-            execution_time: 2340,
-            created_at: new Date(Date.now() - 3600000).toISOString(),
-          },
-          {
-            id: "2",
-            prompt_id: "2",
-            prompt_title: "程式碼品質檢查",
-            status: "error",
-            output:
+          execution_time: 2340,
+          created_at: new Date(Date.now() - 3600000).toISOString(),
+        },
+        {
+          id: "2",
+          prompt_id: "2",
+          prompt_title: "程式碼品質檢查",
+          status: "error",
+          output:
               "執行過程中發生錯誤：\n\nError: Connection timeout\n請檢查網路連接或 Claude API 配置。",
-            execution_time: 5000,
-            created_at: new Date(Date.now() - 7200000).toISOString(),
-          },
-        ];
+          execution_time: 5000,
+          created_at: new Date(Date.now() - 7200000).toISOString(),
+        },
+      ];
 
-      case "get_cooldown_status":
-        const random = Math.random();
-        if (random < 0.3) {
-          return {
-            status: "cooldown",
-            next_available: new Date(Date.now() + 45000).toISOString(),
-            remaining_seconds: 45,
-          };
-        } else if (random < 0.1) {
-          return {
-            status: "error",
-            message: "API 連接失敗",
-            next_available: null,
-            remaining_seconds: 0,
-          };
-        } else {
-          return {
-            status: "available",
-            next_available: null,
-            remaining_seconds: 0,
-          };
-        }
-
-      case "get_app_info":
+    case "get_cooldown_status":
+      const random = Math.random();
+      if (random < 0.3) {
         return {
-          version: "0.2.0",
-          tauri_version: "2.0.0",
-          build_date: new Date().toISOString(),
-          platform: navigator.platform,
-          user_agent: navigator.userAgent,
+          status: "cooldown",
+          next_available: new Date(Date.now() + 45000).toISOString(),
+          remaining_seconds: 45,
         };
-
-      case "get_performance_info":
+      } else if (random < 0.1) {
         return {
-          memory_usage: `${Math.floor(Math.random() * 50 + 30)}MB`,
-          cpu_usage: `${Math.floor(Math.random() * 15 + 5)}%`,
-          uptime: `${Math.floor(Math.random() * 24 + 1)} 小時`,
-          prompts_executed: Math.floor(Math.random() * 100 + 50),
-          success_rate: `${Math.floor(Math.random() * 10 + 90)}%`,
+          status: "error",
+          message: "API 連接失敗",
+          next_available: null,
+          remaining_seconds: 0,
         };
+      } else {
+        return {
+          status: "available",
+          next_available: null,
+          remaining_seconds: 0,
+        };
+      }
 
-      default:
-        return {};
+    case "get_app_info":
+      return {
+        version: "0.2.0",
+        tauri_version: "2.0.0",
+        build_date: new Date().toISOString(),
+        platform: navigator.platform,
+        user_agent: navigator.userAgent,
+      };
+
+    case "get_performance_info":
+      return {
+        memory_usage: `${Math.floor(Math.random() * 50 + 30)}MB`,
+        cpu_usage: `${Math.floor(Math.random() * 15 + 5)}%`,
+        uptime: `${Math.floor(Math.random() * 24 + 1)} 小時`,
+        prompts_executed: Math.floor(Math.random() * 100 + 50),
+        success_rate: `${Math.floor(Math.random() * 10 + 90)}%`,
+      };
+
+    default:
+      return {};
     }
   }
 }
@@ -644,7 +645,7 @@ class PromptManager {
     try {
       const newPrompt = await apiClient.invokeCommand(
         "create_prompt",
-        promptData
+        promptData,
       );
       this.prompts.push(newPrompt);
       this.renderPrompts();
@@ -667,18 +668,16 @@ class PromptManager {
 
   async executePrompt(id) {
     try {
-      snackbarManager.info("正在執行 Prompt...");
-      const result = await apiClient.invokeCommand("execute_prompt", { id });
-      snackbarManager.success("Prompt 執行成功");
-      return result;
+      return await promptExecutor.executePromptById(id);
     } catch (error) {
-      snackbarManager.error(`執行失敗：${error.message}`);
+      console.error("執行Prompt失敗:", error);
+      throw error;
     }
   }
 
   renderPrompts() {
     const container = document.getElementById("prompts-list");
-    if (!container) return;
+    if (!container) {return;}
 
     if (this.prompts.length === 0) {
       container.innerHTML = `
@@ -686,7 +685,7 @@ class PromptManager {
           <span class="material-symbols-outlined">chat</span>
           <h3 class="md-typescale-headline-small">尚無 Prompts</h3>
           <p class="md-typescale-body-medium">建立您的第一個 Prompt 開始使用</p>
-          <button class="md-filled-button" onclick="modalManager.open('prompt-modal')">
+          <button class="md-filled-button" onclick="window.modalManager.open('prompt-modal')">
             <span class="material-symbols-outlined">add</span>
             <span>建立 Prompt</span>
           </button>
@@ -705,20 +704,20 @@ class PromptManager {
         </div>
         <div class="md-card-content">
           <p class="md-typescale-body-medium">${this.truncateText(
-            prompt.content,
-            150
-          )}</p>
+    prompt.content,
+    150,
+  )}</p>
           ${
-            prompt.tags.length > 0
-              ? `
+  prompt.tags.length > 0
+    ? `
             <div class="md-chip-set" style="margin-top: 16px;">
               ${prompt.tags
-                .map((tag) => `<span class="md-assist-chip">${tag}</span>`)
-                .join("")}
+    .map((tag) => `<span class="md-assist-chip">${tag}</span>`)
+    .join("")}
             </div>
           `
-              : ""
-          }
+    : ""
+}
           <div class="md-card-footer">
             <div class="md-card-footer-meta">
               <span class="md-card-footer-timestamp">
@@ -726,15 +725,15 @@ class PromptManager {
               </span>
             </div>
             <div class="md-card-footer-actions">
-              <button class="md-filled-button" onclick="promptManager.executePrompt('${
-                prompt.id
-              }')">
+              <button class="md-filled-button" onclick="window.promptManager.executePrompt('${
+  prompt.id
+}')">
                 <span class="material-symbols-outlined">play_arrow</span>
                 <span>執行</span>
               </button>
-              <button class="md-text-button" onclick="promptManager.deletePrompt('${
-                prompt.id
-              }')">
+              <button class="md-text-button" onclick="window.promptManager.deletePrompt('${
+  prompt.id
+}')">
                 <span class="material-symbols-outlined">delete</span>
                 <span>刪除</span>
               </button>
@@ -742,13 +741,13 @@ class PromptManager {
           </div>
         </div>
       </div>
-    `
+    `,
       )
       .join("");
   }
 
   truncateText(text, maxLength) {
-    if (text.length <= maxLength) return text;
+    if (text.length <= maxLength) {return text;}
     return text.substring(0, maxLength) + "...";
   }
 
@@ -823,24 +822,24 @@ class JobManager {
 
   async populatePromptSelect() {
     const select = document.getElementById("job-prompt");
-    if (!select) return;
+    if (!select) {return;}
 
     const prompts = await apiClient.invokeCommand("get_prompts");
     select.innerHTML = `
       <option value="">請選擇 Prompt</option>
       ${prompts
-        .map(
-          (prompt) => `
+    .map(
+      (prompt) => `
         <option value="${prompt.id}">${prompt.title}</option>
-      `
-        )
-        .join("")}
+      `,
+    )
+    .join("")}
     `;
   }
 
   renderJobs() {
     const container = document.getElementById("jobs-list");
-    if (!container) return;
+    if (!container) {return;}
 
     if (this.jobs.length === 0) {
       container.innerHTML = `
@@ -864,35 +863,35 @@ class JobManager {
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
           <div style="flex: 1;">
             <h4 class="md-typescale-title-medium" style="margin: 0 0 8px;">${
-              job.prompt_title || this.getPromptTitle(job.prompt_id)
-            }</h4>
+  job.prompt_title || this.getPromptTitle(job.prompt_id)
+}</h4>
             <p style="display: flex; align-items: center; gap: 8px; margin: 0; font-family: 'Roboto Mono', monospace; font-size: 14px; color: var(--md-sys-color-on-surface-variant);">
               <span class="material-symbols-outlined" style="font-size: 16px;">schedule</span>
               ${job.cron_expression}
             </p>
             ${
-              job.next_run
-                ? `
+  job.next_run
+    ? `
               <p style="margin: 8px 0 0; font-size: 12px; color: var(--md-sys-color-on-surface-variant);">
                 下次執行：${this.formatDate(job.next_run)}
               </p>
             `
-                : ""
-            }
+    : ""
+}
           </div>
           <div style="display: flex; align-items: center; gap: 12px;">
             <span class="md-status-chip ${this.getStatusClass(job.status)}">
               ${this.getStatusText(job.status)}
             </span>
             <button class="md-icon-button" onclick="jobManager.deleteJob('${
-              job.id
-            }')" title="刪除任務">
+  job.id
+}')" title="刪除任務">
               <span class="material-symbols-outlined">delete</span>
             </button>
           </div>
         </div>
       </div>
-    `
+    `,
       )
       .join("");
   }
@@ -967,7 +966,7 @@ class ResultManager {
 
   renderResults() {
     const container = document.getElementById("results-list");
-    if (!container) return;
+    if (!container) {return;}
 
     if (this.results.length === 0) {
       container.innerHTML = `
@@ -986,26 +985,26 @@ class ResultManager {
       <div class="md-list-item" data-result-id="${result.id}">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
           <h4 class="md-typescale-title-medium" style="margin: 0;">${
-            result.prompt_title
-          }</h4>
+  result.prompt_title
+}</h4>
           <span class="md-status-chip ${this.getStatusClass(result.status)}">
             <span class="material-symbols-outlined">${this.getStatusIcon(
-              result.status
-            )}</span>
+    result.status,
+  )}</span>
             <span>${this.getStatusText(result.status)}</span>
           </span>
         </div>
         <div style="background: var(--md-sys-color-surface-variant); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
           <pre style="margin: 0; white-space: pre-wrap; font-family: 'Roboto Mono', monospace; font-size: 14px; line-height: 1.5;">${
-            result.output
-          }</pre>
+  result.output
+}</pre>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--md-sys-color-on-surface-variant);">
           <span>${this.formatDate(result.created_at)}</span>
           <span>執行時間：${result.execution_time}ms</span>
         </div>
       </div>
-    `
+    `,
       )
       .join("");
   }
@@ -1077,7 +1076,7 @@ class SystemManager {
 
       const appInfo = await apiClient.invokeCommand("get_app_info");
       const performanceInfo = await apiClient.invokeCommand(
-        "get_performance_info"
+        "get_performance_info",
       );
 
       this.renderAppInfo(appInfo);
@@ -1089,7 +1088,7 @@ class SystemManager {
 
   renderAppInfo(info) {
     const container = document.getElementById("app-info");
-    if (!container) return;
+    if (!container) {return;}
 
     container.innerHTML = `
       <div class="info-item">
@@ -1099,8 +1098,8 @@ class SystemManager {
       <div class="info-item">
         <label class="md-typescale-label-medium">Tauri 版本</label>
         <span class="md-typescale-body-medium">${
-          info.tauri_version || "2.0.0"
-        }</span>
+  info.tauri_version || "2.0.0"
+}</span>
       </div>
       <div class="info-item">
         <label class="md-typescale-label-medium">平台</label>
@@ -1109,28 +1108,28 @@ class SystemManager {
       <div class="info-item">
         <label class="md-typescale-label-medium">建置日期</label>
         <span class="md-typescale-body-medium">${this.formatDate(
-          info.build_date || new Date().toISOString()
-        )}</span>
+    info.build_date || new Date().toISOString(),
+  )}</span>
       </div>
     `;
   }
 
   renderPerformanceInfo(info) {
     const container = document.getElementById("performance-info");
-    if (!container) return;
+    if (!container) {return;}
 
     container.innerHTML = `
       <div class="info-item">
         <label class="md-typescale-label-medium">記憶體使用</label>
         <span class="md-typescale-body-medium">${
-          info.memory_usage || "未知"
-        }</span>
+  info.memory_usage || "未知"
+}</span>
       </div>
       <div class="info-item">
         <label class="md-typescale-label-medium">CPU 使用率</label>
         <span class="md-typescale-body-medium">${
-          info.cpu_usage || "未知"
-        }</span>
+  info.cpu_usage || "未知"
+}</span>
       </div>
       <div class="info-item">
         <label class="md-typescale-label-medium">執行時間</label>
@@ -1139,14 +1138,14 @@ class SystemManager {
       <div class="info-item">
         <label class="md-typescale-label-medium">已執行 Prompts</label>
         <span class="md-typescale-body-medium">${
-          info.prompts_executed || "0"
-        }</span>
+  info.prompts_executed || "0"
+}</span>
       </div>
       <div class="info-item">
         <label class="md-typescale-label-medium">成功率</label>
         <span class="md-typescale-body-medium">${
-          info.success_rate || "未知"
-        }</span>
+  info.success_rate || "未知"
+}</span>
       </div>
     `;
   }
@@ -1202,7 +1201,7 @@ class CooldownManager {
       // For now, we'll just log the status.
       console.log("Checking Claude CLI cooldown status...");
 
-      const response = await apiClient.invokeCommand("get_cooldown_status");
+      const response = await unifiedApiClient.getCooldownStatusUnified();
 
       if (response.is_available) {
         this.displayAvailableStatus(response);
@@ -1243,7 +1242,7 @@ class CooldownManager {
 
   displayCooldownStatus(response) {
     const statusElement = document.getElementById("cooldown-status");
-    if (!statusElement) return;
+    if (!statusElement) {return;}
 
     if (response.reset_time) {
       this.resetTime = new Date(response.reset_time);
@@ -1319,7 +1318,7 @@ class CooldownManager {
         message: "API 已達到使用限制",
         timeRemaining: timeDisplay,
         resetTime: resetTimeStr,
-        suggestion: suggestion,
+        suggestion,
         progress: this.calculateProgress(),
       });
     };
@@ -1329,7 +1328,7 @@ class CooldownManager {
   }
 
   calculateProgress() {
-    if (!this.resetTime) return 0;
+    if (!this.resetTime) {return 0;}
 
     const now = new Date();
     const total = this.resetTime - (this.resetTime - 60 * 60 * 1000); // 假設冷卻時間為 1 小時
@@ -1362,13 +1361,13 @@ class CooldownManager {
 
   updateDetailedCooldownInfo(info) {
     const detailedContainer = document.getElementById("detailed-cooldown-info");
-    if (!detailedContainer) return;
+    if (!detailedContainer) {return;}
 
     let content = "";
 
     switch (info.status) {
-      case "available":
-        content = `
+    case "available":
+      content = `
           <div class="info-item">
             <label class="md-typescale-label-medium">狀態</label>
             <span class="md-typescale-body-medium status-available">✅ ${info.message}</span>
@@ -1382,15 +1381,15 @@ class CooldownManager {
             <span class="md-typescale-body-medium">${info.version}</span>
           </div>
         `;
-        break;
+      break;
 
-      case "cooldown":
-        content = `
+    case "cooldown":
+      content = `
           <div class="info-item">
             <label class="md-typescale-label-medium">狀態</label>
             <span class="md-typescale-body-medium status-cooldown">⏳ ${
-              info.message
-            }</span>
+  info.message
+}</span>
           </div>
           <div class="info-item">
             <label class="md-typescale-label-medium">剩餘時間</label>
@@ -1405,25 +1404,25 @@ class CooldownManager {
             <span class="md-typescale-body-medium">${info.suggestion}</span>
           </div>
           ${
-            info.progress !== undefined
-              ? `
+  info.progress !== undefined
+    ? `
           <div class="info-item progress-item">
             <label class="md-typescale-label-medium">進度</label>
             <div class="detailed-progress-bar">
               <div class="detailed-progress-fill" style="width: ${
-                info.progress
-              }%"></div>
+  info.progress
+}%"></div>
               <span class="progress-text">${Math.round(info.progress)}%</span>
             </div>
           </div>
           `
-              : ""
-          }
+    : ""
+}
         `;
-        break;
+      break;
 
-      case "error":
-        content = `
+    case "error":
+      content = `
           <div class="info-item">
             <label class="md-typescale-label-medium">狀態</label>
             <span class="md-typescale-body-medium status-error">❌ ${info.message}</span>
@@ -1437,10 +1436,10 @@ class CooldownManager {
             <span class="md-typescale-body-medium">${info.lastCheck}</span>
           </div>
         `;
-        break;
+      break;
 
-      default:
-        content = `
+    default:
+      content = `
           <div class="info-item">
             <label class="md-typescale-label-medium">狀態</label>
             <span class="md-typescale-body-medium">🔄 檢查中...</span>

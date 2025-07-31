@@ -12,6 +12,7 @@ pub mod smart_scheduler;
 // 新增核心模組系統
 pub mod core;
 pub mod enhanced_executor;
+pub mod unified_interface;
 
 // 取得資料庫遷移
 fn get_migrations() -> Vec<Migration> {
@@ -205,6 +206,33 @@ async fn run_cli_command(command: String, args: Vec<String>) -> Result<String, S
     }
 }
 
+// 統一的Claude執行命令 (替代run_prompt_sync)
+#[tauri::command]
+async fn execute_unified_claude(
+    prompt: String,
+    options: unified_interface::UnifiedExecutionOptions,
+) -> Result<enhanced_executor::EnhancedClaudeResponse, String> {
+    unified_interface::UnifiedClaudeInterface::execute_claude(prompt, options)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// 統一的冷卻狀態檢查 (替代get_cooldown_status)
+#[tauri::command]
+async fn get_unified_cooldown_status() -> Result<core::CooldownInfo, String> {
+    unified_interface::UnifiedClaudeInterface::check_cooldown()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// 統一的系統健康檢查 (增強版get_system_info)
+#[tauri::command]
+async fn get_unified_system_health() -> Result<serde_json::Value, String> {
+    unified_interface::UnifiedClaudeInterface::health_check()
+        .await
+        .map_err(|e| e.to_string())
+}
+
 // 初始化排程器
 async fn initialize_scheduler() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use crate::db::Database;
@@ -298,17 +326,20 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // 基礎資料管理命令 (保留用於向後兼容)
             list_prompts,
-            create_prompt,
+            create_prompt, 
             delete_prompt,
-            run_prompt_sync,
-            get_cooldown_status,
             create_scheduled_job,
             list_jobs,
             get_job_results,
             get_system_info,
             run_cli_command,
-            // 新增增強執行器命令
+            // 統一介面命令 (推薦使用)
+            execute_unified_claude,
+            get_unified_cooldown_status,
+            get_unified_system_health,
+            // 增強執行器命令 (低層級存取)
             enhanced_executor::execute_enhanced_claude,
             enhanced_executor::check_enhanced_cooldown,
             enhanced_executor::health_check_enhanced

@@ -469,12 +469,12 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_monitoring_mode_determination() {
+    #[tokio::test]
+    async fn test_monitoring_mode_determination() {
         let config = MonitoringConfig::default();
         let usage_tracker = Arc::new(Mutex::new(
             crate::usage_tracker::UsageTracker::new(
-                Arc::new(crate::db::Database::new_mock())
+                Arc::new(crate::db::Database::new_mock().await.unwrap())
             )
         ));
         
@@ -502,12 +502,12 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_sleep_duration_calculation() {
+    #[tokio::test]
+    async fn test_sleep_duration_calculation() {
         let config = MonitoringConfig::default();
         let usage_tracker = Arc::new(Mutex::new(
             crate::usage_tracker::UsageTracker::new(
-                Arc::new(crate::db::Database::new_mock())
+                Arc::new(crate::db::Database::new_mock().await.unwrap())
             )
         ));
         
@@ -523,12 +523,12 @@ mod tests {
         assert_eq!(monitor.calculate_sleep_duration(), TokioDuration::from_secs(30)); // 30秒
     }
 
-    #[test]
-    fn test_duration_formatting() {
+    #[tokio::test]
+    async fn test_duration_formatting() {
         let config = MonitoringConfig::default();
         let usage_tracker = Arc::new(Mutex::new(
             crate::usage_tracker::UsageTracker::new(
-                Arc::new(crate::db::Database::new_mock())
+                Arc::new(crate::db::Database::new_mock().await.unwrap())
             )
         ));
         
@@ -544,7 +544,7 @@ mod tests {
     async fn test_monitoring_config_update() {
         let usage_tracker = Arc::new(Mutex::new(
             crate::usage_tracker::UsageTracker::new(
-                Arc::new(crate::db::Database::new_mock())
+                Arc::new(crate::db::Database::new_mock().await.unwrap())
             )
         ));
         

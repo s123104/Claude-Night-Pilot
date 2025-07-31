@@ -341,7 +341,6 @@ impl ClaudeExecutor {
     /// 檢查工作目錄是否安全
     fn is_safe_working_directory(work_dir: &str) -> bool {
         let dangerous_paths = vec![
-            "/",
             "/bin",
             "/usr/bin",
             "/etc",
@@ -349,6 +348,11 @@ impl ClaudeExecutor {
             "/sys",
             "/proc",
         ];
+
+        // 檢查是否是根目錄
+        if work_dir == "/" {
+            return false;
+        }
 
         for dangerous_path in dangerous_paths {
             if work_dir.starts_with(dangerous_path) {

@@ -191,8 +191,8 @@ impl EnhancedClaudeExecutor {
         // 定義可能的前置條件
         let prerequisites = self.determine_prerequisites(options).await?;
 
-        let prompt_clone = prompt.to_string();
-        let options_clone = options.clone();
+        let _prompt_clone = prompt.to_string();
+        let _options_clone = options.clone();
         
         let main_operation = move || {
             Box::pin(async move {

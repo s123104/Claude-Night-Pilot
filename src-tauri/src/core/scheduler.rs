@@ -65,8 +65,8 @@ pub struct CronScheduler {
 }
 
 struct CronJob {
-    id: Uuid,
-    config: CronConfig,
+    _id: Uuid,
+    _config: CronConfig,
     job_id: Option<uuid::Uuid>,
     status: JobStatus,
 }
@@ -120,8 +120,8 @@ impl Scheduler for CronScheduler {
         let scheduler_job_id = self.scheduler.add(job).await?;
         
         let cron_job = CronJob {
-            id: job_id,
-            config,
+            _id: job_id,
+            _config: config,
             job_id: Some(scheduler_job_id),
             status: JobStatus::Scheduled,
         };
@@ -162,11 +162,11 @@ impl Scheduler for CronScheduler {
 // 適應性排程器實現
 pub struct AdaptiveScheduler {
     timers: HashMap<Uuid, AdaptiveTimer>,
-    config: AdaptiveConfig,
+    _config: AdaptiveConfig,
 }
 
 struct AdaptiveTimer {
-    id: Uuid,
+    _id: Uuid,
     handle: Option<tokio::task::JoinHandle<()>>,
     status: JobStatus,
 }
@@ -175,12 +175,12 @@ impl AdaptiveScheduler {
     pub fn new(config: AdaptiveConfig) -> Self {
         Self {
             timers: HashMap::new(),
-            config,
+            _config: config,
         }
     }
     
-    async fn get_adaptive_interval(&self, remaining_minutes: u64) -> std::time::Duration {
-        for (threshold, interval_seconds) in &self.config.intervals {
+    async fn _get_adaptive_interval(&self, remaining_minutes: u64) -> std::time::Duration {
+        for (threshold, interval_seconds) in &self._config.intervals {
             if remaining_minutes > *threshold {
                 return std::time::Duration::from_secs(*interval_seconds);
             }
@@ -223,7 +223,7 @@ impl Scheduler for AdaptiveScheduler {
         });
         
         let timer = AdaptiveTimer {
-            id: timer_id,
+            _id: timer_id,
             handle: Some(handle),
             status: JobStatus::Scheduled,
         };
@@ -278,9 +278,9 @@ pub struct SessionScheduler {
 }
 
 struct ScheduledSession {
-    id: Uuid,
-    config: SessionConfig,
-    next_execution: chrono::DateTime<chrono::Local>,
+    _id: Uuid,
+    _config: SessionConfig,
+    _next_execution: chrono::DateTime<chrono::Local>,
     handle: Option<tokio::task::JoinHandle<()>>,
     status: JobStatus,
 }
@@ -358,9 +358,9 @@ impl Scheduler for SessionScheduler {
         });
         
         let session = ScheduledSession {
-            id: session_id,
-            config,
-            next_execution,
+            _id: session_id,
+            _config: config,
+            _next_execution: next_execution,
             handle: Some(handle),
             status: JobStatus::Scheduled,
         };

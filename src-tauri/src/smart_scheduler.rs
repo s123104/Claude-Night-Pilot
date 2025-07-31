@@ -608,7 +608,7 @@ mod tests {
 
     #[test]
     fn test_time_efficiency_calculation() {
-        let config = SchedulingConfig::default();
+        let _config = SchedulingConfig::default();
         
         // 測試理想使用率 (80%)
         assert_eq!(calculate_efficiency_score_static(100, 80), 1.0);

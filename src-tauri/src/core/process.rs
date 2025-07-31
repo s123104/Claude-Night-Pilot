@@ -104,18 +104,18 @@ impl Default for ExecutionOptions {
 
 pub struct ProcessOrchestrator {
     active_processes: HashMap<Uuid, ProcessHandle>,
-    process_dependencies: HashMap<Uuid, Vec<Uuid>>,
+    _process_dependencies: HashMap<Uuid, Vec<Uuid>>,
     completion_callbacks: HashMap<Uuid, Box<dyn Fn(&ProcessHandle) + Send + Sync>>,
-    retry_orchestrator: RetryOrchestrator,
+    _retry_orchestrator: RetryOrchestrator,
 }
 
 impl ProcessOrchestrator {
     pub fn new() -> Result<Self> {
         Ok(Self {
             active_processes: HashMap::new(),
-            process_dependencies: HashMap::new(),
+            _process_dependencies: HashMap::new(),
             completion_callbacks: HashMap::new(),
-            retry_orchestrator: RetryOrchestrator::with_smart_defaults()?,
+            _retry_orchestrator: RetryOrchestrator::with_smart_defaults()?,
         })
     }
 
