@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Claude Code 整合測試", () => {
   test.beforeEach(async ({ page }) => {
     // 前往應用主頁
-    await page.goto("http://localhost:8080");
+    await page.goto("http://localhost:8081");
 
     // 等待應用載入
     await page.waitForSelector('h1:has-text("Claude Night Pilot")', {
@@ -184,7 +184,7 @@ test.describe("Claude Code 整合測試", () => {
     // 測量頁面載入和初始化時間
     const startTime = Date.now();
 
-    await page.goto("http://localhost:8080");
+    await page.goto("http://localhost:8081");
     await page.waitForSelector('h1:has-text("Claude Night Pilot")');
     await page.waitForSelector("#cooldown-status");
 

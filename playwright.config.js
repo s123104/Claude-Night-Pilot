@@ -22,11 +22,11 @@ export default defineConfig({
     },
   ],
 
-  // Tauri 應用測試設定 - 暫時停用自動啟動，改為手動測試
-  // webServer: {
-  //   command: "npm run dev",
-  //   port: 1420,
-  //   reuseExistingServer: !process.env.CI,
-  //   timeout: 120000, // 2 分鐘等待應用啟動
-  // },
+  // 開發伺服器設定 - 使用手動啟動的 HTTP 伺服器
+  webServer: {
+    command: "echo 'Using existing server on port 8081'",
+    port: 8081,
+    reuseExistingServer: true,
+    timeout: 10000, // 10 秒等待
+  },
 });

@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Claude Night Pilot - 快速 GUI 測試", () => {
   test.beforeEach(async ({ page }) => {
     // 設置測試環境
-    await page.goto("http://localhost:8080");
+    await page.goto("http://localhost:8081");
     await page.waitForSelector('h1:has-text("Claude Night Pilot")', {
       timeout: 30000,
     });

@@ -6,7 +6,7 @@ test.describe("Claude Night Pilot - CLI 與 GUI 整合測試", () => {
 
   test.beforeEach(async ({ page }) => {
     // 設置測試環境
-    await page.goto("http://localhost:8080");
+    await page.goto("http://localhost:8081");
     await expect(page.locator('h1:has-text("Claude Night Pilot")')).toBeVisible({
       timeout: 30000,
     });

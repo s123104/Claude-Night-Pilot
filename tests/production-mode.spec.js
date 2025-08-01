@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Claude Night Pilot - 生產模式功能測試", () => {
   test.beforeEach(async ({ page }) => {
     // 前往應用主頁
-    await page.goto("http://localhost:8080");
+    await page.goto("http://localhost:8081");
 
     // 等待應用載入
     await page.waitForSelector('h1:has-text("Claude Night Pilot")', {

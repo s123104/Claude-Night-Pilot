@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
-    "dev:frontend": "python3 -m http.server 8080 --directory src",
+    "dev:frontend": "node scripts/dev-server.js",
+    "dev:frontend:legacy": "python3 -m http.server 8080 --directory src",
     "build:frontend": "echo 'Frontend build complete - using static files'",
     "tauri": "tauri",
     "test": "playwright test",
@@ -20,13 +21,18 @@
     "lint:check": "eslint src/**/*.js",
     "commitlint": "commitlint --edit",
     "commit": "git-cz",
-    "prepare": "husky"
+    "prepare": "husky",
+    "port:status": "node scripts/cleanup-ports.js status",
+    "port:cleanup": "node scripts/cleanup-ports.js cleanup --force",
+    "port:find": "node scripts/cleanup-ports.js find"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@playwright/test": "^1.54.1",
+    "detect-port-alt": "^1.1.6",
     "eslint": "^9.31.0",
+    "get-port": "^7.1.0",
     "husky": "^9.1.7",
     "playwright": "^1.54.1"
   },

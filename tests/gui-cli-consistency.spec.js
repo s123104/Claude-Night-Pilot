@@ -20,7 +20,7 @@ test.describe("GUI與CLI功能一致性測試", () => {
   test.beforeAll(async ({ browser }) => {
     // 打開GUI應用 (開發模式)
     page = await browser.newPage();
-    await page.goto("http://localhost:8080");
+    await page.goto("http://localhost:8081");
 
     // 等待應用加載
     await page.waitForLoadState("networkidle");
