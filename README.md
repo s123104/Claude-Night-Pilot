@@ -5,12 +5,13 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/s123104/claude-night-pilot)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/s123104/claude-night-pilot)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tauri](https://img.shields.io/badge/Tauri-2.7.0-orange.svg)](https://tauri.app/)
-[![Test Status](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
+[![Tauri](https://img.shields.io/badge/Tauri-2.0-orange.svg)](https://tauri.app/)
+[![CLI Status](https://img.shields.io/badge/CLI-production%20ready-brightgreen.svg)](DEPLOYMENT_GUIDE.md)
+[![GUI Status](https://img.shields.io/badge/GUI-testing-yellow.svg)](TEST_REPORT.md)
 [![Language](https://img.shields.io/badge/language-Rust%20%2B%20JavaScript-blue.svg)](#技術棧)
-[![Core Modules](https://img.shields.io/badge/core%20modules-4-success.svg)](#核心模組)
+[![Tests](https://img.shields.io/badge/tests-92.3%25%20passing-brightgreen.svg)](TEST_REPORT.md)
 
 ![Claude Night Pilot Screenshot](docs/assets/screenshot.png)
 
@@ -423,5 +424,38 @@ git config commit.template .gitmessage.template
 
 Made with ❤️ by the open source community  
 **整合四大開源專案 • 2,050+ 行 Rust 代碼 • 完整測試覆蓋 • 生產環境就緒**
+
+## 🚀 快速部署
+
+### CLI工具 (生產就緒)
+```bash
+# 快速安裝
+./install.sh
+
+# 或手動安裝
+sudo cp src-tauri/target/release/cnp-unified /usr/local/bin/cnp
+cnp --help
+```
+
+### GUI應用程式 (測試中)
+```bash
+# 開發模式
+npm run tauri dev
+
+# 生產構建
+npm run tauri build
+```
+
+## 📊 當前狀態
+
+| 組件 | 狀態 | 測試通過率 | 部署建議 |
+|------|------|------------|----------|
+| CLI工具 | ✅ 生產就緒 | 87.5% | 立即部署 |
+| 核心API | ✅ 穩定 | 100% | 立即部署 | 
+| 資料庫 | ✅ 穩定 | 100% | 立即部署 |
+| GUI介面 | ⚠️ 測試中 | 50% | 修復後部署 |
+| 整合性 | ✅ 優秀 | 100% | 架構完善 |
+
+📋 **詳細資訊**: [測試報告](TEST_REPORT.md) • [部署指南](DEPLOYMENT_GUIDE.md)
 
 </div>

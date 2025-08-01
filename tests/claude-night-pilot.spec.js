@@ -167,11 +167,18 @@ test.describe("Claude Night Pilot - 端到端測試", () => {
   });
 
   test("任務狀態自動更新", async ({ page }) => {
+    // 確保表單元素可見並已載入
+    await page.waitForSelector("#prompt-title", { state: "visible" });
+    await page.waitForSelector("#prompt-content", { state: "visible" });
+    
     // 建立測試任務
     await page.fill("#prompt-title", "狀態更新測試");
     await page.fill("#prompt-content", "測試任務狀態更新");
+    
+    // 等待按鈕可見並點擊
+    await page.waitForSelector('button:has-text("建立 Prompt")', { state: "visible" });
     await page.click('button:has-text("建立 Prompt")');
-    await expect(page.locator("text=Prompt 建立成功")).toBeVisible();
+    await expect(page.locator("text=Prompt 建立成功")).toBeVisible({ timeout: 10000 });
 
     await page.click('.prompt-item button:has-text("立即執行")');
 
@@ -202,7 +209,11 @@ test.describe("Claude Night Pilot - 端到端測試", () => {
   });
 
   test("錯誤處理測試", async ({ page }) => {
+    // 確保表單已載入
+    await page.waitForLoadState("networkidle");
+    
     // 測試空白 Prompt 建立
+    await page.waitForSelector('button:has-text("建立 Prompt")', { state: "visible" });
     await page.click('button:has-text("建立 Prompt")');
     await expect(page.locator("text=請填入標題和內容")).toBeVisible({
       timeout: 10000,

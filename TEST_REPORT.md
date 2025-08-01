@@ -115,12 +115,12 @@
 2. **優化冷卻檢查**
    ```rust
    // 實作重試機制
-   async fn check_cooldown_with_retry(max_retries: u8) -> Result<CooldownInfo> {
+   async fn check_cool_down_with_retry(max_retries: u8) -> Result<CoolDownInfo> {
      for attempt in 1..=max_retries {
-       match execute_cooldown_check().await {
+       match execute_cool_down_check().await {
          Ok(result) => return Ok(result),
          Err(_) if attempt < max_retries => {
-           tokio::time::sleep(Duration::from_millis(500 * attempt as u64)).await;
+           tokio::time::sleep(Duration::from_milliseconds(500 * attempt as u64)).await;
          }
          Err(e) => return Err(e),
        }
