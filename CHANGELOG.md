@@ -5,27 +5,44 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本控制](https://semver.org/lang/zh-TW/)。
 
-## [未發布] - 專案重構中
+## [未發布] - 開源專案最佳實踐完善
 
 ### 🏗️ 重構 (Restructured)
 
 - 將專案根目錄重構為標準開源專案架構
 - 移動 `claude-night-pilot` 內容到根目錄
-- 將舊檔案歸檔到 `archive/` 目錄
+- 將舊檔案歸檔到 `archive/` 目錄 (包含 research-projects)
 - 重新組織 `docs/` 和 `tests/` 目錄結構
+- 清理重複和過時的測試檔案
 
 ### ✨ 新增 (Added)
 
-- 標準化的 `.gitignore` 檔案 - 支援 Rust、Node.js、Tauri 專案
-- 全新的開源專案標準 `README.md`
-- 完整的 `PROJECT_RULES.md` 開發指南
-- 現代化的專案架構與文檔結構
+- 完整的開源專案標準檔案結構
+  - `SECURITY.md` - 安全政策和漏洞回報流程
+  - `CODEOWNERS` - 代碼擁有者配置
+  - `.github/FUNDING.yml` - 專案資助配置
+  - `.github/ISSUE_TEMPLATE/` - Issue 模板 (bug report, feature request)
+  - `.github/workflows/ci.yml` - GitHub Actions CI 管道
+  - `.github/workflows/release.yml` - 自動化發布工作流程
+- 冷卻檢查重試機制 (3次重試，指數退避延遲)
+- 改進的測試等待機制 (waitForSelector, networkidle)
+- 完整的部署指南 (`DEPLOYMENT_GUIDE.md`)
+- 一鍵安裝腳本 (`install.sh`)
 
 ### 🔄 變更 (Changed)
 
 - 更新專案架構為 GitHub 開源標準
 - 改善文檔結構與組織方式
 - 統一程式碼規範與開發流程
+- 優化二進制檔案大小 (release mode: 1.8MB vs debug mode: 12.8MB)
+- 提升 GUI E2E 測試穩定性
+
+### 🐛 修復 (Fixed)
+
+- GUI E2E 測試超時問題 (增加元素等待機制)
+- 冷卻檢查偶發性超時 (實作重試機制)
+- 測試報告中的拼寫檢查問題
+- 清理過時的檔案和架構
 
 ### 📚 文檔 (Documentation)
 
@@ -33,6 +50,14 @@
 - 新增詳細的技術架構文檔
 - 新增開發環境設定指南
 - 新增測試策略與效能標準
+- 更新 README.md 狀態表格和部署資訊
+
+### 🔒 安全性 (Security)
+
+- 實作多層級安全檢查機制
+- 增加安全政策文檔
+- 設定 GitHub Actions 安全掃描
+- 實作輸入驗證和清理機制
 
 ## [1.0.0] - 2025-07-22
 

@@ -1,5 +1,5 @@
 <!-- 四大核心模組測試介面 -->
-<div id="core-modules-test-panel" style="display: none;">
+<div id="core-modules-test-panel" style="display: none;" data-testid="core-modules-test-panel">
   <!-- CORE-001: ccusage API 整合模組 -->
   <section class="core-module-section" data-testid="core-001-section">
     <h3>CORE-001: ccusage API 整合</h3>
@@ -223,24 +223,24 @@
   </section>
 
   <!-- 測試控制 -->
-  <div class="test-controls">
-    <button id="mock-ccusage-unavailable" onclick="window.mockCcusageUnavailable = true" class="md-text-button">
+  <div class="test-controls" data-testid="test-controls">
+    <button id="mock-ccusage-unavailable" onclick="window.mockCcusageUnavailable = true" class="md-text-button" data-testid="mock-ccusage-unavailable">
       模擬 ccusage 不可用
     </button>
     
-    <button id="mock-usage-near-limit" onclick="window.mockUsageNearLimit = true" class="md-text-button">
+    <button id="mock-usage-near-limit" onclick="window.mockUsageNearLimit = true" class="md-text-button" data-testid="mock-usage-near-limit">
       模擬接近限制
     </button>
     
-    <button id="mock-remaining-minutes" onclick="window.mockRemainingMinutes = 240" class="md-text-button">
+    <button id="mock-remaining-minutes" onclick="window.mockRemainingMinutes = 240" class="md-text-button" data-testid="mock-remaining-minutes">
       模擬剩餘4小時
     </button>
     
-    <button id="mock-task-failure" onclick="window.mockTaskFailure = true" class="md-text-button">
+    <button id="mock-task-failure" onclick="window.mockTaskFailure = true" class="md-text-button" data-testid="mock-task-failure">
       模擬任務失敗
     </button>
     
-    <button id="mock-ccusage-error" onclick="window.mockCcusageError = true" class="md-text-button">
+    <button id="mock-ccusage-error" onclick="window.mockCcusageError = true" class="md-text-button" data-testid="mock-ccusage-error">
       模擬 ccusage 錯誤
     </button>
     
@@ -250,7 +250,7 @@
       delete window.mockRemainingMinutes;
       delete window.mockTaskFailure;
       delete window.mockCcusageError;
-    " class="md-outlined-button">
+    " class="md-outlined-button" data-testid="reset-mocks">
       重置模擬
     </button>
   </div>
@@ -346,4 +346,4 @@
   gap: 10px;
   flex-wrap: wrap;
 }
-</style> 
+</style>

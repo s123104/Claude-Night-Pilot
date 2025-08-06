@@ -4,15 +4,11 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
   test.beforeEach(async ({ page }) => {
     // 設置測試環境
     await page.goto("http://localhost:8081");
-    await page.waitForSelector('h1:has-text("Claude Night Pilot")', {
-      timeout: 30000,
-    });
+    await expect(page.locator("[data-testid='app-title']")).toBeVisible({ timeout: 30000 });
 
     // 切換到測試標籤頁
-    await page.click('[data-tab="testing"]');
-    await page.waitForSelector('[data-testid="core-001-section"]', {
-      timeout: 10000,
-    });
+    await page.click('[data-testid="nav-testing"]');
+    await expect(page.locator('[data-testid="core-001-section"]')).toBeVisible({ timeout: 10000 });
   });
 
   test.describe("CORE-001: ccusage API 整合模組", () => {
@@ -21,35 +17,25 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
       await page.click('[data-testid="check-usage"]');
 
       // 等待結果
-      await page.waitForSelector('[data-testid="usage-info"]', {
-        timeout: 15000,
-      });
+      await expect(page.locator('[data-testid="usage-info"]')).toBeVisible({ timeout: 15000 });
 
       // 驗證使用量資訊顯示
       const usageInfo = page.locator('[data-testid="usage-info"]');
       await expect(usageInfo).toBeVisible();
 
       // 驗證必要的字段
-      await expect(
-        usageInfo.locator('[data-testid="remaining-minutes"]')
-      ).toBeVisible();
-      await expect(
-        usageInfo.locator('[data-testid="usage-source"]')
-      ).toBeVisible();
+      await expect(usageInfo.locator('[data-testid="remaining-minutes"]')).toBeVisible();
+      await expect(usageInfo.locator('[data-testid="usage-source"]')).toBeVisible();
     });
 
     test("應支援多指令回退機制", async ({ page }) => {
       // 模擬 ccusage 命令不可用的情況
-      await page.evaluate(() => {
-        window.mockCcusageUnavailable = true;
-      });
+      await page.click('[data-testid="mock-ccusage-unavailable"]');
 
       await page.click('[data-testid="check-usage"]');
 
       // 應該自動回退到其他命令
-      await page.waitForSelector('[data-testid="fallback-indicator"]', {
-        timeout: 10000,
-      });
+      await expect(page.locator('[data-testid="fallback-indicator"]')).toBeVisible({ timeout: 10000 });
 
       const fallbackInfo = page.locator('[data-testid="fallback-indicator"]');
       await expect(fallbackInfo).toContainText("使用回退方法");
@@ -59,7 +45,7 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
       // 第一次檢查
       const start = Date.now();
       await page.click('[data-testid="check-usage"]');
-      await page.waitForSelector('[data-testid="usage-info"]');
+      await expect(page.locator('[data-testid="usage-info"]')).toBeVisible();
 
       // 立即第二次檢查
       await page.click('[data-testid="check-usage"]');
@@ -69,9 +55,7 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
       expect(end - start).toBeLessThan(5000);
 
       // 驗證快取指示器
-      await expect(
-        page.locator('[data-testid="cache-indicator"]')
-      ).toBeVisible();
+      await expect(page.locator('[data-testid="cache-indicator"]')).toBeVisible();
     });
   });
 
@@ -87,12 +71,8 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
       await page.click('[data-testid="execute-prompt"]');
 
       // 應該顯示安全警告
-      await expect(
-        page.locator('[data-testid="security-warning"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-testid="security-warning"]')
-      ).toContainText("檢測到危險模式");
+      await expect(page.locator('[data-testid="security-warning"]')).toBeVisible();
+      await expect(page.locator('[data-testid="security-warning"]')).toContainText("檢測到危險模式");
     });
 
     test("應支援 --dangerously-skip-permissions 選項", async ({ page }) => {
@@ -109,9 +89,7 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
       await page.click('[data-testid="execute-prompt"]');
 
       // 應該顯示跳過權限警告但允許執行
-      await expect(
-        page.locator('[data-testid="permission-skipped"]')
-      ).toBeVisible();
+      await expect(page.locator('[data-testid="permission-skipped"]')).toBeVisible();
     });
 
     test("應記錄完整審計日誌", async ({ page }) => {
@@ -120,7 +98,7 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
       await page.click('[data-testid="execute-prompt"]');
 
       // 等待執行完成
-      await page.waitForSelector('[data-testid="execution-complete"]');
+      await expect(page.locator('[data-testid="execution-complete"]')).toBeVisible();
 
       // 檢查審計日誌
       await page.click('[data-testid="view-audit-log"]');
@@ -143,12 +121,8 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
       await page.click('[data-testid="execute-prompt"]');
 
       // 應該顯示乾運行結果
-      await expect(
-        page.locator('[data-testid="dry-run-result"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-testid="dry-run-result"]')
-      ).toContainText("乾運行完成");
+      await expect(page.locator('[data-testid="dry-run-result"]')).toBeVisible();
+      await expect(page.locator('[data-testid="dry-run-result"]')).toContainText("乾運行完成");
     });
   });
 
@@ -173,22 +147,13 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
 
     test("應動態調整監控間隔", async ({ page }) => {
       // 模擬接近限制的情況
-      await page.evaluate(() => {
-        window.mockUsageNearLimit = true;
-      });
+      await page.click('[data-testid="mock-usage-near-limit"]');
 
       // 觸發監控更新
       await page.click('[data-testid="update-monitor"]');
 
       // 等待監控模式變更
-      await page.waitForFunction(() => {
-        const status = document.querySelector('[data-testid="monitor-status"]');
-        return (
-          status &&
-          (status.textContent.includes("Approaching") ||
-            status.textContent.includes("Critical"))
-        );
-      });
+      await expect(page.locator('[data-testid="monitor-status"]')).toContainText(/Approaching|Critical/);
 
       // 檢查間隔是否變短
       const intervalInfo = page.locator('[data-testid="monitor-interval"]');
@@ -207,11 +172,7 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
       await page.click('[data-testid="trigger-monitor-event"]');
 
       // 檢查事件是否被接收
-      await page.waitForFunction(() => window.testEventReceived);
-
-      const wasEventReceived = await page.evaluate(
-        () => window.testEventReceived
-      );
+      const wasEventReceived = await page.waitForFunction(() => window.testEventReceived);
       expect(wasEventReceived).toBeTruthy();
     });
 
@@ -240,7 +201,7 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
         '[data-testid="schedule-prompt"]',
         "Scheduled test prompt"
       );
-      await page.fill('[data-testid="schedule-time"]', "2025-07-24 14:30");
+      await page.fill('[data-testid="schedule-time"]', "2025-07-24T14:30");
 
       // 選擇時區
       await page.selectOption('[data-testid="timezone-select"]', "Asia/Taipei");
@@ -261,19 +222,13 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
       await page.fill('[data-testid="required-minutes"]', "300"); // 5小時
 
       // 模擬只剩下4小時的情況
-      await page.evaluate(() => {
-        window.mockRemainingMinutes = 240; // 4小時
-      });
+      await page.click('[data-testid="mock-remaining-minutes"]');
 
       await page.click('[data-testid="create-schedule"]');
 
       // 應該顯示保護警告
-      await expect(
-        page.locator('[data-testid="block-protection"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-testid="block-protection"]')
-      ).toContainText("5小時塊保護");
+      await expect(page.locator('[data-testid="block-protection"]')).toBeVisible();
+      await expect(page.locator('[data-testid="block-protection"]')).toContainText("5小時塊保護");
     });
 
     test("應計算效率分析", async ({ page }) => {
@@ -298,32 +253,24 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
     test("應遵循工作時間限制", async ({ page }) => {
       // 設定非工作時間的排程
       await page.fill('[data-testid="schedule-prompt"]', "After hours test");
-      await page.fill('[data-testid="schedule-time"]', "2025-07-24 02:00"); // 凌晨2點
+      await page.fill('[data-testid="schedule-time"]', "2025-07-24T02:00"); // 凌晨2點
 
       await page.click('[data-testid="create-schedule"]');
 
       // 應該顯示工作時間警告
-      await expect(
-        page.locator('[data-testid="working-hours-warning"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-testid="working-hours-warning"]')
-      ).toContainText("非工作時間");
+      await expect(page.locator('[data-testid="working-hours-warning"]')).toBeVisible();
+      await expect(page.locator('[data-testid="working-hours-warning"]')).toContainText("非工作時間");
     });
 
     test("應支援任務重試機制", async ({ page }) => {
       // 建立一個會失敗的排程任務
       await page.fill('[data-testid="schedule-prompt"]', "Failing task");
-      await page.evaluate(() => {
-        window.mockTaskFailure = true;
-      });
+      await page.click('[data-testid="mock-task-failure"]');
 
       await page.click('[data-testid="create-schedule"]');
 
       // 等待任務執行和重試
-      await page.waitForSelector('[data-testid="retry-indicator"]', {
-        timeout: 15000,
-      });
+      await expect(page.locator('[data-testid="retry-indicator"]')).toBeVisible({ timeout: 15000 });
 
       // 檢查重試資訊
       const retryInfo = page.locator('[data-testid="retry-info"]');
@@ -336,13 +283,11 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
     test("四大模組應協同工作", async ({ page }) => {
       // 1. 檢查使用量 (CORE-001)
       await page.click('[data-testid="check-usage"]');
-      await page.waitForSelector('[data-testid="usage-info"]');
+      await expect(page.locator('[data-testid="usage-info"]')).toBeVisible();
 
       // 2. 啟動監控 (CORE-003)
       await page.click('[data-testid="start-monitoring"]');
-      await expect(
-        page.locator('[data-testid="monitor-status"]')
-      ).toContainText("Normal");
+      await expect(page.locator('[data-testid="monitor-status"]')).toContainText("Normal");
 
       // 3. 建立安全排程 (CORE-004 + CORE-002)
       await page.fill(
@@ -353,16 +298,12 @@ test.describe("Claude Night Pilot - 四核心模組測試", () => {
       await page.click('[data-testid="create-schedule"]');
 
       // 4. 驗證所有模組狀態
-      await expect(
-        page.locator('[data-testid="integration-status"]')
-      ).toContainText("所有模組正常運行");
+      await expect(page.locator('[data-testid="integration-status"]')).toContainText("所有模組正常運行");
     });
 
     test("應正確處理模組間的錯誤傳播", async ({ page }) => {
       // 模擬 ccusage 失敗
-      await page.evaluate(() => {
-        window.mockCcusageError = true;
-      });
+      await page.click('[data-testid="mock-ccusage-error"]');
 
       // 嘗試建立排程（依賴使用量資訊）
       await page.click('[data-testid="create-schedule"]');

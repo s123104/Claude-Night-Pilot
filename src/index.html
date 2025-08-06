@@ -142,23 +142,23 @@
   </head>
   <body>
     <!-- Material Design Loading Overlay with Progress Indicator -->
-    <div id="app-loader" class="app-loader md-elevation-level5">
+    <div id="app-loader" class="app-loader md-elevation-level5" data-testid="app-loader">
       <div class="loader-content">
         <div class="loader-icon">
           <span class="material-symbols-rounded pulse">flight</span>
         </div>
-        <h2 class="md-typescale-headline-medium">Claude Night Pilot</h2>
-        <p class="md-typescale-body-large">正在啟動您的夜間自動打工仔...</p>
+        <h2 class="md-typescale-headline-medium" data-testid="loader-title">Claude Night Pilot</h2>
+        <p class="md-typescale-body-large" data-testid="loader-subtitle">正在啟動您的夜間自動打工仔...</p>
 
         <!-- Material Design Linear Progress Indicator -->
-        <div class="md-linear-progress">
+        <div class="md-linear-progress" data-testid="loader-progress">
           <div class="md-linear-progress-track">
             <div class="md-linear-progress-indicator"></div>
           </div>
         </div>
 
         <!-- Loading Steps Indicator -->
-        <div class="loading-steps">
+        <div class="loading-steps" data-testid="loader-steps">
           <span class="step-indicator active" data-step="1">
             <span class="material-symbols-outlined">terminal</span>
           </span>
@@ -176,16 +176,16 @@
     </div>
 
     <!-- Main App Container with Material Design Structure -->
-    <div id="app" class="app-container md-surface" style="display: none">
+    <div id="app" class="app-container md-surface" style="display: none" data-testid="app-container">
       <!-- Material Design Top App Bar -->
-      <header class="md-top-app-bar md-elevation-level2">
+      <header class="md-top-app-bar md-elevation-level2" data-testid="top-app-bar">
         <div class="md-top-app-bar-content">
           <!-- Leading Section -->
           <div class="md-top-app-bar-leading">
             <div class="brand-section">
               <span class="material-symbols-rounded brand-icon">flight</span>
               <div class="brand-text">
-                <h1 class="md-typescale-title-large">Claude Night Pilot</h1>
+                <h1 class="md-typescale-title-large" data-testid="app-title">Claude Night Pilot</h1>
                 <span class="md-typescale-label-medium brand-subtitle"
                   >夜間自動打工仔</span
                 >
@@ -198,7 +198,7 @@
             <!-- Status Indicators -->
             <div class="status-indicators">
               <!-- CLI Status -->
-              <div id="cli-status" class="md-status-chip" title="CLI 整合狀態">
+              <div id="cli-status" class="md-status-chip" title="CLI 整合狀態" data-testid="cli-status">
                 <span class="material-symbols-outlined status-icon"
                   >terminal</span
                 >
@@ -231,6 +231,7 @@
                 class="md-icon-button"
                 title="切換主題"
                 aria-label="切換明暗主題"
+                data-testid="theme-toggle"
               >
                 <span class="material-symbols-outlined">light_mode</span>
               </button>
@@ -241,6 +242,7 @@
                 class="md-icon-button"
                 title="設定"
                 aria-label="開啟設定"
+                data-testid="settings-btn"
               >
                 <span class="material-symbols-outlined">settings</span>
               </button>
@@ -251,6 +253,7 @@
                 class="md-icon-button"
                 title="更多選項"
                 aria-label="更多選項"
+                data-testid="more-options-btn"
               >
                 <span class="material-symbols-outlined">more_vert</span>
               </button>
@@ -262,27 +265,27 @@
       <!-- Material Design Navigation Rail + Content -->
       <div class="app-body">
         <!-- Navigation Rail (側邊導航) -->
-        <nav class="md-navigation-rail md-elevation-level1">
+        <nav class="md-navigation-rail md-elevation-level1" data-testid="nav-rail">
           <div class="md-navigation-rail-content">
             <!-- Navigation Items -->
             <div class="md-navigation-rail-items">
-              <button class="md-navigation-rail-item active" data-tab="prompts">
+              <button class="md-navigation-rail-item active" data-tab="prompts" data-testid="nav-prompts">
                 <span class="material-symbols-outlined">chat</span>
                 <span class="md-typescale-label-medium">Prompt</span>
               </button>
-              <button class="md-navigation-rail-item" data-tab="scheduler">
+              <button class="md-navigation-rail-item" data-tab="scheduler" data-testid="nav-scheduler">
                 <span class="material-symbols-outlined">schedule</span>
                 <span class="md-typescale-label-medium">排程</span>
               </button>
-              <button class="md-navigation-rail-item" data-tab="results">
+              <button class="md-navigation-rail-item" data-tab="results" data-testid="nav-results">
                 <span class="material-symbols-outlined">analytics</span>
                 <span class="md-typescale-label-medium">結果</span>
               </button>
-              <button class="md-navigation-rail-item" data-tab="system">
+              <button class="md-navigation-rail-item" data-tab="system" data-testid="nav-system">
                 <span class="material-symbols-outlined">monitoring</span>
                 <span class="md-typescale-label-medium">監控</span>
               </button>
-              <button class="md-navigation-rail-item" data-tab="testing">
+              <button class="md-navigation-rail-item" data-tab="testing" data-testid="nav-testing">
                 <span class="material-symbols-outlined">science</span>
                 <span class="md-typescale-label-medium">測試</span>
               </button>
@@ -291,11 +294,11 @@
         </nav>
 
         <!-- Main Content Area -->
-        <main class="md-main-content">
+        <main class="md-main-content" data-testid="main-content">
           <!-- Tab Content Panels -->
           <div class="md-tab-content">
             <!-- Prompts Tab -->
-            <section id="prompts-tab" class="md-tab-panel active">
+            <section id="prompts-tab" class="md-tab-panel active" data-testid="prompts-tab">
               <div class="md-section-header">
                 <div class="section-title">
                   <h2 class="md-typescale-headline-medium">
@@ -311,7 +314,7 @@
                 <button
                   id="create-prompt-fab"
                   class="md-fab md-elevation-level3"
-                  data-testid="create-prompt"
+                  data-testid="create-prompt-fab"
                 >
                   <span class="material-symbols-outlined">add</span>
                 </button>
@@ -324,7 +327,7 @@
                 data-testid="prompt-list"
               >
                 <!-- Loading Skeleton -->
-                <div class="md-loading-skeleton">
+                <div class="md-loading-skeleton" data-testid="prompt-list-skeleton">
                   <div class="md-skeleton-card"></div>
                   <div class="md-skeleton-card"></div>
                   <div class="md-skeleton-card"></div>
@@ -333,7 +336,7 @@
             </section>
 
             <!-- Scheduler Tab -->
-            <section id="scheduler-tab" class="md-tab-panel">
+            <section id="scheduler-tab" class="md-tab-panel" data-testid="scheduler-tab">
               <div class="md-section-header">
                 <div class="section-title">
                   <h2 class="md-typescale-headline-medium">
@@ -345,14 +348,14 @@
                   </p>
                 </div>
 
-                <button id="create-job-fab" class="md-fab md-elevation-level3">
+                <button id="create-job-fab" class="md-fab md-elevation-level3" data-testid="create-job-fab">
                   <span class="material-symbols-outlined">add_task</span>
                 </button>
               </div>
 
               <!-- Jobs List -->
-              <div class="md-list-container" id="jobs-list">
-                <div class="md-loading-skeleton">
+              <div class="md-list-container" id="jobs-list" data-testid="jobs-list">
+                <div class="md-loading-skeleton" data-testid="jobs-list-skeleton">
                   <div class="md-skeleton-list-item"></div>
                   <div class="md-skeleton-list-item"></div>
                   <div class="md-skeleton-list-item"></div>
@@ -361,7 +364,7 @@
             </section>
 
             <!-- Results Tab -->
-            <section id="results-tab" class="md-tab-panel">
+            <section id="results-tab" class="md-tab-panel" data-testid="results-tab">
               <div class="md-section-header">
                 <div class="section-title">
                   <h2 class="md-typescale-headline-medium">
@@ -375,7 +378,7 @@
 
                 <!-- Filter Controls -->
                 <div class="md-filter-controls">
-                  <select id="results-filter" class="md-select">
+                  <select id="results-filter" class="md-select" data-testid="results-filter">
                     <option value="">所有結果</option>
                     <option value="success">成功</option>
                     <option value="error">錯誤</option>
@@ -385,8 +388,8 @@
               </div>
 
               <!-- Results List -->
-              <div class="md-list-container" id="results-list">
-                <div class="md-loading-skeleton">
+              <div class="md-list-container" id="results-list" data-testid="results-list">
+                <div class="md-loading-skeleton" data-testid="results-list-skeleton">
                   <div class="md-skeleton-list-item"></div>
                   <div class="md-skeleton-list-item"></div>
                 </div>
@@ -394,7 +397,7 @@
             </section>
 
             <!-- System Tab -->
-            <section id="system-tab" class="md-tab-panel">
+            <section id="system-tab" class="md-tab-panel" data-testid="system-tab">
               <div class="md-section-header">
                 <div class="section-title">
                   <h2 class="md-typescale-headline-medium">
@@ -406,7 +409,7 @@
                   </p>
                 </div>
 
-                <button id="refresh-system-btn" class="md-filled-button">
+                <button id="refresh-system-btn" class="md-filled-button" data-testid="refresh-system-btn">
                   <span class="material-symbols-outlined">refresh</span>
                   <span>刷新資訊</span>
                 </button>
@@ -415,12 +418,12 @@
               <!-- System Info Grid -->
               <div class="md-system-grid">
                 <!-- Claude API Status Card -->
-                <div class="md-info-card md-elevation-level1">
+                <div class="md-info-card md-elevation-level1" data-testid="cooldown-info-card">
                   <div class="md-card-header">
                     <span class="material-symbols-outlined">api</span>
                     <h3 class="md-typescale-title-medium">Claude API 狀態</h3>
                   </div>
-                  <div class="md-card-content" id="detailed-cooldown-info">
+                  <div class="md-card-content" id="detailed-cooldown-info" data-testid="detailed-cooldown-info">
                     <div class="md-loading-skeleton">
                       <div class="md-skeleton-text"></div>
                       <div class="md-skeleton-text"></div>
@@ -428,12 +431,12 @@
                   </div>
                 </div>
 
-                <div class="md-info-card md-elevation-level1">
+                <div class="md-info-card md-elevation-level1" data-testid="app-info-card">
                   <div class="md-card-header">
                     <span class="material-symbols-outlined">info</span>
                     <h3 class="md-typescale-title-medium">應用資訊</h3>
                   </div>
-                  <div class="md-card-content" id="app-info">
+                  <div class="md-card-content" id="app-info" data-testid="app-info">
                     <div class="md-loading-skeleton">
                       <div class="md-skeleton-text"></div>
                       <div class="md-skeleton-text"></div>
@@ -441,12 +444,12 @@
                   </div>
                 </div>
 
-                <div class="md-info-card md-elevation-level1">
+                <div class="md-info-card md-elevation-level1" data-testid="performance-info-card">
                   <div class="md-card-header">
                     <span class="material-symbols-outlined">memory</span>
                     <h3 class="md-typescale-title-medium">效能監控</h3>
                   </div>
-                  <div class="md-card-content" id="performance-info">
+                  <div class="md-card-content" id="performance-info" data-testid="performance-info">
                     <div class="md-loading-skeleton">
                       <div class="md-skeleton-text"></div>
                       <div class="md-skeleton-text"></div>
@@ -457,7 +460,7 @@
             </section>
 
             <!-- Testing Tab -->
-            <section id="testing-tab" class="md-tab-panel">
+            <section id="testing-tab" class="md-tab-panel" data-testid="testing-tab">
               <div class="md-section-header">
                 <div class="section-title">
                   <h2 class="md-typescale-headline-medium">
@@ -863,19 +866,19 @@
 
     <!-- Material Design Modals -->
     <!-- Create Prompt Modal -->
-    <dialog id="prompt-modal" class="md-dialog">
+    <dialog id="prompt-modal" class="md-dialog" data-testid="prompt-modal">
       <div class="md-dialog-container md-elevation-level5">
         <div class="md-dialog-header">
           <h3 class="md-typescale-title-large">
             <span class="material-symbols-outlined">chat</span>
             建立新 Prompt
           </h3>
-          <button class="md-icon-button close-btn" aria-label="關閉">
+          <button class="md-icon-button close-btn" aria-label="關閉" data-testid="prompt-modal-close-btn">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
 
-        <form id="prompt-form" class="md-dialog-content">
+        <form id="prompt-form" class="md-dialog-content" data-testid="prompt-form">
           <div class="md-form-group">
             <label for="prompt-title" class="md-typescale-label-large">
               <span class="material-symbols-outlined">title</span>
@@ -888,6 +891,7 @@
               class="md-text-field"
               required
               placeholder="輸入 Prompt 標題"
+              data-testid="prompt-title-input"
             />
           </div>
 
@@ -903,6 +907,7 @@
               required
               placeholder="輸入 Prompt 內容，支援 Claude Code 語法 (@file.md)"
               rows="6"
+              data-testid="prompt-content-input"
             ></textarea>
           </div>
 
@@ -917,13 +922,14 @@
               name="prompt-tags"
               class="md-text-field"
               placeholder="以逗號分隔的標籤"
+              data-testid="prompt-tags-input"
             />
           </div>
         </form>
 
         <div class="md-dialog-actions">
-          <button type="button" class="md-text-button" data-close>取消</button>
-          <button type="submit" form="prompt-form" class="md-filled-button">
+          <button type="button" class="md-text-button" data-close data-testid="prompt-modal-cancel-btn">取消</button>
+          <button type="submit" form="prompt-form" class="md-filled-button" data-testid="prompt-modal-save-btn">
             <span class="material-symbols-outlined">save</span>
             儲存
           </button>
@@ -932,19 +938,19 @@
     </dialog>
 
     <!-- Create Job Modal -->
-    <dialog id="job-modal" class="md-dialog">
+    <dialog id="job-modal" class="md-dialog" data-testid="job-modal">
       <div class="md-dialog-container md-elevation-level5">
         <div class="md-dialog-header">
           <h3 class="md-typescale-title-large">
             <span class="material-symbols-outlined">add_task</span>
             建立排程任務
           </h3>
-          <button class="md-icon-button close-btn" aria-label="關閉">
+          <button class="md-icon-button close-btn" aria-label="關閉" data-testid="job-modal-close-btn">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
 
-        <form id="job-form" class="md-dialog-content">
+        <form id="job-form" class="md-dialog-content" data-testid="job-form">
           <div class="md-form-group">
             <label for="job-prompt" class="md-typescale-label-large">
               <span class="material-symbols-outlined">chat</span>
@@ -955,6 +961,7 @@
               name="job-prompt"
               class="md-select"
               required
+              data-testid="job-prompt-select"
             >
               <option value="">請選擇 Prompt</option>
             </select>
@@ -972,6 +979,7 @@
               class="md-text-field"
               required
               placeholder="0 9 * * * (每日 9 點)"
+              data-testid="job-cron-input"
             />
             <div class="md-supporting-text">
               <span class="material-symbols-outlined">help</span>
@@ -981,8 +989,8 @@
         </form>
 
         <div class="md-dialog-actions">
-          <button type="button" class="md-text-button" data-close>取消</button>
-          <button type="submit" form="job-form" class="md-filled-button">
+          <button type="button" class="md-text-button" data-close data-testid="job-modal-cancel-btn">取消</button>
+          <button type="submit" form="job-form" class="md-filled-button" data-testid="job-modal-save-btn">
             <span class="material-symbols-outlined">schedule</span>
             建立任務
           </button>
@@ -991,7 +999,7 @@
     </dialog>
 
     <!-- Material Design Snackbar Container -->
-    <div id="snackbar-container" class="md-snackbar-container"></div>
+    <div id="snackbar-container" class="md-snackbar-container" data-testid="snackbar-container"></div>
 
     <!-- Scripts -->
     <script src="js/unified-api-client.js"></script>

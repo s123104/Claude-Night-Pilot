@@ -1,0 +1,31 @@
+# Code Owners
+# 
+# This file defines individuals or teams responsible for code in this repository.
+# Code owners are automatically requested for review when someone opens a pull request.
+
+# Global owners
+* @s123104
+
+# Rust backend core
+/src-tauri/ @s123104
+
+# Frontend and UI
+/src/ @s123104
+
+# Tests
+/tests/ @s123104
+
+# Documentation
+/docs/ @s123104
+*.md @s123104
+
+# CI/CD and build configurations
+/.github/ @s123104
+/package.json @s123104
+/src-tauri/Cargo.toml @s123104
+/src-tauri/tauri.conf.json @s123104
+/playwright.config.js @s123104
+
+# Security-related files
+/SECURITY.md @s123104
+/CODEOWNERS @s123104

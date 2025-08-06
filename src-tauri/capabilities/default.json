@@ -9,7 +9,6 @@
     "core:app:default",
     "core:event:default",
     "opener:default",
-    "sql:default",
     "shell:default",
     "store:default",
     "cli:default",
