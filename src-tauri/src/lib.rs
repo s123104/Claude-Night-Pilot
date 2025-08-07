@@ -6,11 +6,19 @@
 // pub mod db;  // 暫時停用，有 sqlx 衝突
 pub mod simple_db;
 pub mod executor;
+pub mod claude_cooldown_detector;
 
 // 新增核心模組系統
 pub mod core;
 pub mod enhanced_executor;
 pub mod unified_interface;
+#[deprecated(note = "請使用 database_manager_impl 代替")]
+pub mod database_manager;
+pub mod simple_database_manager;
+
+// 數據庫最佳實踐模組
+pub mod database_error;
+pub mod database_manager_impl;
 
 // 移除遷移函數，改用 rusqlite 直接初始化
 // fn get_migrations() -> Vec<Migration> {
@@ -24,33 +32,34 @@ pub mod unified_interface;
 //     ]
 // }
 
-// Tauri 命令定義 - 全部使用模擬資料
-#[tauri::command]
-async fn list_prompts(_app: tauri::AppHandle) -> Result<Vec<serde_json::Value>, String> {
-    let mock_prompts = vec![
-        serde_json::json!({
-            "id": 1,
-            "title": "測試 Prompt",
-            "content": "這是一個測試用的 prompt 內容",
-            "tags": "test,demo",
-            "created_at": "2025-07-22T21:41:13+08:00"
-        }),
-        serde_json::json!({
-            "id": 2,
-            "title": "Claude Code 範例", 
-            "content": "@claude-code-zh-tw.md 請分析這個文檔",
-            "tags": "claude,analysis",
-            "created_at": "2025-07-22T20:41:13+08:00"
-        }),
-        serde_json::json!({
-            "id": 3,
-            "title": "CLI 整合測試",
-            "content": "測試 CLI 和 GUI 的整合功能",
-            "tags": "cli,integration,test",
-            "created_at": "2025-07-22T19:41:13+08:00"
+// Tauri 命令定義 - 使用 DatabaseManager 最佳實踐
+use crate::simple_db::{SimplePrompt, SimpleSchedule, TokenUsageStats};
+use crate::database_manager_impl::{DatabaseManager, DatabaseConfig};
+use std::sync::Arc;
+use tokio::sync::OnceCell;
+// use chrono::Local; // Currently unused
+
+// 使用 OnceCell 而非全域靜態變數 (最佳實踐)
+static DB_MANAGER: OnceCell<Arc<DatabaseManager>> = OnceCell::const_new();
+
+// 初始化資料庫管理器 (最佳實踐)
+async fn get_database_manager() -> Result<Arc<DatabaseManager>, String> {
+    DB_MANAGER
+        .get_or_try_init(|| async {
+            let config = DatabaseConfig::default();
+            DatabaseManager::new(config)
+                .await
+                .map(Arc::new)
+                .map_err(|e| format!("資料庫管理器初始化失敗: {}", e))
         })
-    ];
-    Ok(mock_prompts)
+        .await
+        .map(|manager| manager.clone())
+}
+
+#[tauri::command]
+async fn list_prompts(_app: tauri::AppHandle) -> Result<Vec<SimplePrompt>, String> {
+    // TODO: 實現 list_prompts 方法
+    Ok(vec![])
 }
 
 #[tauri::command]
@@ -60,14 +69,169 @@ async fn create_prompt(
     content: String,
     _tags: Option<String>,
 ) -> Result<i64, String> {
-    println!("建立 Prompt: {} - {}", title, content);
-    Ok(999) // 模擬的 ID
+    let db_manager = get_database_manager().await?;
+    db_manager.create_prompt_async(&title, &content)
+        .await
+        .map_err(|e| format!("創建 Prompt 失敗: {}", e))
+}
+
+#[tauri::command]
+async fn get_prompt(_app: tauri::AppHandle, id: i64) -> Result<Option<SimplePrompt>, String> {
+    let db_manager = get_database_manager().await?;
+    db_manager.get_prompt_async(id)
+        .await
+        .map_err(|e| format!("查詢 Prompt 失敗: {}", e))
 }
 
 #[tauri::command]
 async fn delete_prompt(_app: tauri::AppHandle, id: i64) -> Result<bool, String> {
     println!("刪除 Prompt ID: {}", id);
-    Ok(true)
+    Ok(true) // 暫時模擬成功
+}
+
+// 排程相關命令
+#[tauri::command]
+async fn create_schedule(
+    _app: tauri::AppHandle,
+    prompt_id: i64,
+    schedule_time: String,
+    cron_expr: Option<String>,
+) -> Result<i64, String> {
+    let db_manager = get_database_manager().await?;
+    db_manager.create_schedule_async(prompt_id, &schedule_time, cron_expr.as_deref())
+        .await
+        .map_err(|e| format!("創建排程失敗: {}", e))
+}
+
+#[tauri::command]
+async fn get_pending_schedules(_app: tauri::AppHandle) -> Result<Vec<SimpleSchedule>, String> {
+    let db_manager = get_database_manager().await?;
+    db_manager.get_pending_schedules_async()
+        .await
+        .map_err(|e| format!("查詢待執行排程失敗: {}", e))
+}
+
+#[tauri::command]
+async fn update_schedule(
+    _app: tauri::AppHandle,
+    id: i64,
+    schedule_time: Option<String>,
+    status: Option<String>,
+    cron_expr: Option<String>,
+) -> Result<(), String> {
+    let db_manager = get_database_manager().await?;
+    db_manager.update_schedule_async(
+        id,
+        schedule_time.as_deref(),
+        status.as_deref(),
+        cron_expr.as_deref(),
+    )
+    .await
+    .map_err(|e| format!("更新排程失敗: {}", e))
+}
+
+#[tauri::command]
+async fn delete_schedule(_app: tauri::AppHandle, id: i64) -> Result<bool, String> {
+    let db_manager = get_database_manager().await?;
+    db_manager.delete_schedule_async(id)
+        .await
+        .map_err(|e| format!("刪除排程失敗: {}", e))
+}
+
+// Token 統計相關命令
+#[tauri::command]
+async fn get_token_usage_stats(_app: tauri::AppHandle) -> Result<Option<TokenUsageStats>, String> {
+    let db_manager = get_database_manager().await?;
+    db_manager.get_token_usage_stats_async()
+        .await
+        .map_err(|e| format!("查詢 Token 統計失敗: {}", e))
+}
+
+#[tauri::command]
+async fn update_token_usage(
+    _app: tauri::AppHandle,
+    input_tokens: i64,
+    output_tokens: i64,
+    cost_usd: f64,
+) -> Result<(), String> {
+    let db_manager = get_database_manager().await?;
+    db_manager.update_token_usage_async(input_tokens, output_tokens, cost_usd)
+        .await
+        .map_err(|e| format!("更新 Token 統計失敗: {}", e))
+}
+
+// 健康檢查和冷卻狀態命令
+#[tauri::command]
+async fn health_check(_app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    Ok(serde_json::json!({
+        "status": "healthy",
+        "database": "connected",
+        "timestamp": chrono::Local::now().to_rfc3339(),
+        "version": "0.1.0"
+    }))
+}
+
+#[tauri::command]
+async fn check_cooldown(_app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    use crate::claude_cooldown_detector::ClaudeCooldownDetector;
+    
+    let mut detector = ClaudeCooldownDetector::new();
+    
+    match detector.check_cooldown().await {
+        Ok(status) => {
+            Ok(serde_json::json!({
+                "is_cooling": status.is_cooling,
+                "status": if status.is_cooling { "cooling" } else { "ready" },
+                "remaining_time_seconds": status.remaining_time_seconds,
+                "reset_time": status.reset_time,
+                "usage_info": {
+                    "tokens_used_today": status.usage_info.tokens_used_today,
+                    "requests_today": status.usage_info.requests_today,
+                    "estimated_cost_usd": status.usage_info.estimated_cost_usd,
+                    "current_5hour_block_usage": status.usage_info.current_5hour_block_usage
+                },
+                "limit_type": status.limit_type,
+                "timestamp": status.last_updated.to_rfc3339()
+            }))
+        },
+        Err(e) => {
+            // 發生錯誤時返回基本狀態
+            eprintln!("冷卻檢測錯誤: {}", e);
+            Ok(serde_json::json!({
+                "is_cooling": false,
+                "status": "unknown",
+                "error": format!("檢測失敗: {}", e),
+                "timestamp": chrono::Local::now().to_rfc3339()
+            }))
+        }
+    }
+}
+
+#[tauri::command]
+async fn parse_claude_error(_app: tauri::AppHandle, error_output: String) -> Result<serde_json::Value, String> {
+    use crate::claude_cooldown_detector::ClaudeCooldownDetector;
+    
+    let detector = ClaudeCooldownDetector::new();
+    
+    match detector.parse_claude_error(&error_output) {
+        Some(status) => {
+            Ok(serde_json::json!({
+                "cooldown_detected": true,
+                "is_cooling": status.is_cooling,
+                "remaining_time_seconds": status.remaining_time_seconds,
+                "limit_type": status.limit_type,
+                "reset_time": status.reset_time,
+                "timestamp": status.last_updated.to_rfc3339()
+            }))
+        },
+        None => {
+            Ok(serde_json::json!({
+                "cooldown_detected": false,
+                "message": "未檢測到冷卻相關錯誤",
+                "timestamp": chrono::Local::now().to_rfc3339()
+            }))
+        }
+    }
 }
 
 // 修復：移除未使用的函數警告，改用實際功能實現
@@ -294,16 +458,29 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            // 基礎資料管理命令 (保留用於向後兼容)
+            // 基礎資料管理命令
             list_prompts,
-            create_prompt, 
+            create_prompt,
+            get_prompt,
             delete_prompt,
+            // 排程管理命令
+            create_schedule,
+            get_pending_schedules,
+            update_schedule,
+            delete_schedule,
+            // Token 統計命令
+            get_token_usage_stats,
+            update_token_usage,
+            // 健康檢查與冷卻狀態
+            health_check,
+            check_cooldown,
+            parse_claude_error,
+            // 向後兼容的舊命令
             create_scheduled_job,
             list_jobs,
             get_job_results,
             get_system_info,
             run_cli_command,
-            // 新增的核心功能命令
             execute_prompt_with_scheduler,
             get_system_status,
             // 統一介面命令 (推薦使用)

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GUI 功能測試</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .test-container {
+        background: white;
+        padding: 20px;
+        margin: 10px 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .test-result {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      .success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+      .info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+      .btn {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      .btn:hover {
+        background: #0056b3;
+      }
+      .json-output {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: monospace;
+        white-space: pre-wrap;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+      }
+      .stat-card {
+        background: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      .stat-number {
+        font-size: 2em;
+        font-weight: bold;
+        color: #007bff;
+      }
+      .stat-label {
+        color: #666;
+        font-size: 0.9em;
+      }
+      #progress {
+        width: 100%;
+        height: 20px;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🌙✈️ Claude Night Pilot GUI 功能測試</h1>
+
+    <div class="test-container">
+      <h2>📊 測試統計</h2>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-number" id="totalTests">0</div>
+          <div class="stat-label">總測試數</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="passedTests">0</div>
+          <div class="stat-label">通過測試</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="failedTests">0</div>
+          <div class="stat-label">失敗測試</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="successRate">0%</div>
+          <div class="stat-label">成功率</div>
+        </div>
+      </div>
+      <progress id="progress" value="0" max="100"></progress>
+    </div>
+
+    <div class="test-container">
+      <h2>🔧 基礎功能測試</h2>
+      <button class="btn" onclick="testHealthCheck()">健康檢查</button>
+      <button class="btn" onclick="testCooldownCheck()">冷卻狀態</button>
+      <button class="btn" onclick="testCreatePrompt()">創建 Prompt</button>
+      <button class="btn" onclick="testCreateSchedule()">創建排程</button>
+      <button class="btn" onclick="testTokenStats()">Token 統計</button>
+      <div id="basicResults"></div>
+    </div>
+
+    <div class="test-container">
+      <h2>📅 排程管理測試</h2>
+      <button class="btn" onclick="testScheduleCRUD()">排程 CRUD 操作</button>
+      <button class="btn" onclick="testPendingSchedules()">待執行排程</button>
+      <button class="btn" onclick="testScheduleUpdate()">更新排程</button>
+      <div id="scheduleResults"></div>
+    </div>
+
+    <div class="test-container">
+      <h2>📊 資料庫整合測試</h2>
+      <button class="btn" onclick="testDatabaseIntegration()">
+        完整資料庫測試
+      </button>
+      <button class="btn" onclick="testDataPersistence()">
+        資料持久性測試
+      </button>
+      <div id="databaseResults"></div>
+    </div>
+
+    <div class="test-container">
+      <h2>🎨 GUI 交互測試</h2>
+      <button class="btn" onclick="testGUIInteraction()">測試 GUI 互動</button>
+      <button class="btn" onclick="testFormValidation()">表單驗證測試</button>
+      <div id="guiResults"></div>
+    </div>
+
+    <div class="test-container">
+      <h2>📋 測試結果記錄</h2>
+      <div id="testLog"></div>
+    </div>
+
+    <script>
+      // 測試統計
+      let testStats = {
+        total: 0,
+        passed: 0,
+        failed: 0,
+      };
+
+      // 記錄測試結果
+      function logTest(name, passed, details = "", targetElement = "testLog") {
+        testStats.total++;
+        if (passed) {
+          testStats.passed++;
+        } else {
+          testStats.failed++;
+        }
+
+        updateStats();
+
+        const result = document.createElement("div");
+        result.className = `test-result ${passed ? "success" : "error"}`;
+        result.innerHTML = `
+                <strong>${passed ? "✅" : "❌"} ${name}</strong>
+                <div>${details}</div>
+                <small>時間: ${new Date().toLocaleString()}</small>
+            `;
+
+        document.getElementById(targetElement).appendChild(result);
+
+        // 自動滾動到最新結果
+        result.scrollIntoView({ behavior: "smooth" });
+      }
+
+      // 更新統計數據
+      function updateStats() {
+        document.getElementById("totalTests").textContent = testStats.total;
+        document.getElementById("passedTests").textContent = testStats.passed;
+        document.getElementById("failedTests").textContent = testStats.failed;
+
+        const rate =
+          testStats.total > 0
+            ? Math.round((testStats.passed / testStats.total) * 100)
+            : 0;
+        document.getElementById("successRate").textContent = `${rate}%`;
+        document.getElementById("progress").value = rate;
+      }
+
+      // 模擬 Tauri invoke 函數 (在實際環境中會被覆蓋)
+      window.__TAURI__ = window.__TAURI__ || {
+        tauri: {
+          invoke: function (command, args = {}) {
+            return new Promise((resolve, reject) => {
+              // 模擬 API 回應
+              setTimeout(() => {
+                switch (command) {
+                  case "health_check":
+                    resolve({
+                      status: "healthy",
+                      database: "connected",
+                      timestamp: new Date().toISOString(),
+                      version: "0.1.0",
+                    });
+                    break;
+                  case "check_cooldown":
+                    resolve({
+                      is_cooling: false,
+                      status: "ready",
+                      cooldown_seconds: 0,
+                      timestamp: new Date().toISOString(),
+                    });
+                    break;
+                  case "create_prompt":
+                    resolve(Math.floor(Math.random() * 1000) + 1);
+                    break;
+                  case "create_schedule":
+                    resolve(Math.floor(Math.random() * 100) + 1);
+                    break;
+                  case "get_token_usage_stats":
+                    resolve({
+                      total_input_tokens: 12500,
+                      total_output_tokens: 8300,
+                      total_cost_usd: 0.45,
+                      session_count: 23,
+                      last_updated: new Date().toISOString(),
+                    });
+                    break;
+                  case "get_pending_schedules":
+                    resolve([
+                      {
+                        id: 1,
+                        prompt_id: 1,
+                        schedule_time: new Date(
+                          Date.now() + 300000
+                        ).toISOString(),
+                        status: "pending",
+                        cron_expr: null,
+                        execution_count: 0,
+                      },
+                    ]);
+                    break;
+                  default:
+                    reject(new Error(`Unknown command: ${command}`));
+                }
+              }, Math.random() * 500 + 100); // 模擬網路延遲
+            });
+          },
+        },
+      };
+
+      // 基礎功能測試
+      async function testHealthCheck() {
+        try {
+          const result = await window.__TAURI__.tauri.invoke("health_check");
+          logTest(
+            "健康檢查",
+            result.status === "healthy",
+            `狀態: ${result.status}, 資料庫: ${result.database}`,
+            "basicResults"
+          );
+        } catch (error) {
+          logTest("健康檢查", false, `錯誤: ${error.message}`, "basicResults");
+        }
+      }
+
+      async function testCooldownCheck() {
+        try {
+          const result = await window.__TAURI__.tauri.invoke("check_cooldown");
+          logTest(
+            "冷卻狀態檢查",
+            result.status === "ready",
+            `冷卻中: ${result.is_cooling}, 狀態: ${result.status}`,
+            "basicResults"
+          );
+        } catch (error) {
+          logTest(
+            "冷卻狀態檢查",
+            false,
+            `錯誤: ${error.message}`,
+            "basicResults"
+          );
+        }
+      }
+
+      async function testCreatePrompt() {
+        try {
+          const promptId = await window.__TAURI__.tauri.invoke(
+            "create_prompt",
+            {
+              title: "GUI測試Prompt",
+              content: "這是一個通過GUI創建的測試Prompt",
+              tags: "test,gui",
+            }
+          );
+          logTest(
+            "創建 Prompt",
+            typeof promptId === "number" && promptId > 0,
+            `Prompt ID: ${promptId}`,
+            "basicResults"
+          );
+        } catch (error) {
+          logTest(
+            "創建 Prompt",
+            false,
+            `錯誤: ${error.message}`,
+            "basicResults"
+          );
+        }
+      }
+
+      async function testCreateSchedule() {
+        try {
+          const scheduleTime = new Date(Date.now() + 300000).toISOString(); // 5分鐘後
+          const scheduleId = await window.__TAURI__.tauri.invoke(
+            "create_schedule",
+            {
+              promptId: 1,
+              scheduleTime: scheduleTime,
+              cronExpr: null,
+            }
+          );
+          logTest(
+            "創建排程",
+            typeof scheduleId === "number" && scheduleId > 0,
+            `排程 ID: ${scheduleId}, 執行時間: ${scheduleTime}`,
+            "basicResults"
+          );
+        } catch (error) {
+          logTest("創建排程", false, `錯誤: ${error.message}`, "basicResults");
+        }
+      }
+
+      async function testTokenStats() {
+        try {
+          const stats = await window.__TAURI__.tauri.invoke(
+            "get_token_usage_stats"
+          );
+          logTest(
+            "Token 統計查詢",
+            stats && typeof stats.total_input_tokens === "number",
+            `輸入 Token: ${stats.total_input_tokens}, 輸出 Token: ${stats.total_output_tokens}, 成本: $${stats.total_cost_usd}`,
+            "basicResults"
+          );
+        } catch (error) {
+          logTest(
+            "Token 統計查詢",
+            false,
+            `錯誤: ${error.message}`,
+            "basicResults"
+          );
+        }
+      }
+
+      // 排程管理測試
+      async function testScheduleCRUD() {
+        try {
+          // 創建
+          const scheduleId = await window.__TAURI__.tauri.invoke(
+            "create_schedule",
+            {
+              promptId: 1,
+              scheduleTime: new Date(Date.now() + 600000).toISOString(),
+              cronExpr: "0 9 * * *",
+            }
+          );
+
+          // 更新
+          await window.__TAURI__.tauri.invoke("update_schedule", {
+            id: scheduleId,
+            status: "active",
+            cronExpr: "0 10 * * *",
+          });
+
+          // 刪除
+          const deleted = await window.__TAURI__.tauri.invoke(
+            "delete_schedule",
+            {
+              id: scheduleId,
+            }
+          );
+
+          logTest(
+            "排程 CRUD 操作",
+            deleted === true,
+            `創建排程 ID: ${scheduleId}, 更新成功, 刪除成功`,
+            "scheduleResults"
+          );
+        } catch (error) {
+          logTest(
+            "排程 CRUD 操作",
+            false,
+            `錯誤: ${error.message}`,
+            "scheduleResults"
+          );
+        }
+      }
+
+      async function testPendingSchedules() {
+        try {
+          const schedules = await window.__TAURI__.tauri.invoke(
+            "get_pending_schedules"
+          );
+          logTest(
+            "待執行排程查詢",
+            Array.isArray(schedules),
+            `找到 ${schedules.length} 個待執行排程`,
+            "scheduleResults"
+          );
+        } catch (error) {
+          logTest(
+            "待執行排程查詢",
+            false,
+            `錯誤: ${error.message}`,
+            "scheduleResults"
+          );
+        }
+      }
+
+      async function testScheduleUpdate() {
+        try {
+          // 先創建一個排程
+          const scheduleId = await window.__TAURI__.tauri.invoke(
+            "create_schedule",
+            {
+              promptId: 1,
+              scheduleTime: new Date(Date.now() + 300000).toISOString(),
+              cronExpr: null,
+            }
+          );
+
+          // 更新排程
+          await window.__TAURI__.tauri.invoke("update_schedule", {
+            id: scheduleId,
+            status: "paused",
+            scheduleTime: new Date(Date.now() + 600000).toISOString(),
+          });
+
+          logTest(
+            "排程更新",
+            true,
+            `排程 ${scheduleId} 更新成功`,
+            "scheduleResults"
+          );
+        } catch (error) {
+          logTest(
+            "排程更新",
+            false,
+            `錯誤: ${error.message}`,
+            "scheduleResults"
+          );
+        }
+      }
+
+      // 資料庫整合測試
+      async function testDatabaseIntegration() {
+        try {
+          let allPassed = true;
+          const results = [];
+
+          // 測試多個 Prompt 創建
+          for (let i = 1; i <= 3; i++) {
+            const id = await window.__TAURI__.tauri.invoke("create_prompt", {
+              title: `測試 Prompt ${i}`,
+              content: `這是第 ${i} 個測試 Prompt`,
+              tags: `test${i}`,
+            });
+            if (typeof id !== "number" || id <= 0) {
+              allPassed = false;
+            }
+            results.push(`Prompt ${i}: ID ${id}`);
+          }
+
+          // 測試 Token 統計更新
+          await window.__TAURI__.tauri.invoke("update_token_usage", {
+            inputTokens: 100,
+            outputTokens: 50,
+            costUsd: 0.01,
+          });
+
+          logTest(
+            "資料庫整合測試",
+            allPassed,
+            `批量操作結果: ${results.join(", ")}, Token統計已更新`,
+            "databaseResults"
+          );
+        } catch (error) {
+          logTest(
+            "資料庫整合測試",
+            false,
+            `錯誤: ${error.message}`,
+            "databaseResults"
+          );
+        }
+      }
+
+      async function testDataPersistence() {
+        try {
+          // 創建數據
+          const promptId = await window.__TAURI__.tauri.invoke(
+            "create_prompt",
+            {
+              title: "持久性測試",
+              content: "測試數據持久性",
+              tags: "persistence",
+            }
+          );
+
+          // 立即查詢
+          const prompt = await window.__TAURI__.tauri.invoke("get_prompt", {
+            id: promptId,
+          });
+
+          logTest(
+            "資料持久性測試",
+            prompt && prompt.title === "持久性測試",
+            `創建並查詢 Prompt ${promptId} 成功`,
+            "databaseResults"
+          );
+        } catch (error) {
+          logTest(
+            "資料持久性測試",
+            false,
+            `錯誤: ${error.message}`,
+            "databaseResults"
+          );
+        }
+      }
+
+      // GUI 交互測試
+      function testGUIInteraction() {
+        let passed = true;
+        const details = [];
+
+        // 檢查基本 DOM 元素
+        const buttons = document.querySelectorAll(".btn");
+        if (buttons.length === 0) {
+          passed = false;
+          details.push("找不到測試按鈕");
+        } else {
+          details.push(`找到 ${buttons.length} 個測試按鈕`);
+        }
+
+        // 檢查統計顯示
+        const statNumbers = document.querySelectorAll(".stat-number");
+        if (statNumbers.length === 4) {
+          details.push("統計面板正常顯示");
+        } else {
+          passed = false;
+          details.push("統計面板異常");
+        }
+
+        // 檢查進度條
+        const progress = document.getElementById("progress");
+        if (progress) {
+          details.push("進度條可用");
+        } else {
+          passed = false;
+          details.push("進度條缺失");
+        }
+
+        logTest("GUI 互動測試", passed, details.join(", "), "guiResults");
+      }
+
+      function testFormValidation() {
+        // 模擬表單驗證測試
+        const testForm = document.createElement("form");
+        const testInput = document.createElement("input");
+        testInput.type = "text";
+        testInput.required = true;
+        testForm.appendChild(testInput);
+
+        // 測試空值驗證
+        const isValid = testForm.checkValidity();
+
+        logTest(
+          "表單驗證測試",
+          !isValid, // 空值應該無效
+          "空值驗證工作正常",
+          "guiResults"
+        );
+
+        // 測試有值的情況
+        testInput.value = "測試值";
+        const isValidWithValue = testForm.checkValidity();
+
+        logTest(
+          "表單值驗證",
+          isValidWithValue,
+          "有值驗證工作正常",
+          "guiResults"
+        );
+      }
+
+      // 運行完整測試套件
+      async function runFullTestSuite() {
+        console.log("🚀 開始完整 GUI 測試套件...");
+
+        // 重置統計
+        testStats = { total: 0, passed: 0, failed: 0 };
+        updateStats();
+
+        // 清空測試記錄
+        document.getElementById("testLog").innerHTML = "";
+        document.getElementById("basicResults").innerHTML = "";
+        document.getElementById("scheduleResults").innerHTML = "";
+        document.getElementById("databaseResults").innerHTML = "";
+        document.getElementById("guiResults").innerHTML = "";
+
+        // 基礎功能測試
+        await testHealthCheck();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        await testCooldownCheck();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        await testCreatePrompt();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        await testCreateSchedule();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        await testTokenStats();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // 排程管理測試
+        await testScheduleCRUD();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        await testPendingSchedules();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        await testScheduleUpdate();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // 資料庫整合測試
+        await testDatabaseIntegration();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        await testDataPersistence();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // GUI 交互測試
+        testGUIInteraction();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        testFormValidation();
+
+        console.log("✅ GUI 測試套件完成");
+
+        // 顯示最終報告
+        const rate = Math.round((testStats.passed / testStats.total) * 100);
+        const reportElement = document.createElement("div");
+        reportElement.className = "test-result info";
+        reportElement.innerHTML = `
+                <h3>📋 測試報告</h3>
+                <p><strong>總測試數:</strong> ${testStats.total}</p>
+                <p><strong>通過測試:</strong> ${testStats.passed}</p>
+                <p><strong>失敗測試:</strong> ${testStats.failed}</p>
+                <p><strong>成功率:</strong> ${rate}%</p>
+                <p><strong>完成時間:</strong> ${new Date().toLocaleString()}</p>
+            `;
+        document.getElementById("testLog").appendChild(reportElement);
+      }
+
+      // 頁面載入完成後顯示歡迎訊息
+      document.addEventListener("DOMContentLoaded", function () {
+        const welcomeMsg = document.createElement("div");
+        welcomeMsg.className = "test-result info";
+        welcomeMsg.innerHTML = `
+                <h3>🎉 GUI 測試平台已就緒</h3>
+                <p>點擊上方按鈕進行個別測試，或使用 <code>runFullTestSuite()</code> 執行完整測試。</p>
+                <p>此測試平台模擬了 Tauri 環境，可以在瀏覽器中直接測試 GUI 功能。</p>
+                <button class="btn" onclick="runFullTestSuite()">🚀 執行完整測試套件</button>
+            `;
+        document.getElementById("testLog").appendChild(welcomeMsg);
+      });
+    </script>
+  </body>
+</html>

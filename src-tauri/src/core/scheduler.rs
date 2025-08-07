@@ -72,6 +72,7 @@ struct CronJob {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // Some variants are used in future implementations
 enum JobStatus {
     Scheduled,
     Running,
