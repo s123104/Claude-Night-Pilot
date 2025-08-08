@@ -1,998 +1,709 @@
-# 🏗️ Claude Night Pilot - 專案規則與開發指南
+# Claude Night Pilot - 專案規則與開發指南
 
-> **文件建立時間**: 2025-07-23T03:14:08+08:00  
-> **更新時間**: 2025-07-23T03:14:08+08:00  
-> **版本**: v2.0.0 - 開源專案標準版  
-> **適用範圍**: 所有貢獻者與維護者
-
----
+**版本**: v1.0.0  
+**更新時間**: 2025-07-24T02:00:00+08:00  
+**適用範圍**: 所有貢獻者和維護者
 
 ## 📋 目錄
 
-1. [專案概述](#專案概述)
-2. [技術架構](#技術架構)
-3. [開發環境](#開發環境)
-4. [程式碼規範](#程式碼規範)
-5. [測試策略](#測試策略)
-6. [版本管理](#版本管理)
-7. [部署流程](#部署流程)
-8. [貢獻流程](#貢獻流程)
-9. [安全性要求](#安全性要求)
-10. [效能標準](#效能標準)
+- [專案概覽](#專案概覽)
+- [架構原則](#架構原則)
+- [開發規範](#開發規範)
+- [編碼標準](#編碼標準)
+- [測試要求](#測試要求)
+- [安全性規則](#安全性規則)
+- [文檔規範](#文檔規範)
+- [發布流程](#發布流程)
 
----
+## 🎯 專案概覽
 
-## 🎯 專案概述
+### 專案使命
+Claude Night Pilot 致力於成為最完整、最安全、最易用的 Claude CLI 自動化管理工具，整合四大開源專案的優勢，提供零雲端依賴的本地解決方案。
 
-### 核心目標
+### 核心原則
+1. **安全第一** - 多層安全檢查，完整審計日誌
+2. **用戶體驗** - 零學習曲線，直觀操作
+3. **性能優化** - 低資源消耗，快速響應
+4. **可維護性** - 清晰架構，模組化設計
+5. **開源友善** - MIT 授權，歡迎貢獻
 
-Claude Night Pilot 是一個現代化的 Claude CLI 自動化工具，致力於：
+## 🏗️ 架構原則
 
-- **零雲端依賴** - 完全本地運行，保護使用者隱私
-- **極致輕量** - 單一執行檔 < 10MB，啟動時間 < 3s
-- **雙模式操作** - GUI 與 CLI 並重，滿足不同使用習慣
-- **高度可維護** - 清晰的架構設計，完整的測試覆蓋
-
-### 專案價值
-
-| 價值面向       | 具體表現             |
-| -------------- | -------------------- |
-| **使用者體驗** | 零學習曲線，直觀操作 |
-| **開發體驗**   | 清晰文檔，標準化流程 |
-| **技術品質**   | 現代技術棧，最佳實踐 |
-| **社群價值**   | 開源貢獻，知識分享   |
-
----
-
-## 🏗️ 技術架構
-
-### 系統架構圖
+### 四核心模組架構
 
 ```mermaid
 graph TB
-    subgraph "前端層 (Frontend)"
-        UI[HTML + htmx + CSS]
-        JS[JavaScript 邏輯]
-    end
-
-    subgraph "應用層 (Application)"
-        TAURI[Tauri 2.0 框架]
-        IPC[IPC 通訊]
-    end
-
-    subgraph "業務層 (Business)"
-        LIB[lib.rs - 主邏輯]
-        EXEC[executor.rs - 執行器]
-        SCHED[scheduler.rs - 排程器]
-        CLI[cnp.rs - CLI 工具]
-    end
-
-    subgraph "資料層 (Data)"
-        DB[SQLite 資料庫]
-        MIGRATION[Migration 系統]
-    end
-
-    subgraph "外部整合 (External)"
-        CLAUDE[Claude CLI]
-        FS[檔案系統]
-    end
-
-    UI --> IPC
-    JS --> IPC
-    IPC --> LIB
-    LIB --> EXEC
-    LIB --> SCHED
-    LIB --> DB
-    EXEC --> CLAUDE
-    SCHED --> CLAUDE
-    CLI --> DB
-    CLI --> CLAUDE
-    MIGRATION --> DB
+    A[Claude Night Pilot] --> B[CORE-001: ccusage API]
+    A --> C[CORE-002: 安全執行系統]
+    A --> D[CORE-003: 自適應監控]
+    A --> E[CORE-004: 智能排程]
+    
+    B --> F[SQLite Database]
+    C --> F
+    D --> F
+    E --> F
+    
+    A --> G[CLI Interface]
+    A --> H[GUI Interface]
+    
+    G --> I[Tauri Commands]
+    H --> I
 ```
 
-### 技術棧規範
+### 設計模式
 
-| 層級         | 技術選擇   | 版本要求   | 備註           |
-| ------------ | ---------- | ---------- | -------------- |
-| **桌面框架** | Tauri      | 2.0+       | 跨平台應用框架 |
-| **後端語言** | Rust       | 1.76+      | 系統程式語言   |
-| **前端技術** | htmx + CSS | 1.9+       | 極簡前端棧     |
-| **資料庫**   | SQLite     | 3.35+      | 嵌入式資料庫   |
-| **測試框架** | Playwright | 1.40+      | E2E 測試       |
-| **建置工具** | npm/cargo  | 最新穩定版 | 包管理器       |
+#### 1. 模組化設計
+- **單一職責原則**: 每個模組專注一個核心功能
+- **介面隔離**: 清晰的API邊界和契約
+- **依賴反轉**: 依賴抽象而非具體實現
 
----
+#### 2. 事件驅動架構
+- **Tokio Channels**: 異步事件傳遞
+- **Broadcast Events**: 多訂閱者事件分發
+- **Error Propagation**: 統一錯誤處理機制
 
-## 🛠️ 開發環境
+#### 3. 數據持久化
+- **SQLx**: 編譯時查詢驗證
+- **Migration**: 版本化資料庫結構
+- **ACID**: 確保數據一致性
 
-### 環境需求
+## 📝 開發規範
 
-#### 基本需求
+### 技術棧標準
 
-```bash
-# Node.js - 建議使用 LTS 版本
-node --version  # >= 18.0.0
-npm --version   # >= 9.0.0
-
-# Rust - 使用最新穩定版
-rustc --version  # >= 1.76.0
-cargo --version  # >= 1.76.0
-
-# Claude CLI - 必須已安裝並配置
-claude --version  # 最新版本
+#### Rust 後端 (>= 1.76)
+```toml
+[dependencies]
+tauri = "2.7.0"
+sqlx = "0.8.6"
+tokio = "1.0"
+chrono = "0.4"
+chrono-tz = "0.9"
+anyhow = "1.0"
+serde = "1.0"
+clap = "4.0"
 ```
 
-#### 開發工具建議
-
-```bash
-# VS Code 擴展
-- rust-analyzer
-- Tauri
-- ES6 String HTML
-- Playwright Test for VS Code
-- GitLens
-
-# 可選工具
-- cargo-watch    # 自動重建
-- cargo-audit    # 安全掃描
-- cargo-bloat    # 分析二進位大小
-```
-
-### 環境設定
-
-#### 1. 克隆專案
-
-```bash
-git clone https://github.com/s123104/claude-night-pilot.git
-cd claude-night-pilot
-```
-
-#### 2. 安裝依賴
-
-```bash
-# 安裝 Node.js 依賴
-npm install
-
-# 檢查 Rust 工具鏈
-cargo check
-```
-
-#### 3. 開發環境驗證
-
-```bash
-# 執行測試確保環境正常
-npm test
-
-# 啟動開發模式
-npm run tauri dev
-```
-
----
-
-## 📝 程式碼規範
-
-### Rust 程式碼規範
-
-#### 格式化與檢查
-
-```bash
-# 程式碼格式化
-cargo fmt
-
-# 程式碼檢查 (無警告通過)
-cargo clippy -- -D warnings
-
-# 安全掃描
-cargo audit
-```
-
-#### 命名規範
-
-```rust
-// ✅ 良好的命名
-struct PromptManager {
-    database_pool: SqlitePool,
-    claude_executor: ClaudeExecutor,
-}
-
-impl PromptManager {
-    pub async fn create_prompt(&self, title: &str, content: &str) -> Result<i64> {
-        // 實作邏輯
-    }
-}
-
-// ❌ 避免的命名
-struct PM {
-    db: SqlitePool,  // 縮寫不清楚
-    ex: ClaudeExecutor,
+#### 前端 (Node.js >= 18)
+```json
+{
+  "@tauri-apps/cli": "^2.7.1",
+  "htmx": "^1.9.0",
+  "playwright": "^1.54.1"
 }
 ```
 
-#### 錯誤處理
-
-```rust
-// ✅ 使用 Result 類型
-use anyhow::{Context, Result};
-
-pub async fn execute_prompt(prompt_id: i64) -> Result<String> {
-    let prompt = get_prompt(prompt_id)
-        .await
-        .context("Failed to fetch prompt")?;
-
-    let result = claude_cli::execute(&prompt.content)
-        .await
-        .context("Claude CLI execution failed")?;
-
-    Ok(result)
-}
-
-// ❌ 避免 panic!
-pub async fn execute_prompt(prompt_id: i64) -> String {
-    let prompt = get_prompt(prompt_id).await.unwrap(); // 不要這樣做
-    // ...
-}
-```
-
-### JavaScript 程式碼規範
-
-#### ES6+ 語法
-
-```javascript
-// ✅ 使用現代 JavaScript
-class AppState {
-  constructor() {
-    this.prompts = [];
-    this.currentTab = "prompts";
-  }
-
-  async loadPrompts() {
-    try {
-      const prompts = await invoke("list_prompts");
-      this.prompts = prompts;
-    } catch (error) {
-      console.error("Failed to load prompts:", error);
-      showError("載入 Prompts 失敗");
-    }
-  }
-
-  // 使用箭頭函數
-  updateUI = () => {
-    this.renderPrompts();
-    this.updateStatusBar();
-  };
-}
-
-// ✅ 模組化
-const PromptManager = {
-  async create(title, content, tags) {
-    return await invoke("create_prompt", { title, content, tags });
-  },
-
-  async list() {
-    return await invoke("list_prompts");
-  },
-};
-```
-
-#### HTML 與 CSS 規範
-
-```html
-<!-- ✅ 語意化 HTML -->
-<main class="app-container">
-  <section class="prompt-management" id="prompt-section">
-    <header class="section-header">
-      <h2>Prompt 管理</h2>
-      <button class="btn-primary" onclick="createPrompt()">新增 Prompt</button>
-    </header>
-
-    <div class="prompt-list" id="prompt-list">
-      <!-- 動態內容 -->
-    </div>
-  </section>
-</main>
-```
-
-```css
-/* ✅ 清晰的 CSS 結構 */
-.app-container {
-  display: grid;
-  grid-template-areas:
-    "header header"
-    "sidebar main";
-  height: 100vh;
-}
-
-.prompt-management {
-  grid-area: main;
-  padding: 1rem;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-/* 響應式設計 */
-@media (max-width: 768px) {
-  .app-container {
-    grid-template-areas:
-      "header"
-      "main";
-  }
-}
-```
-
----
-
-## 🧪 測試策略
-
-### 測試金字塔
+### 文件結構規範
 
 ```
-    /\
-   /  \     E2E Tests (少量但全面)
-  /____\    - Playwright 整合測試
- /      \   Integration Tests (中等數量)
-/________\  - Rust 模組測試
-/__________\ Unit Tests (大量且快速)
-            - 函數邏輯測試
-```
-
-### 測試類型與覆蓋率要求
-
-| 測試類型     | 框架             | 覆蓋率要求 | 執行頻率 |
-| ------------ | ---------------- | ---------- | -------- |
-| **單元測試** | Rust 內建 + Jest | > 90%      | 每次提交 |
-| **整合測試** | Rust + Tauri     | > 80%      | 每次 PR  |
-| **E2E 測試** | Playwright       | > 70%      | 每次發布 |
-| **效能測試** | 自定義腳本       | 關鍵指標   | 每週     |
-
-### 測試命名規範
-
-```rust
-// ✅ Rust 測試命名
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_create_prompt_success() {
-        // 測試成功案例
-    }
-
-    #[tokio::test]
-    async fn test_create_prompt_with_empty_title_fails() {
-        // 測試失敗案例
-    }
-
-    #[tokio::test]
-    async fn test_create_prompt_with_special_characters() {
-        // 測試邊界案例
-    }
-}
-```
-
-```javascript
-// ✅ E2E 測試命名
-describe("Prompt 管理功能", () => {
-  test("應該能夠建立新的 Prompt", async ({ page }) => {
-    // 測試邏輯
-  });
-
-  test("應該能夠刪除現有的 Prompt", async ({ page }) => {
-    // 測試邏輯
-  });
-
-  test("應該在輸入無效資料時顯示錯誤訊息", async ({ page }) => {
-    // 錯誤處理測試
-  });
-});
-```
-
----
-
-## 🔄 版本管理
-
-### 語義化版本控制
-
-採用 [Semantic Versioning 2.0.0](https://semver.org/) 標準：
-
-```
-版本格式: MAJOR.MINOR.PATCH
-
-MAJOR: 不向後相容的 API 變更
-MINOR: 向後相容的新功能
-PATCH: 向後相容的錯誤修復
+src-tauri/src/
+├── lib.rs              # 主程式邏輯，Tauri 設定
+├── db.rs               # 資料庫層，CRUD 操作
+├── executor.rs         # 安全執行系統 (CORE-002)
+├── usage_tracker.rs    # ccusage API 整合 (CORE-001)
+├── adaptive_monitor.rs # 自適應監控 (CORE-003)
+├── smart_scheduler.rs  # 智能排程 (CORE-004)
+└── bin/
+    └── cnp.rs         # CLI 工具主程式
 ```
 
 ### Git 工作流程
 
 #### 分支策略
+- **main**: 穩定版本，僅接受 release 合併
+- **develop**: 開發主分支，集成所有功能
+- **feature/***: 功能開發分支
+- **bugfix/***: 錯誤修復分支
+- **hotfix/***: 緊急修復分支
 
-```bash
-main              # 生產分支，隨時可部署
-├── develop       # 開發分支，整合最新功能
-├── feature/      # 功能分支
-├── bugfix/       # 錯誤修復分支
-├── hotfix/       # 緊急修復分支
-└── release/      # 發布準備分支
+#### 提交訊息格式
 ```
-
-#### 提交訊息規範
-
-使用 [Conventional Commits](https://conventionalcommits.org/) 格式：
-
-```bash
-# 格式
 <type>(<scope>): <description>
 
 [optional body]
 
-[optional footer(s)]
+[optional footer]
+```
 
-# 範例
-feat(prompt): add batch create functionality
+**Type 類型**:
+- `feat`: 新功能
+- `fix`: 錯誤修復
+- `docs`: 文檔更新
+- `style`: 代碼格式調整
+- `refactor`: 代碼重構
+- `test`: 測試相關
+- `chore`: 建置工具或輔助工具變動
 
-- Support creating multiple prompts at once
-- Add validation for batch operations
-- Update UI to handle batch mode
+**範例**:
+```
+feat(core-001): 添加 ccusage 多指令回退機制
+
+- 實現 ccusage → npx ccusage → bunx ccusage 回退
+- 添加智能文本解析功能
+- 整合 30 秒快取機制
 
 Closes #123
 ```
 
-#### 提交類型
+## 💻 編碼標準
 
-| 類型              | 說明       | 版本影響 |
-| ----------------- | ---------- | -------- |
-| `feat`            | 新功能     | MINOR    |
-| `fix`             | 錯誤修復   | PATCH    |
-| `docs`            | 文檔變更   | 無       |
-| `style`           | 程式碼格式 | 無       |
-| `refactor`        | 重構       | PATCH    |
-| `perf`            | 效能改善   | PATCH    |
-| `test`            | 測試相關   | 無       |
-| `chore`           | 維護工作   | 無       |
-| `ci`              | CI 設定    | 無       |
-| `BREAKING CHANGE` | 破壞性變更 | MAJOR    |
+### Rust 編碼規範
 
----
+#### 1. 命名規範
+```rust
+// 模組和文件名: snake_case
+mod usage_tracker;
 
-## 🚀 部署流程
+// 結構體和枚舉: PascalCase
+pub struct UsageTracker;
+pub enum MonitoringMode;
 
-### 建置流程
+// 函數和變數: snake_case
+pub async fn get_usage_info() -> Result<UsageInfo>;
+let current_time = Utc::now();
 
-#### 開發建置
+// 常數: SCREAMING_SNAKE_CASE
+const DEFAULT_TIMEOUT: u64 = 300;
+```
 
+#### 2. 錯誤處理
+```rust
+// 使用 anyhow::Result 統一錯誤處理
+use anyhow::{Result, bail, Context};
+
+pub async fn example_function() -> Result<String> {
+    let result = risky_operation()
+        .await
+        .context("執行風險操作失敗")?;
+    
+    if !result.is_valid() {
+        bail!("結果驗證失敗: {}", result.error);
+    }
+    
+    Ok(result.data)
+}
+```
+
+#### 3. 文檔註解
+```rust
+/// ccusage API 整合模組
+/// 
+/// 提供多指令回退機制和智能解析功能，支援:
+/// - ccusage → npx ccusage → bunx ccusage 回退
+/// - JSON 和多種文本格式解析
+/// - 30 秒智能快取機制
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// let mut tracker = UsageTracker::new(db).await?;
+/// let usage = tracker.get_usage_info().await?;
+/// println!("剩餘分鐘: {}", usage.remaining_minutes);
+/// ```
+pub struct UsageTracker {
+    // 實現細節...
+}
+```
+
+#### 4. 測試規範
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[tokio::test]
+    async fn test_usage_tracker_basic_functionality() {
+        // Arrange
+        let db = Database::new_mock();
+        let mut tracker = UsageTracker::new(db).await.unwrap();
+        
+        // Act
+        let usage = tracker.get_usage_info().await.unwrap();
+        
+        // Assert
+        assert!(usage.remaining_minutes > 0);
+        assert!(!usage.source.is_empty());
+    }
+    
+    #[test]
+    fn test_efficiency_score_calculation() {
+        // 測試理想使用率 (80%)
+        assert_eq!(calculate_efficiency_score(100, 80), 1.0);
+        
+        // 測試緊湊使用率 (100%)
+        assert_eq!(calculate_efficiency_score(100, 100), 0.8);
+        
+        // 測試超出容量 (120%)
+        assert_eq!(calculate_efficiency_score(100, 120), 0.0);
+    }
+}
+```
+
+### JavaScript/Frontend 編碼規範
+
+#### 1. ESLint 配置
+```json
+{
+  "extends": ["eslint:recommended"],
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "rules": {
+    "no-console": "warn",
+    "no-unused-vars": "error",
+    "prefer-const": "error",
+    "no-var": "error"
+  }
+}
+```
+
+#### 2. 命名和結構
+```javascript
+// 使用 camelCase
+const currentUser = getCurrentUser();
+const apiResponse = await fetchData();
+
+// 使用 PascalCase for constructors
+class TaskManager {
+    constructor(options) {
+        this.options = options;
+    }
+}
+
+// 使用 UPPER_SNAKE_CASE for constants
+const API_ENDPOINT = '/api/v1/tasks';
+const MAX_RETRY_COUNT = 3;
+```
+
+## 🧪 測試要求
+
+### 測試覆蓋率標準
+
+| 類型 | 最低覆蓋率 | 目標覆蓋率 | 強制性 |
+|------|-----------|-----------|--------|
+| 單元測試 | 70% | 85% | ✅ |
+| 整合測試 | 60% | 80% | ✅ |
+| E2E 測試 | 主要流程 | 所有功能 | ✅ |
+| CLI 測試 | 所有命令 | 所有參數組合 | ✅ |
+
+### 測試分類
+
+#### 1. Rust 單元測試
+```rust
+// src-tauri/src/usage_tracker.rs
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[tokio::test]
+    async fn test_ccusage_command_fallback() {
+        // 測試多指令回退機制
+    }
+    
+    #[test]
+    fn test_parse_usage_formats() {
+        // 測試各種文本格式解析
+    }
+}
+```
+
+#### 2. CLI 功能測試
 ```bash
-# 開發模式
-npm run tauri dev
+# tests/cli/basic.bats
+#!/usr/bin/env bats
 
-# 檢查品質
-npm run lint
-npm test
+@test "cnp --help shows usage information" {
+    run cargo run --bin cnp -- --help
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "Claude Night Pilot - CLI 工具" ]]
+}
+
+@test "cnp status shows system status" {
+    run cargo run --bin cnp -- status
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "資料庫連接正常" ]]
+}
 ```
 
-#### 生產建置
+#### 3. Playwright E2E 測試
+```javascript
+// tests/e2e/gui.spec.js
+const { test, expect } = require('@playwright/test');
 
+test('GUI basic functionality', async ({ page }) => {
+    await page.goto('http://localhost:1420');
+    
+    // 測試應用啟動
+    await expect(page.locator('h1')).toContainText('Claude Night Pilot');
+    
+    // 測試 Prompt 建立
+    await page.click('[data-testid="create-prompt"]');
+    await page.fill('[data-testid="prompt-title"]', '測試 Prompt');
+    await page.click('[data-testid="save-prompt"]');
+    
+    await expect(page.locator('[data-testid="prompt-list"]')).toContainText('測試 Prompt');
+});
+```
+
+### 測試執行流程
+
+#### 開發階段
 ```bash
-# 清理環境
-npm run clean
-
-# 安裝依賴
-npm ci
-
-# 執行完整測試
-npm run test:all
-
-# 建置應用
-npm run tauri build
-
-# 驗證建置
-npm run verify-build
+# 每次提交前執行
+cargo test                    # Rust 單元測試
+npm run lint                  # ESLint 檢查
+npm run test:unit            # JavaScript 單元測試
 ```
 
-### 發布檢查清單
-
-#### 預發布檢查
-
-- [ ] 所有測試通過 (`npm test`)
-- [ ] 程式碼品質檢查通過 (`npm run lint`)
-- [ ] 安全掃描通過 (`cargo audit`)
-- [ ] 效能指標符合要求
-- [ ] 文檔已更新
-- [ ] CHANGELOG.md 已更新
-
-#### 發布步驟
-
+#### CI/CD 流程
 ```bash
-# 1. 確認版本號
-npm version patch|minor|major
-
-# 2. 更新 Cargo.toml 版本
-# 手動編輯 src-tauri/Cargo.toml
-
-# 3. 建置並測試
-npm run tauri build
-npm run test:e2e
-
-# 4. 建立發布標籤
-git tag -a v1.0.0 -m "Release version 1.0.0"
-
-# 5. 推送變更
-git push origin main --tags
-
-# 6. 建立 GitHub Release
-# 透過 GitHub Actions 自動化
+# 完整測試套件
+cargo test --all-features    # 所有 Rust 測試
+npm run test                 # 所有前端測試
+npm run test:e2e            # E2E 測試
+cargo clippy -- -D warnings # Rust linting
 ```
 
-### 平台特定建置
-
-```bash
-# macOS (Universal Binary)
-npm run tauri build -- --target universal-apple-darwin
-
-# Windows (x64)
-npm run tauri build -- --target x86_64-pc-windows-msvc
-
-# Linux (x64)
-npm run tauri build -- --target x86_64-unknown-linux-gnu
-```
-
----
-
-## 🤝 貢獻流程
-
-### 貢獻者流程
-
-#### 1. 準備階段
-
-```bash
-# Fork 專案到個人帳號
-# 克隆 Fork 的倉庫
-git clone https://github.com/your-username/claude-night-pilot.git
-cd claude-night-pilot
-
-# 添加上游倉庫
-git remote add upstream https://github.com/s123104/claude-night-pilot.git
-
-# 安裝依賴
-npm install
-```
-
-#### 2. 開發階段
-
-```bash
-# 從最新的 main 分支建立功能分支
-git checkout main
-git pull upstream main
-git checkout -b feature/your-feature-name
-
-# 進行開發
-# ... 寫程式碼 ...
-
-# 提交變更
-git add .
-git commit -m "feat: add your feature description"
-```
-
-#### 3. 測試階段
-
-```bash
-# 執行完整測試
-npm test
-
-# 檢查程式碼品質
-npm run lint
-
-# 確保建置成功
-npm run tauri build
-```
-
-#### 4. 提交階段
-
-```bash
-# 推送到個人倉庫
-git push origin feature/your-feature-name
-
-# 在 GitHub 上建立 Pull Request
-# 填寫 PR 模板
-# 等待審查
-```
-
-### Pull Request 規範
-
-#### PR 標題格式
-
-```
-<type>: <description>
-
-範例:
-feat: add batch prompt creation
-fix: resolve memory leak in scheduler
-docs: update installation guide
-```
-
-#### PR 描述模板
-
-```markdown
-## 變更摘要
-
-簡要描述這個 PR 的目的和變更內容。
-
-## 變更類型
-
-- [ ] Bug 修復
-- [ ] 新功能
-- [ ] 破壞性變更
-- [ ] 文檔更新
-- [ ] 效能改善
-- [ ] 重構
-
-## 測試
-
-- [ ] 通過現有測試
-- [ ] 添加新測試
-- [ ] 手動測試完成
-
-## 檢查清單
-
-- [ ] 程式碼遵循專案規範
-- [ ] 測試覆蓋率符合要求
-- [ ] 文檔已更新
-- [ ] CHANGELOG.md 已更新 (如需要)
-
-## 相關 Issue
-
-Fixes #123
-Related to #456
-
-## 截圖 (如適用)
-
-[添加相關截圖]
-```
-
-### 程式碼審查標準
-
-#### 審查重點
-
-1. **功能正確性**
-
-   - 是否解決了預期問題
-   - 邊界案例處理
-   - 錯誤處理適當性
-
-2. **程式碼品質**
-
-   - 可讀性與維護性
-   - 效能考量
-   - 安全性檢查
-
-3. **測試覆蓋**
-
-   - 新功能有對應測試
-   - 修復有回歸測試
-   - 測試案例完整性
-
-4. **文檔完整性**
-   - API 文檔更新
-   - 使用者文檔更新
-   - 內聯註解適當
-
----
-
-## 🔒 安全性要求
+## 🔒 安全性規則
 
 ### 安全開發原則
 
 #### 1. 輸入驗證
-
 ```rust
-// ✅ 輸入驗證範例
-pub fn validate_prompt_title(title: &str) -> Result<(), ValidationError> {
-    if title.trim().is_empty() {
-        return Err(ValidationError::EmptyTitle);
+// 所有外部輸入必須驗證
+pub fn validate_prompt(prompt: &str) -> Result<()> {
+    if prompt.is_empty() {
+        bail!("Prompt 不能為空");
     }
-
-    if title.len() > 100 {
-        return Err(ValidationError::TitleTooLong);
+    
+    if prompt.len() > MAX_PROMPT_LENGTH {
+        bail!("Prompt 長度超過限制: {}", MAX_PROMPT_LENGTH);
     }
-
-    // 檢查惡意字符
-    if title.contains(['<', '>', '&', '"']) {
-        return Err(ValidationError::InvalidCharacters);
+    
+    // 檢查危險模式
+    if contains_dangerous_patterns(prompt) && !skip_permissions {
+        bail!("檢測到危險模式，請使用 --dangerously-skip-permissions");
     }
-
+    
     Ok(())
 }
 ```
 
-#### 2. SQL 注入防護
-
+#### 2. 權限檢查
 ```rust
-// ✅ 使用參數化查詢
-pub async fn get_prompt_by_id(pool: &SqlitePool, id: i64) -> Result<Prompt> {
-    let prompt = sqlx::query_as!(
-        Prompt,
-        "SELECT id, title, content, tags, created_at FROM prompts WHERE id = ?",
-        id
-    )
-    .fetch_one(pool)
-    .await?;
-
-    Ok(prompt)
-}
-
-// ❌ 避免字符串拼接
-pub async fn get_prompt_by_id_bad(pool: &SqlitePool, id: i64) -> Result<Prompt> {
-    let query = format!("SELECT * FROM prompts WHERE id = {}", id); // 危險！
-    // ...
-}
-```
-
-#### 3. 敏感資料處理
-
-```rust
-// ✅ 使用 Tauri 安全存儲
-use tauri_plugin_store::StoreBuilder;
-
-pub async fn store_api_key(app: &AppHandle, key: &str) -> Result<()> {
-    let store = StoreBuilder::new(app, "secure.json").build();
-
-    // 加密存儲
-    store.insert("claude_api_key", serde_json::Value::String(key.to_string()))?;
-    store.save().await?;
-
-    Ok(())
-}
-```
-
-### 安全掃描
-
-```bash
-# Rust 依賴安全掃描
-cargo audit
-
-# Node.js 依賴掃描
-npm audit
-
-# 靜態程式碼分析
-cargo clippy -- -D warnings
-```
-
----
-
-## ⚡ 效能標準
-
-### 效能指標
-
-| 指標           | 目標值  | 測量方法               |
-| -------------- | ------- | ---------------------- |
-| **啟動時間**   | < 3 秒  | 從應用啟動到 UI 可互動 |
-| **記憶體使用** | < 150MB | 閒置狀態下記憶體占用   |
-| **檔案大小**   | < 10MB  | 最終執行檔大小         |
-| **UI 響應**    | < 100ms | 使用者操作到視覺回饋   |
-| **資料庫查詢** | < 50ms  | 單次查詢執行時間       |
-
-### 效能最佳化
-
-#### Rust 最佳化
-
-```toml
-# Cargo.toml 發布設定
-[profile.release]
-opt-level = "s"          # 優化檔案大小
-lto = true              # 啟用連結時優化
-codegen-units = 1       # 單一編譯單元
-panic = "abort"         # 不包含解析資訊
-strip = true           # 移除除錯符號
-```
-
-#### 前端最佳化
-
-```javascript
-// ✅ 效能最佳化技巧
-
-// 1. 防抖動處理
-const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-};
-
-// 2. 虛擬化長列表
-class VirtualList {
-  constructor(container, itemHeight, items) {
-    this.container = container;
-    this.itemHeight = itemHeight;
-    this.items = items;
-    this.visibleStart = 0;
-    this.visibleEnd = 0;
-    this.render();
-  }
-
-  render() {
-    // 只渲染可見項目
-    const visibleItems = this.items.slice(this.visibleStart, this.visibleEnd);
-    // ...
-  }
-}
-
-// 3. 記憶體清理
-class ComponentManager {
-  constructor() {
-    this.intervals = [];
-    this.listeners = [];
-  }
-
-  cleanup() {
-    // 清理定時器
-    this.intervals.forEach(clearInterval);
-    this.intervals = [];
-
-    // 移除事件監聽器
-    this.listeners.forEach(({ element, event, handler }) => {
-      element.removeEventListener(event, handler);
-    });
-    this.listeners = [];
-  }
-}
-```
-
-### 效能監控
-
-```rust
-// 效能監控範例
-use std::time::Instant;
-
-#[tauri::command]
-pub async fn execute_prompt_with_timing(prompt_content: String) -> Result<ExecutionResult> {
-    let start = Instant::now();
-
-    let result = claude_executor::run(&prompt_content).await?;
-
-    let duration = start.elapsed();
-    log::info!("Prompt execution took: {:?}", duration);
-
-    // 如果執行時間超過閾值，記錄警告
-    if duration.as_secs() > 30 {
-        log::warn!("Slow prompt execution detected: {:?}", duration);
+// 多層安全檢查
+pub async fn perform_security_check(
+    prompt: &str, 
+    options: &ExecutionOptions
+) -> Result<SecurityCheckResult> {
+    let mut result = SecurityCheckResult::new();
+    
+    // 1. 環境授權檢查
+    if !is_authorized_environment() {
+        result.add_error("未授權的執行環境");
     }
-
-    Ok(ExecutionResult {
-        content: result,
-        duration_ms: duration.as_millis() as u64,
-    })
+    
+    // 2. 工作目錄驗證
+    if let Some(dir) = &options.working_directory {
+        if !is_safe_working_directory(dir) {
+            result.add_error("不安全的工作目錄");
+        }
+    }
+    
+    // 3. 危險模式檢測
+    let risk_level = assess_risk_level(prompt);
+    if risk_level == RiskLevel::Critical && !options.skip_permissions {
+        result.add_error("高風險操作需要明確授權");
+    }
+    
+    result.passed = result.errors.is_empty();
+    Ok(result)
 }
 ```
 
----
+#### 3. 審計日誌
+```rust
+// 完整的執行審計記錄
+pub struct ExecutionAudit {
+    pub id: Option<i64>,
+    pub timestamp: DateTime<Utc>,
+    pub prompt_hash: String,          // SHA256 哈希
+    pub options: ExecutionOptions,
+    pub security_check: SecurityCheckResult,
+    pub execution_start: Option<DateTime<Utc>>,
+    pub execution_end: Option<DateTime<Utc>>,
+    pub result: ExecutionResult,
+    pub output_length: Option<usize>,
+    pub error_message: Option<String>,
+}
+```
 
-## 📚 文檔標準
+### 敏感資料處理
+
+#### 1. 資料加密
+- **密碼**: 使用 bcrypt 或 Argon2 雜湊
+- **API 金鑰**: 系統 keychain 存儲
+- **日誌**: 敏感資料遮罩或移除
+
+#### 2. 權限最小化
+- **檔案存取**: 僅限必要目錄
+- **網路存取**: 明確的端點白名單
+- **系統呼叫**: 最小權限原則
+
+## 📚 文檔規範
 
 ### 文檔結構
 
+#### 1. README.md
+- 專案簡介和核心特色
+- 快速開始指南
+- 完整功能說明
+- 效能指標和測試結果
+
+#### 2. API 文檔
+```rust
+/// 取得當前使用量資訊
+///
+/// # Arguments
+///
+/// * `force_refresh` - 強制重新整理快取
+///
+/// # Returns
+///
+/// 回傳 `UsageInfo` 結構包含:
+/// - `remaining_minutes`: 剩餘分鐘數
+/// - `total_minutes`: 總分鐘數  
+/// - `usage_percentage`: 使用百分比
+/// - `source`: 資料來源
+///
+/// # Errors
+///
+/// 當以下情況發生時回傳錯誤:
+/// - ccusage 命令不可用
+/// - 解析回應失敗
+/// - 資料庫存取錯誤
+///
+/// # Examples
+///
+/// ```rust
+/// let mut tracker = UsageTracker::new(db).await?;
+/// let usage = tracker.get_usage_info().await?;
+/// println!("剩餘: {} 分鐘", usage.remaining_minutes);
+/// ```
+pub async fn get_usage_info(&mut self) -> Result<UsageInfo>
 ```
-docs/
-├── README.md                 # 專案概述
-├── PROJECT_RULES.md         # 本檔案
-├── CONTRIBUTING.md          # 貢獻指南
-├── CHANGELOG.md             # 變更日誌
-├── API.md                   # API 文檔
-├── DEPLOYMENT.md            # 部署指南
-├── TROUBLESHOOTING.md       # 故障排除
-├── architecture/            # 架構文檔
-│   ├── overview.md
-│   ├── database-schema.md
-│   └── api-design.md
-├── guides/                  # 使用指南
-│   ├── quick-start.md
-│   ├── advanced-usage.md
-│   └── claude-cli-setup.md
-└── assets/                  # 文檔資源
-    ├── screenshots/
-    ├── diagrams/
-    └── icons/
+
+#### 3. 架構決策記錄 (ADR)
+```markdown
+# ADR-001: 選擇 Tauri 作為桌面應用框架
+
+## 狀態
+已接受
+
+## 情境
+需要建立跨平台桌面應用，同時支援 Web 技術和 Rust 後端。
+
+## 決策
+選擇 Tauri 2.7.0 作為主要框架。
+
+## 後果
+### 正面影響
+- 較小的應用程式大小 (~8MB vs ~150MB Electron)
+- 原生效能和安全性
+- Rust 生態系統整合
+
+### 負面影響
+- 較小的社群和生態系統
+- 學習曲線較陡峭
+- 某些 Web API 限制
+
+## 替代方案
+- Electron: 較大檔案但生態系統成熟
+- Wails: Go 後端但功能較少
+- 純 Web 應用: 缺乏系統整合
 ```
 
-### 文檔撰寫規範
+### 變更日誌
 
-#### Markdown 格式
+#### CHANGELOG.md 格式
+```markdown
+# Changelog
 
-````markdown
-# 一級標題
+所有重要變更都會記錄在此檔案中。
 
-## 二級標題
+格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
+版本控制遵循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
-### 三級標題
+## [1.0.0] - 2025-07-24
 
-#### 程式碼區塊
+### Added
+- CORE-001: ccusage API 整合模組
+- CORE-002: 安全執行系統
+- CORE-003: 自適應監控系統  
+- CORE-004: 智能排程系統
+- CLI 工具完整實現
+- Tauri 桌面應用程式
+- SQLite 資料庫整合
+- 完整測試套件
 
+### Changed
+- 無
+
+### Deprecated
+- 無
+
+### Removed
+- 無
+
+### Fixed
+- 無
+
+### Security
+- 多層安全檢查機制
+- 完整審計日誌記錄
+```
+
+## 🚀 發布流程
+
+### 版本號規則 (Semantic Versioning)
+
+```
+MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]
+
+範例:
+- 1.0.0        (正式版本)
+- 1.1.0-beta.1 (預覽版本)  
+- 1.1.0+20250724 (包含建置資訊)
+```
+
+#### 版本遞增規則
+- **MAJOR**: 破壞性變更 (API 不相容)
+- **MINOR**: 新功能 (向後相容)
+- **PATCH**: 錯誤修復 (向後相容)
+
+### 發布檢查清單
+
+#### Pre-release 檢查
+- [ ] 所有測試通過 (`cargo test && npm test`)
+- [ ] 程式碼品質檢查通過 (`cargo clippy && npm run lint`)
+- [ ] 文檔已更新
+- [ ] CHANGELOG.md 已更新
+- [ ] 版本號已更新
+- [ ] 安全掃描通過
+
+#### Release 流程
+1. **建立 Release Branch**
+   ```bash
+   git checkout -b release/v1.0.0
+   git push origin release/v1.0.0
+   ```
+
+2. **執行完整測試**
+   ```bash
+   cargo test --all-features
+   npm run test:full
+   npm run test:e2e
+   ```
+
+3. **建置發布版本**
+   ```bash
+   npm run build:release
+   cargo build --release
+   ```
+
+4. **建立 Git Tag**
+   ```bash
+   git tag -a v1.0.0 -m "Release version 1.0.0"
+   git push origin v1.0.0
+   ```
+
+5. **GitHub Release**
+   - 建立 GitHub Release
+   - 上傳建置檔案
+   - 撰寫 Release Notes
+
+### 發布後檢查
+- [ ] 下載並測試發布檔案
+- [ ] 確認文檔網站更新
+- [ ] 監控使用者回饋
+- [ ] 記錄發布指標
+
+## 📞 聯繫與支援
+
+### 開發團隊
+- **架構負責人**: 核心模組設計與實現
+- **測試負責人**: 測試策略與品質保證
+- **文檔負責人**: 技術文檔與使用指南
+- **社群管理**: 問題回應與功能建議
+
+### 獲得幫助
+1. **GitHub Issues**: 錯誤回報與功能請求
+2. **GitHub Discussions**: 使用問題與技術討論
+3. **Documentation**: 詳細技術文檔
+4. **Code Review**: Pull Request 審核與建議
+
+---
+
+## 📄 附錄
+
+### A. 常用命令參考
+
+#### 開發環境設定
 ```bash
-# 命令範例
+# 環境準備
+rustup update
 npm install
+
+# 資料庫初始化
+cargo run --bin cnp -- init
+
+# 開發伺服器
+npm run tauri dev
 ```
-````
 
-#### 表格
+#### 測試命令
+```bash
+# Rust 測試
+cargo test
+cargo test --package claude-night-pilot --lib usage_tracker
 
-| 欄位    | 說明 | 預設值 |
-| ------- | ---- | ------ |
-| title   | 標題 | 無     |
-| content | 內容 | 空字串 |
+# 前端測試
+npm test
+npm run test:e2e
 
-#### 連結
-
-- [內部連結](../guides/quick-start.md)
-- [外部連結](https://tauri.app/)
-
-#### 圖片
-
-![架構圖](assets/architecture-diagram.png)
-
+# 程式碼品質
+cargo clippy
+npm run lint
 ```
+
+#### 建置命令
+```bash
+# 開發建置
+npm run build
+
+# 生產建置  
+npm run build:release
+cargo build --release
+
+# CLI 工具安裝
+npm run cli:install
+```
+
+### B. 故障排除
+
+#### 常見問題
+1. **編譯錯誤**: 檢查 Rust 版本和依賴
+2. **資料庫錯誤**: 執行 `sqlx migrate run`
+3. **權限錯誤**: 使用 `--dangerously-skip-permissions`
+4. **測試失敗**: 檢查環境變數和資料庫狀態
+
+#### 效能調優
+1. **編譯時間**: 使用 `cargo check` 進行快速檢查
+2. **測試速度**: 使用 `cargo test --release` 優化測試
+3. **應用啟動**: 檢查資料庫連接和初始化
 
 ---
 
-## 🔄 持續改進
-
-### 定期審查
-
-#### 每週審查 (週三)
-
-- [ ] 程式碼品質指標
-- [ ] 測試覆蓋率報告
-- [ ] 效能監控結果
-- [ ] 安全掃描結果
-
-#### 每月審查 (月末)
-
-- [ ] 專案規則更新
-- [ ] 技術棧評估
-- [ ] 依賴版本更新
-- [ ] 文檔完整性檢查
-
-#### 每季審查 (季末)
-
-- [ ] 架構設計評估
-- [ ] 效能基準更新
-- [ ] 安全性要求審查
-- [ ] 開發流程改善
-
-### 改進建議
-
-如有任何改進建議，請：
-
-1. 建立 GitHub Issue 並標記為 `enhancement`
-2. 在團隊會議中討論
-3. 形成 RFC (Request for Comments) 文檔
-4. 實施並更新相關文檔
-
----
-
-## 📞 聯繫資訊
-
-### 專案維護者
-
-- **主要維護者**: [s123104](https://github.com/s123104)
-- **專案倉庫**: [claude-night-pilot](https://github.com/s123104/claude-night-pilot)
-
-### 支援管道
-
-- **功能建議**: [GitHub Issues](https://github.com/s123104/claude-night-pilot/issues)
-- **錯誤回報**: [GitHub Issues](https://github.com/s123104/claude-night-pilot/issues)
-- **技術討論**: [GitHub Discussions](https://github.com/s123104/claude-night-pilot/discussions)
-
----
-
-**本文檔隨專案持續更新，請定期檢查最新版本。**
-
-最後更新：2025-07-23T03:14:08+08:00
-```
+**Claude Night Pilot Project Rules v1.0.0**  
+*讓代碼更安全、更可靠、更易維護* 🌙✨ 

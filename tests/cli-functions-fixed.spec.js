@@ -5,7 +5,7 @@ import { promisify } from "util";
 const execAsync = promisify(exec);
 
 test.describe("Claude Night Pilot - CLI 功能測試 (修復版)", () => {
-  const CARGO_CMD = "cd src-tauri && cd /Users/azlife.eth/Claude-Night‑Pilot/src-tauri && cargo run --bin cnp --";
+  const CARGO_CMD = "cd src-tauri && cd /Users/azlife.eth/Claude-Night‑Pilot/src-tauri && cargo run --bin cnp-unified --";
 
   test.describe("基本CLI命令", () => {
     test("cnp --help 應顯示幫助資訊", async () => {
