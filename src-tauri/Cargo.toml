@@ -62,6 +62,7 @@ tracing-subscriber = "0.3"
 rand = "0.8"
 thiserror = "1.0"
 log = "0.4"
+which = "6.0"
 
 [dev-dependencies]
 tempfile = "3.0"
