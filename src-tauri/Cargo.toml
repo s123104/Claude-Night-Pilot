@@ -1,10 +1,16 @@
 [package]
 name = "claude-night-pilot"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+version = "0.1.1"
+description = "Claude Night Pilot - Modern automation tool for Claude CLI users"
+authors = ["Claude Night Pilot Team <team@claude-night-pilot.dev>"]
 edition = "2021"
 default-run = "claude-night-pilot"
+license = "MIT"
+repository = "https://github.com/claude-night-pilot/claude-night-pilot"
+homepage = "https://claude-night-pilot.dev"
+keywords = ["claude", "automation", "cli", "scheduler", "ai"]
+categories = ["command-line-utilities", "development-tools"]
+rust-version = "1.70.0"  # MSRV for Tauri 2.0
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -31,13 +37,18 @@ path = "src/bin/cnp-optimized.rs"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2.0", features = [] }
+# Tauri 2.0 Core with optimized features
+tauri = { version = "2.0", features = [
+    "compression",
+    "rustls-tls"
+] }
+# Essential Tauri plugins
 tauri-plugin-opener = "2.0"
 tauri-plugin-cli = "2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-# 移除 tauri-plugin-sql 避免與 rusqlite 衝突
-rusqlite = { version = "0.35.0", features = ["bundled"] }
+# Optimized rusqlite with performance features
+rusqlite = { version = "0.35.0", features = ["bundled", "backup", "blob", "functions", "vtab", "unlock_notify", "bundled-sqlcipher"] }
 
 tauri-plugin-shell = "2.0"
 tauri-plugin-store = "2.0"
@@ -51,23 +62,36 @@ dirs = "5.0"                           # 用戶目錄獲取
 sha2 = "0.10"                          # 安全規則雜湊
 chrono-tz = "0.9"                      # 時區支援
 futures = "0.3"                        # 異步流處理
-tokio = { version = "1.0", features = ["full"] }
+# Optimized Tokio with performance features
+tokio = { version = "1.0", features = ["full", "rt-multi-thread", "macros", "signal"] }
 clap = { version = "4.0", features = ["derive"] }
+# Replace once_cell with std::sync::LazyLock for better performance
 once_cell = "1.19"
 colored = "2.0"
 uuid = { version = "1.0", features = ["v4", "serde"] }
 async-trait = "0.1"
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rand = "0.8"
 thiserror = "1.0"
 log = "0.4"
 which = "6.0"
+base64 = "0.22"
+# Performance optimization dependencies
+dashmap = "6.1"                        # High-performance concurrent HashMap
+arc-swap = "1.7"                       # Lock-free atomic reference counting
+parking_lot = "0.12"                   # Faster synchronization primitives
+rayon = "1.10"                         # Data parallelism for CPU-bound work
+r2d2 = "0.8"                          # Connection pooling
+r2d2_sqlite = "0.25"                  # SQLite connection pool adapter
+tokio-util = { version = "0.7", features = ["full"] }
+flume = "0.11"                         # Multi-producer, multi-consumer channels
 
 [dev-dependencies]
 tempfile = "3.0"
 criterion = { version = "0.5", features = ["html_reports"] }
-hyperfine = "1.16"
+tokio-test = "0.4"
+mock_instant = "0.3"
 
 # 基準測試配置
 [[bench]]
@@ -78,14 +102,42 @@ harness = false
 name = "cli_performance"
 harness = false
 
+[[bench]]
+name = "database_performance"
+harness = false
+
+[[bench]]
+name = "startup_performance"
+harness = false
+
+# 測試配置 - 快速編譯和詳細調試
+[profile.test]
+opt-level = 2  # Higher optimization for better test performance
+debug = 1  # Reduced debug info for faster compilation
+overflow-checks = false  # Disable overflow checks in tests for speed
+incremental = true  # 增量編譯加速測試
+codegen-units = 8  # Parallel codegen for faster compilation
+rpath = false  # Disable rpath for slightly better performance
+
 # Tauri 2.0 最佳實踐：效能與大小優化配置
 [profile.dev]
-incremental = true # 漸進式編譯，加快開發速度
+opt-level = 1  # 部分優化以平衡編譯速度和運行性能
+incremental = true  # 漸進式編譯，加快開發速度
+debug = 1  # Reduced debug info for faster builds
+overflow-checks = false  # Disable for better dev performance
+codegen-units = 16  # Maximum parallel codegen for fastest compilation
+split-debuginfo = "unpacked"  # Faster debug info handling on supported platforms
 
 [profile.release]
-codegen-units = 1 # 允許 LLVM 執行更好的優化
-lto = true # 啟用連結時優化
-opt-level = "s" # 優先考慮小檔案大小
-panic = "abort" # 禁用 panic 處理器以提高效能
-strip = true # 確保移除除錯符號
+opt-level = 3  # Maximum optimization for performance
+codegen-units = 1  # 允許 LLVM 執行更好的跨單元優化
+lto = "fat"  # 完整連結時優化
+panic = "abort"  # 禁用 panic 處理器，減小二進制大小
+strip = "debuginfo"  # 移除除錯符號但保留回溯信息
+overflow-checks = false  # 生產環境禁用以提高性能
+target-cpu = "native"  # Optimize for current CPU architecture
 
+[profile.release-with-debug]
+inherits = "release"
+strip = false  # 保持調試信息用於分析
+debug = true
