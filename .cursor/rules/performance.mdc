@@ -1,0 +1,14 @@
+---
+description: "效能標準"
+type: "Auto Attached"
+pattern: "**/*.{js,ts,rs}"
+version: "1.0.0"
+author: "s123104"
+last_updated: "2025-08-08T00:00:00+08:00"
+---
+
+# 效能標準
+
+- CLI P95 啟動時間 < 300ms（已編譯）
+- GUI 核心操作 < 2s；冷卻檢查 < 1s（非網路失敗）
+- 定期以 benches 與 quick_perf_test 追蹤

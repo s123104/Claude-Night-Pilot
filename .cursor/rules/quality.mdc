@@ -1,0 +1,14 @@
+---
+description: "程式碼品質規範"
+type: "Auto Attached"
+pattern: "**/*.{js,ts,jsx,tsx,py,go,java,rs}"
+version: "1.0.0"
+author: "s123104"
+last_updated: "2025-08-08T00:00:00+08:00"
+---
+
+# 品質門檻
+
+- 循環複雜度 ≤ 10；重複率 ≤ 3%
+- 單元測試覆蓋率 ≥ 75%，核心模組 ≥ 85%
+- Rust：避免 unwrap()；JS：嚴格 ESLint/Prettier

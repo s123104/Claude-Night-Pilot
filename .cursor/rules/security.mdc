@@ -1,0 +1,14 @@
+---
+description: "安全性要求"
+type: "Auto Attached"
+pattern: "**/*"
+version: "1.0.0"
+author: "s123104"
+last_updated: "2025-08-08T00:00:00+08:00"
+---
+
+# 安全規範
+
+- Secrets 管理：不得硬編碼；使用環境變數/安全儲存
+- 依賴安全：定期 SCA 掃描；避免高危依賴
+- 介面安全：輸入驗證、錯誤隱私、最小權限

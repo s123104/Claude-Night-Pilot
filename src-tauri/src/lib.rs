@@ -1,92 +1,315 @@
-// 移除 tauri_plugin_sql，改用 rusqlite 直接操作
-// use tauri_plugin_sql::{Migration, MigrationKind};
-// use std::sync::Arc; // 暫時未使用
+//! Claude Night Pilot - 現代 Claude CLI 自動化工具
+//! 
+//! 提供 GUI 和 CLI 雙重介面，支援智能排程、冷卻檢測、Token 使用量追蹤等功能。
+//! 採用 Tauri 2.0 架構，確保安全性、性能和可維護性。
 
-// 宣告模組 - 公開讓 CLI 可以使用
-// pub mod db;  // 暫時停用，有 sqlx 衝突
+use std::sync::Arc;
+use tauri::{AppHandle, Manager};
+use tokio::sync::{Mutex, RwLock};
+use tracing::{error, info, warn, debug, instrument};
+
+// === 核心模組系統 ===
+// 公開模組供 CLI 和 GUI 共享使用
 pub mod simple_db;
+pub mod high_perf_db;
 pub mod executor;
 pub mod claude_cooldown_detector;
 
-// 新增核心模組系統
+// 新一代核心模組系統
 pub mod core;
 pub mod enhanced_executor;
 pub mod unified_interface;
-#[deprecated(note = "請使用 database_manager_impl 代替")]
-pub mod database_manager;
-pub mod simple_database_manager;
+pub mod agents_registry;
 
-// 數據庫最佳實踐模組
+// 共享服務層 - GUI 和 CLI 統一業務邏輯
+pub mod services;
+pub mod interfaces;
+pub mod state;
+
+// 數據庫最佳實踐模組 (保持向後兼容)
 pub mod database_error;
 pub mod database_manager_impl;
 
-// 移除遷移函數，改用 rusqlite 直接初始化
-// fn get_migrations() -> Vec<Migration> {
-//     vec![
-//         Migration {
-//             version: 1,
-//             description: "create_initial_tables",
-//             sql: include_str!("../migrations/0001_init.sql"),
-//             kind: MigrationKind::Up,
-//         }
-//     ]
-// }
+// === 應用狀態管理 ===
+/// 全局應用狀態，使用 Arc + RwLock 確保線程安全
+#[derive(Debug, Clone)]
+pub struct AppState {
+    /// 數據庫管理器實例
+    pub database: Arc<RwLock<Option<Arc<OldDatabaseManager>>>>,
+    /// 應用健康狀態
+    pub health: Arc<RwLock<AppHealthStatus>>,
+    /// 配置信息
+    pub config: Arc<RwLock<AppConfig>>,
+}
 
-// Tauri 命令定義 - 使用 DatabaseManager 最佳實踐
+/// 應用健康狀態
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AppHealthStatus {
+    pub database_connected: bool,
+    pub claude_cli_available: bool,
+    pub scheduler_running: bool,
+    pub last_health_check: chrono::DateTime<chrono::Utc>,
+}
+
+/// 應用配置
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AppConfig {
+    pub log_level: String,
+    pub database_path: String,
+    pub auto_health_check_interval: u64,  // 秒
+    pub max_concurrent_jobs: usize,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            log_level: "info".to_string(),
+            database_path: "./claude-night-pilot.db".to_string(),
+            auto_health_check_interval: 300,  // 5 分鐘
+            max_concurrent_jobs: 5,
+        }
+    }
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        Self {
+            database: Arc::new(RwLock::new(None)),
+            health: Arc::new(RwLock::new(AppHealthStatus {
+                database_connected: false,
+                claude_cli_available: false,
+                scheduler_running: false,
+                last_health_check: chrono::Utc::now(),
+            })),
+            config: Arc::new(RwLock::new(AppConfig::default())),
+        }
+    }
+}
+
+// === 類型別名和兼容性 ===
 use crate::simple_db::{SimplePrompt, SimpleSchedule, TokenUsageStats};
-use crate::database_manager_impl::{DatabaseManager, DatabaseConfig};
-use std::sync::Arc;
-use tokio::sync::OnceCell;
-// use chrono::Local; // Currently unused
+use crate::database_manager_impl::{DatabaseManager as OldDatabaseManager, DatabaseConfig as OldDatabaseConfig};
 
-// 使用 OnceCell 而非全域靜態變數 (最佳實踐)
-static DB_MANAGER: OnceCell<Arc<DatabaseManager>> = OnceCell::const_new();
+// === 錯誤處理系統 ===
+/// 統一的應用錯誤類型
+#[derive(Debug, thiserror::Error)]
+pub enum AppError {
+    #[error("數據庫操作失敗: {0}")]
+    Database(#[from] crate::database_error::DatabaseError),
+    
+    #[error("Claude CLI 執行失敗: {0}")]
+    ClaudeExecution(String),
+    
+    #[error("排程器錯誤: {0}")]
+    Scheduler(String),
+    
+    #[error("配置錯誤: {0}")]
+    Config(String),
+    
+    #[error("IO 錯誤: {0}")]
+    Io(#[from] std::io::Error),
+    
+    #[error("序列化錯誤: {0}")]
+    Serialization(#[from] serde_json::Error),
+    
+    #[error("內部錯誤: {0}")]
+    Internal(String),
+}
 
-// 初始化資料庫管理器 (最佳實踐)
-async fn get_database_manager() -> Result<Arc<DatabaseManager>, String> {
-    DB_MANAGER
-        .get_or_try_init(|| async {
-            let config = DatabaseConfig::default();
-            DatabaseManager::new(config)
-                .await
-                .map(Arc::new)
-                .map_err(|e| format!("資料庫管理器初始化失敗: {}", e))
-        })
+/// Result 類型別名
+pub type AppResult<T> = Result<T, AppError>;
+
+// === 數據庫管理 ===
+/// 獲取或初始化數據庫管理器
+#[instrument(level = "debug")]
+async fn get_database_manager(app_state: &AppState) -> AppResult<Arc<OldDatabaseManager>> {
+    let db_lock = app_state.database.read().await;
+    
+    if let Some(db) = db_lock.as_ref() {
+        debug!("使用現有數據庫連接");
+        return Ok(db.clone());
+    }
+    
+    drop(db_lock);
+    
+    // 需要初始化數據庫
+    let mut db_lock = app_state.database.write().await;
+    
+    // 雙重檢查鎖定模式
+    if let Some(db) = db_lock.as_ref() {
+        return Ok(db.clone());
+    }
+    
+    info!("初始化數據庫管理器");
+    let config = {
+        let config_lock = app_state.config.read().await;
+        let mut db_config = OldDatabaseConfig::default();
+        db_config.path = config_lock.database_path.clone();
+        db_config
+    };
+    
+    let manager = OldDatabaseManager::new(config)
         .await
-        .map(|manager| manager.clone())
+        .map_err(|e| AppError::Database(e))?;
+    
+    let arc_manager = Arc::new(manager);
+    *db_lock = Some(arc_manager.clone());
+    
+    // 更新健康狀態
+    {
+        let mut health_lock = app_state.health.write().await;
+        health_lock.database_connected = true;
+        health_lock.last_health_check = chrono::Utc::now();
+    }
+    
+    info!("數據庫管理器初始化成功");
+    Ok(arc_manager)
 }
 
+// === Tauri 命令實現 ===
+
+/// 列出所有提示詞
 #[tauri::command]
-async fn list_prompts(_app: tauri::AppHandle) -> Result<Vec<SimplePrompt>, String> {
-    // TODO: 實現 list_prompts 方法
-    Ok(vec![])
+#[instrument(level = "debug", skip(app_handle))]
+async fn list_prompts(
+    app_handle: AppHandle,
+) -> Result<Vec<SimplePrompt>, String> {
+    let app_state = app_handle.state::<Arc<Mutex<AppState>>>();
+    let app_state = app_state.lock().await;
+    
+    let db_manager = get_database_manager(&app_state)
+        .await
+        .map_err(|e| {
+            error!("獲取數據庫管理器失敗: {}", e);
+            format!("數據庫連接失敗: {}", e)
+        })?;
+    
+    db_manager.list_prompts_async()
+        .await
+        .map_err(|e| {
+            error!("查詢提示詞列表失敗: {}", e);
+            format!("查詢提示詞失敗: {}", e)
+        })
 }
 
+/// 創建新提示詞
 #[tauri::command]
+#[instrument(level = "debug", skip(app_handle))]
 async fn create_prompt(
-    _app: tauri::AppHandle,
+    app_handle: AppHandle,
     title: String,
     content: String,
-    _tags: Option<String>,
+    tags: Option<String>,
 ) -> Result<i64, String> {
-    let db_manager = get_database_manager().await?;
-    db_manager.create_prompt_async(&title, &content)
+    // 輸入驗證
+    if title.trim().is_empty() {
+        warn!("嘗試創建空標題的提示詞");
+        return Err("提示詞標題不能為空".to_string());
+    }
+    
+    if content.trim().is_empty() {
+        warn!("嘗試創建空內容的提示詞");
+        return Err("提示詞內容不能為空".to_string());
+    }
+    
+    let app_state = app_handle.state::<Arc<Mutex<AppState>>>();
+    let app_state = app_state.lock().await;
+    
+    let db_manager = get_database_manager(&app_state)
         .await
-        .map_err(|e| format!("創建 Prompt 失敗: {}", e))
+        .map_err(|e| {
+            error!("獲取數據庫管理器失敗: {}", e);
+            format!("數據庫連接失敗: {}", e)
+        })?;
+    
+    info!("創建新提示詞: {}", title);
+    let result = db_manager.create_prompt_async(&title, &content)
+        .await
+        .map_err(|e| {
+            error!("創建提示詞失敗: {}", e);
+            format!("創建提示詞失敗: {}", e)
+        })?;
+    
+    info!("提示詞創建成功，ID: {}", result);
+    
+    // 如果有標籤，記錄但暫時不處理（向後兼容）
+    if let Some(tags) = tags {
+        debug!("提示詞標籤: {}", tags);
+    }
+    
+    Ok(result)
 }
 
+/// 獲取特定提示詞
 #[tauri::command]
-async fn get_prompt(_app: tauri::AppHandle, id: i64) -> Result<Option<SimplePrompt>, String> {
-    let db_manager = get_database_manager().await?;
+#[instrument(level = "debug", skip(app_handle))]
+async fn get_prompt(
+    app_handle: AppHandle,
+    id: i64,
+) -> Result<Option<SimplePrompt>, String> {
+    if id <= 0 {
+        warn!("嘗試查詢無效的提示詞 ID: {}", id);
+        return Err("提示詞 ID 必須為正數".to_string());
+    }
+    
+    let app_state = app_handle.state::<Arc<Mutex<AppState>>>();
+    let app_state = app_state.lock().await;
+    
+    let db_manager = get_database_manager(&app_state)
+        .await
+        .map_err(|e| {
+            error!("獲取數據庫管理器失敗: {}", e);
+            format!("數據庫連接失敗: {}", e)
+        })?;
+    
+    debug!("查詢提示詞 ID: {}", id);
     db_manager.get_prompt_async(id)
         .await
-        .map_err(|e| format!("查詢 Prompt 失敗: {}", e))
+        .map_err(|e| {
+            error!("查詢提示詞失敗: {}", e);
+            format!("查詢提示詞失敗: {}", e)
+        })
 }
 
+/// 刪除提示詞
 #[tauri::command]
-async fn delete_prompt(_app: tauri::AppHandle, id: i64) -> Result<bool, String> {
-    println!("刪除 Prompt ID: {}", id);
-    Ok(true) // 暫時模擬成功
+#[instrument(level = "debug", skip(app_handle))]
+async fn delete_prompt(
+    app_handle: AppHandle,
+    id: i64,
+) -> Result<bool, String> {
+    if id <= 0 {
+        warn!("嘗試刪除無效的提示詞 ID: {}", id);
+        return Err("提示詞 ID 必須為正數".to_string());
+    }
+    
+    let app_state = app_handle.state::<Arc<Mutex<AppState>>>();
+    let app_state = app_state.lock().await;
+    
+    let db_manager = get_database_manager(&app_state)
+        .await
+        .map_err(|e| {
+            error!("獲取數據庫管理器失敗: {}", e);
+            format!("數據庫連接失敗: {}", e)
+        })?;
+    
+    // 檢查提示詞是否存在
+    let existing = db_manager.get_prompt_async(id)
+        .await
+        .map_err(|e| format!("檢查提示詞是否存在失敗: {}", e))?;
+    
+    if existing.is_none() {
+        warn!("嘗試刪除不存在的提示詞 ID: {}", id);
+        return Err("提示詞不存在".to_string());
+    }
+    
+    info!("刪除提示詞 ID: {}", id);
+    db_manager.delete_prompt_async(id)
+        .await
+        .map_err(|e| {
+            error!("刪除提示詞失敗: {}", e);
+            format!("刪除提示詞失敗: {}", e)
+        })
 }
 
 // 排程相關命令
@@ -97,7 +320,8 @@ async fn create_schedule(
     schedule_time: String,
     cron_expr: Option<String>,
 ) -> Result<i64, String> {
-    let db_manager = get_database_manager().await?;
+    // 使用旧的数据库管理器临时兼容
+    let db_manager = get_database_manager(&_app.state()).await.map_err(|e| format!("{}", e))?;
     db_manager.create_schedule_async(prompt_id, &schedule_time, cron_expr.as_deref())
         .await
         .map_err(|e| format!("創建排程失敗: {}", e))
@@ -105,7 +329,8 @@ async fn create_schedule(
 
 #[tauri::command]
 async fn get_pending_schedules(_app: tauri::AppHandle) -> Result<Vec<SimpleSchedule>, String> {
-    let db_manager = get_database_manager().await?;
+    // 使用旧的数据库管理器临时兼容
+    let db_manager = get_database_manager(&_app.state()).await.map_err(|e| format!("{}", e))?;
     db_manager.get_pending_schedules_async()
         .await
         .map_err(|e| format!("查詢待執行排程失敗: {}", e))
@@ -119,7 +344,7 @@ async fn update_schedule(
     status: Option<String>,
     cron_expr: Option<String>,
 ) -> Result<(), String> {
-    let db_manager = get_database_manager().await?;
+    let db_manager = get_database_manager(&_app.state()).await.map_err(|e| format!("{}", e))?;
     db_manager.update_schedule_async(
         id,
         schedule_time.as_deref(),
@@ -132,16 +357,22 @@ async fn update_schedule(
 
 #[tauri::command]
 async fn delete_schedule(_app: tauri::AppHandle, id: i64) -> Result<bool, String> {
-    let db_manager = get_database_manager().await?;
+    let db_manager = get_database_manager(&_app.state()).await.map_err(|e| format!("{}", e))?;
     db_manager.delete_schedule_async(id)
         .await
         .map_err(|e| format!("刪除排程失敗: {}", e))
 }
 
+// 代理清單（新）
+#[tauri::command]
+async fn get_agents_catalog(_app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    Ok(crate::agents_registry::agents_catalog_json())
+}
+
 // Token 統計相關命令
 #[tauri::command]
 async fn get_token_usage_stats(_app: tauri::AppHandle) -> Result<Option<TokenUsageStats>, String> {
-    let db_manager = get_database_manager().await?;
+    let db_manager = get_database_manager(&_app.state()).await.map_err(|e| format!("{}", e))?;
     db_manager.get_token_usage_stats_async()
         .await
         .map_err(|e| format!("查詢 Token 統計失敗: {}", e))
@@ -154,7 +385,7 @@ async fn update_token_usage(
     output_tokens: i64,
     cost_usd: f64,
 ) -> Result<(), String> {
-    let db_manager = get_database_manager().await?;
+    let db_manager = get_database_manager(&_app.state()).await.map_err(|e| format!("{}", e))?;
     db_manager.update_token_usage_async(input_tokens, output_tokens, cost_usd)
         .await
         .map_err(|e| format!("更新 Token 統計失敗: {}", e))
@@ -431,67 +662,175 @@ async fn get_unified_system_health() -> Result<serde_json::Value, String> {
 
 // 過時的 cron 任務載入函數已移除
 
+// === 應用程式初始化和啟動 ===
+
+/// 初始化日誌系統
+fn init_logging() -> Result<(), Box<dyn std::error::Error>> {
+    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+    
+    let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
+    
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(tracing_subscriber::fmt::layer().with_target(true))
+        .init();
+    
+    Ok(())
+}
+
+/// 執行健康檢查
+#[instrument(level = "debug")]
+async fn perform_startup_health_check(app_state: &AppState) -> AppResult<()> {
+    info!("執行啟動健康檢查");
+    
+    let mut health_status = app_state.health.write().await;
+    
+    // 檢查 Claude CLI 可用性
+    health_status.claude_cli_available = check_claude_cli_availability().await;
+    
+    // 檢查數據庫連接（延遲初始化）
+    if let Ok(_) = get_database_manager(app_state).await {
+        health_status.database_connected = true;
+    }
+    
+    health_status.scheduler_running = true; // 預設啟用
+    health_status.last_health_check = chrono::Utc::now();
+    
+    info!(
+        "健康檢查完成 - 數據庫: {}, Claude CLI: {}, 排程器: {}",
+        health_status.database_connected,
+        health_status.claude_cli_available,
+        health_status.scheduler_running
+    );
+    
+    Ok(())
+}
+
+/// 檢查 Claude CLI 可用性
+async fn check_claude_cli_availability() -> bool {
+    match tokio::process::Command::new("claude")
+        .arg("--version")
+        .output()
+        .await
+    {
+        Ok(output) => {
+            let success = output.status.success();
+            if success {
+                debug!("Claude CLI 版本檢查成功");
+            } else {
+                warn!("Claude CLI 版本檢查失敗");
+            }
+            success
+        },
+        Err(e) => {
+            warn!("無法執行 Claude CLI 版本檢查: {}", e);
+            false
+        }
+    }
+}
+
+/// Tauri 主要應用程式入口點
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 初始化日誌系統
+    if let Err(e) = init_logging() {
+        eprintln!("日誌系統初始化失敗: {}", e);
+    }
+    
+    info!("Claude Night Pilot 啟動中...");
+    
     tauri::Builder::default()
-        // 移除 SQL 插件，改用直接的 rusqlite 操作
-        // .plugin(
-        //     tauri_plugin_sql::Builder::default()
-        //         .add_migrations("sqlite:claude-pilot.db", get_migrations())
-        //         .build(),
-        // )
+        // Tauri 插件配置
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_cli::init())
         .setup(|app| {
-            println!("Claude Night Pilot 啟動中...");
-            println!("當前時間：2025-07-22T21:55:57+08:00");
-            println!("CLI 整合狀態：已啟用");
+            let _app_handle = app.handle().clone();
             
-            // 初始化並啟動排程器
-            let _app_handle = app.handle();
-            // 排程器初始化已移除，改用核心模組系統
-            println!("✅ 核心模組系統已準備就緒");
+            // 初始化應用狀態
+            let app_state = AppState::new();
+            app.manage(Arc::new(Mutex::new(app_state.clone())));
+            
+            info!("應用狀態管理器已初始化");
+            
+            // 異步執行啟動任務
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = perform_startup_health_check(&app_state).await {
+                    error!("啟動健康檢查失敗: {}", e);
+                } else {
+                    info!("✅ 啟動健康檢查完成");
+                }
+                
+                info!("🚀 Claude Night Pilot 已就緒");
+            });
             
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            // 基礎資料管理命令
+            // === 核心數據管理命令 ===
             list_prompts,
             create_prompt,
             get_prompt,
             delete_prompt,
-            // 排程管理命令
+            
+            // === 排程管理命令 ===
             create_schedule,
             get_pending_schedules,
             update_schedule,
             delete_schedule,
-            // Token 統計命令
-            get_token_usage_stats,
-            update_token_usage,
-            // 健康檢查與冷卻狀態
-            health_check,
-            check_cooldown,
-            parse_claude_error,
-            // 向後兼容的舊命令
             create_scheduled_job,
             list_jobs,
             get_job_results,
+            
+            // === 系統健康和狀態命令 ===
+            health_check,
+            check_cooldown,
+            parse_claude_error,
             get_system_info,
+            get_system_status,
+            
+            // === Token 使用統計命令 ===
+            get_token_usage_stats,
+            update_token_usage,
+            
+            // === 代理和整合命令 ===
+            get_agents_catalog,
             run_cli_command,
             execute_prompt_with_scheduler,
-            get_system_status,
-            // 統一介面命令 (推薦使用)
+            
+            // === 統一介面命令（推薦使用）===
             execute_unified_claude,
             get_unified_cooldown_status,
             get_unified_system_health,
-            // 增強執行器命令 (低層級存取)
+            
+            // === 增強執行器命令 ===
             enhanced_executor::execute_enhanced_claude,
             enhanced_executor::check_enhanced_cooldown,
-            enhanced_executor::health_check_enhanced
+            enhanced_executor::health_check_enhanced,
+            
+            // === 共享服務命令 ===
+            services::prompt_service::prompt_service_list_prompts,
+            services::prompt_service::prompt_service_create_prompt,
+            services::prompt_service::prompt_service_delete_prompt,
+            services::job_service::job_service_list_jobs,
+            services::job_service::job_service_create_job,
+            services::job_service::job_service_delete_job,
+            services::sync_service::sync_service_get_status,
+            services::sync_service::sync_service_trigger_sync
         ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
-} 
+        .map_err(|e| {
+            error!("Tauri 應用程式啟動失敗: {}", e);
+            e
+        })
+        .expect("無法啟動 Tauri 應用程式");
+    
+    info!("Claude Night Pilot 應用程式結束");
+}
+
+// 测试模块
+#[cfg(test)]
+mod lib_tests; 

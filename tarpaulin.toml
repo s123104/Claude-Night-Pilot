@@ -1,0 +1,66 @@
+[package.metadata.tarpaulin]
+# 程式碼覆蓋率配置 - Claude Night Pilot
+
+# 覆蓋率目標
+coverage-target = 85
+
+# 輸出格式
+output-format = ["Html", "Xml", "Json"]
+output-dir = "coverage/"
+
+# 包含的檔案模式
+include = [
+    "src/*",
+    "src/services/*",
+    "src/core/*",
+    "src/interfaces/*",
+]
+
+# 排除的檔案模式
+exclude = [
+    "*/tests/*",
+    "*/benches/*",
+    "*/examples/*",
+    "*/target/*",
+    "src/bin/*",
+    "src/main.rs",
+]
+
+# 排除的程式碼行模式
+exclude-lines = [
+    "#\\[cfg\\(test\\)\\]",
+    "#\\[derive.*\\]",
+    "unreachable!",
+    "unimplemented!",
+    "panic!",
+    "todo!",
+    "dbg!",
+]
+
+# 測試配置
+run-types = ["Tests", "Doctests"]
+test-timeout = 120
+
+# 進階配置
+count = true
+all-features = false
+no-fail-fast = true
+follow-exec = true
+
+# 性能配置
+jobs = 1  # 避免測試衝突
+
+# 輸出配置
+verbose = true
+ignore-panics = true
+
+# 特殊處理
+[profile.coverage]
+incremental = false
+codegen-units = 1
+opt-level = 0
+overflow-checks = false
+
+[profile.coverage.package."*"]
+debug = 0
+strip = false

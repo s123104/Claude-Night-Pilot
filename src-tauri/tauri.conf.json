@@ -7,10 +7,11 @@
     "frontendDist": "../src",
     "beforeDevCommand": "npm run dev:frontend",
     "beforeBuildCommand": "npm run build:frontend",
-    "devUrl": "http://localhost:8080"
+    "devUrl": "http://localhost:8080",
+    "runner": null
   },
   "app": {
-    "withGlobalTauri": true,
+    "withGlobalTauri": false,
     "windows": [
       {
         "title": "Claude Night Pilot 🌙✈️",
@@ -18,16 +19,47 @@
         "height": 768,
         "minWidth": 800,
         "minHeight": 600,
+        "maxWidth": 1920,
+        "maxHeight": 1080,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "center": true,
+        "focus": true,
+        "maximized": false,
+        "visible": true,
+        "decorations": true,
+        "alwaysOnTop": false,
+        "contentProtected": false,
+        "skipTaskbar": false,
+        "titleBarStyle": "Visible",
+        "hiddenTitle": false,
+        "acceptFirstMouse": false,
+        "tabbingIdentifier": "claude-night-pilot"
       }
     ],
     "security": {
-      "csp": null,
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ipc: http://localhost:8080 http://127.0.0.1:8080; worker-src 'none';",
+      "dangerousDisableAssetCspModification": false,
+      "freezePrototype": true,
+      "capabilities": [
+        {
+          "identifier": "main",
+          "description": "Main window capabilities",
+          "windows": ["main"],
+          "permissions": [
+            "core:default",
+            "shell:allow-open",
+            "notification:default",
+            "store:default",
+            "cli:default"
+          ]
+        }
+      ],
       "pattern": {
         "use": "brownfield"
       }
-    }
+    },
+    "macOSPrivateApi": false
   },
   "bundle": {
     "active": true,
@@ -39,46 +71,139 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "publisher": "Claude Night Pilot Team",
+    "category": "DeveloperTool",
+    "copyright": "Copyright © 2025 Claude Night Pilot Team. All rights reserved.",
     "license": "MIT",
-    "longDescription": "現代 Claude Code 用戶的夜間自動打工仔 - 零雲端、零安裝痛苦、零學習曲線",
-    "shortDescription": "Claude CLI 自動化工具"
+    "licenseFile": "../LICENSE",
+    "longDescription": "現代 Claude Code 用戶的夜間自動打工仔 - 零雲端、零安裝痛苦、零學習曲線。支援智能排程、冷卻檢測、Token 使用量追蹤等功能，提供 GUI 和 CLI 雙重介面。",
+    "shortDescription": "Claude CLI 自動化工具",
+    "resources": [],
+    "createUpdaterArtifacts": false,
+    "macOS": {
+      "minimumSystemVersion": "10.15",
+      "hardenedRuntime": true,
+      "entitlements": null,
+      "exceptionDomain": null,
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": null,
+      "tsp": false,
+      "wix": {
+        "language": ["zh-TW", "en-US"]
+      },
+      "nsis": {
+        "displayLanguageSelector": true,
+        "languages": ["English", "TradChinese"],
+        "installerIcon": "icons/icon.ico",
+        "template": null
+      }
+    },
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": false
+      },
+      "deb": {
+        "depends": []
+      },
+      "rpm": {
+        "epoch": 0,
+        "files": {},
+        "release": "1"
+      }
+    }
   },
   "plugins": {
     "cli": {
-      "description": "Claude Night Pilot CLI 工具",
+      "description": "Claude Night Pilot CLI 工具 - 完整的命令列介面",
+      "longDescription": "Claude Night Pilot 提供豐富的 CLI 工具來管理提示詞、排程任務、系統狀態等。支援中英文輸出和豐富的配置選項。",
       "args": [
         {
           "name": "verbose",
           "short": "v",
-          "description": "啟用詳細輸出"
+          "description": "啟用詳細輸出，顯示更多調試信息",
+          "takesValue": false
+        },
+        {
+          "name": "quiet",
+          "short": "q",
+          "description": "靜默模式，僅顯示錯誤信息",
+          "takesValue": false
         },
         {
           "name": "config",
           "short": "c",
           "takesValue": true,
-          "description": "指定配置檔案路徑"
+          "valueNames": ["FILE"],
+          "description": "指定配置檔案路徑 (預設: ~/.claude-night-pilot/config.toml)"
+        },
+        {
+          "name": "format",
+          "short": "f",
+          "takesValue": true,
+          "possibleValues": ["json", "yaml", "table", "csv"],
+          "description": "輸出格式 (預設: table)"
         }
       ],
       "subcommands": {
         "prompt": {
-          "description": "管理提示詞",
+          "description": "管理提示詞 - 創建、編輯、刪除和執行提示詞",
           "args": [
             {
               "name": "action",
               "index": 1,
               "takesValue": true,
-              "possibleValues": ["list", "create", "delete", "run"]
+              "possibleValues": ["list", "show", "create", "edit", "delete", "run", "import", "export"]
+            },
+            {
+              "name": "id",
+              "index": 2,
+              "takesValue": true,
+              "description": "提示詞 ID"
             }
           ]
         },
         "job": {
-          "description": "管理排程任務",
+          "description": "管理排程任務 - 創建、監控和管理定時任務",
           "args": [
             {
               "name": "action",
               "index": 1,
               "takesValue": true,
-              "possibleValues": ["list", "create", "results"]
+              "possibleValues": ["list", "show", "create", "edit", "delete", "start", "stop", "results", "logs"]
+            },
+            {
+              "name": "id",
+              "index": 2,
+              "takesValue": true,
+              "description": "任務 ID"
+            }
+          ]
+        },
+        "status": {
+          "description": "系統狀態檢查 - 檢查 Claude CLI、資料庫和排程器狀態",
+          "args": [
+            {
+              "name": "component",
+              "index": 1,
+              "takesValue": true,
+              "possibleValues": ["all", "claude", "database", "scheduler", "cooldown"]
+            }
+          ]
+        },
+        "config": {
+          "description": "配置管理 - 查看和修改應用配置",
+          "args": [
+            {
+              "name": "action",
+              "index": 1,
+              "takesValue": true,
+              "possibleValues": ["show", "set", "get", "reset", "validate"]
             }
           ]
         }

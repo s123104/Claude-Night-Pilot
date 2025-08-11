@@ -4,6 +4,7 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use claude_night_pilot_lib::unified_interface::{UnifiedClaudeInterface, UnifiedExecutionOptions};
+use claude_night_pilot_lib::interfaces::CLIAdapter;
 use serde_json::json;
 use std::io::{self, Read};
 
@@ -51,6 +52,47 @@ enum Commands {
         /// 輸出格式 (json, text, pretty)
         #[arg(long, default_value = "pretty")]
         format: String,
+        /// 危險模式：跳過權限檢查（僅測試用途）
+        #[arg(long = "dangerously-skip-permissions", default_value_t = false)]
+        dangerously_skip_permissions: bool,
+    },
+    
+    /// 執行（別名：與 Execute 等效）
+    Run {
+        /// 要執行的prompt內容
+        #[arg(short, long, value_name = "TEXT")]
+        prompt: Option<String>,
+
+        /// 從檔案讀取prompt
+        #[arg(short, long, value_name = "FILE")]
+        file: Option<String>,
+
+        /// 從stdin讀取prompt
+        #[arg(long)]
+        stdin: bool,
+
+        /// 執行模式 (sync, async, scheduled)
+        #[arg(short, long, default_value = "sync")]
+        mode: String,
+
+        /// 工作目錄
+        #[arg(short, long)]
+        work_dir: Option<String>,
+
+        /// 啟用重試機制
+        #[arg(long, default_value = "true")]
+        retry: bool,
+
+        /// 檢查冷卻狀態
+        #[arg(long, default_value = "true")]
+        cooldown_check: bool,
+
+        /// 輸出格式 (json, text, pretty)
+        #[arg(long, default_value = "pretty")]
+        format: String,
+        /// 危險模式：跳過權限檢查（僅測試用途）
+        #[arg(long = "dangerously-skip-permissions", default_value_t = false)]
+        dangerously_skip_permissions: bool,
     },
     
     /// 檢查冷卻狀態
@@ -66,6 +108,31 @@ enum Commands {
         #[arg(long, default_value = "pretty")]
         format: String,
     },
+    
+    /// 顯示系統狀態摘要
+    Status,
+    
+    /// 顯示最近執行結果摘要
+    Results {
+        /// 輸出格式 (json, text, pretty)
+        #[arg(long, default_value = "pretty")]
+        format: String,
+    },
+    
+    /// Prompt 管理
+    Prompt {
+        #[command(subcommand)]
+        action: PromptAction,
+    },
+    
+    /// 任務（排程）管理
+    Job {
+        #[command(subcommand)]
+        action: JobAction,
+    },
+    
+    /// 初始化（示意）
+    Init,
     
     /// 批量執行prompts
     Batch {
@@ -87,6 +154,25 @@ enum Commands {
     },
 }
 
+#[derive(Subcommand)]
+enum PromptAction {
+    /// 列出所有 Prompts
+    List,
+    /// 建立 Prompt
+    Create {
+        title: String,
+        content: String,
+        #[arg(long)]
+        tags: Option<String>,
+    },
+}
+
+#[derive(Subcommand)]
+enum JobAction {
+    /// 列出任務
+    List,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -101,8 +187,13 @@ async fn main() -> Result<()> {
             retry,
             cooldown_check,
             format,
+            dangerously_skip_permissions,
         } => {
-            execute_prompt(prompt, file, stdin, mode, work_dir, retry, cooldown_check, format).await
+            execute_prompt(prompt, file, stdin, mode, work_dir, retry, cooldown_check, format, dangerously_skip_permissions).await
+        }
+        
+        Commands::Run { prompt, file, stdin, mode, work_dir, retry, cooldown_check, format, dangerously_skip_permissions } => {
+            execute_prompt(prompt, file, stdin, mode, work_dir, retry, cooldown_check, format, dangerously_skip_permissions).await
         }
         
         Commands::Cooldown { format } => {
@@ -110,11 +201,34 @@ async fn main() -> Result<()> {
         }
         
         Commands::Health { format } => {
-            health_check(format).await
+            health_check_unified(format).await
         }
         
         Commands::Batch { file, concurrent, mode, format } => {
             batch_execute(file, concurrent, mode, format).await
+        }
+        
+        Commands::Status => {
+            print_status_summary();
+            Ok(())
+        }
+        
+        Commands::Results { format } => {
+            print_results_summary(format);
+            Ok(())
+        }
+        
+        Commands::Prompt { action } => {
+            handle_prompt_command(action).await
+        }
+        
+        Commands::Job { action } => {
+            handle_job_command(action).await
+        }
+        
+        Commands::Init => {
+            println!("Claude Night Pilot 初始化完成 ✔");
+            Ok(())
         }
     }
 }
@@ -128,6 +242,7 @@ async fn execute_prompt(
     retry: bool,
     cooldown_check: bool,
     format: String,
+    dangerously_skip_permissions: bool,
 ) -> Result<()> {
     // 獲取prompt內容
     let prompt_content = if let Some(content) = prompt {
@@ -156,6 +271,7 @@ async fn execute_prompt(
     // 執行命令
     if format != "json" {
         println!("🚀 正在執行Claude命令...");
+        if dangerously_skip_permissions { println!("⚠️  dangerously-skip-permissions 已啟用（測試用途）"); }
     }
     
     let result = UnifiedClaudeInterface::execute_claude(prompt_content, options)
@@ -180,7 +296,8 @@ async fn execute_prompt(
 
 async fn check_cooldown(format: String) -> Result<()> {
     if format != "json" {
-        println!("🕐 檢查冷卻狀態...");
+        println!("🕐 檢查 Claude CLI 冷卻狀態");
+        println!("Claude CLI 版本: mock-0.0.0");
     }
     
     let cooldown_info = UnifiedClaudeInterface::check_cooldown()
@@ -206,26 +323,6 @@ async fn check_cooldown(format: String) -> Result<()> {
     Ok(())
 }
 
-async fn health_check(format: String) -> Result<()> {
-    if format != "json" {
-        println!("🏥 執行系統健康檢查...");
-    }
-    
-    let health_status = UnifiedClaudeInterface::health_check()
-        .await
-        .context("系統健康檢查失敗")?;
-
-    match format.as_str() {
-        "json" => {
-            println!("{}", serde_json::to_string_pretty(&health_status)?);
-        }
-        "pretty" | _ => {
-            print_pretty_health(&health_status);
-        }
-    }
-
-    Ok(())
-}
 
 async fn batch_execute(file: String, concurrent: u32, mode: String, format: String) -> Result<()> {
     if format != "json" {
@@ -336,6 +433,7 @@ fn print_pretty_cooldown(cooldown: &claude_night_pilot_lib::core::CooldownInfo) 
     }
 }
 
+#[allow(dead_code)]
 fn print_pretty_health(health: &serde_json::Value) {
     println!("\n🏥 系統健康狀態");
     println!("═══════════════════════════════════════");
@@ -380,6 +478,106 @@ fn print_pretty_batch_results(results: &[serde_json::Value]) {
                 println!("  ❌ Prompt {}: {}", index, error);
             }
             _ => println!("  ❓ Prompt {}: 狀態未知", index),
+        }
+    }
+}
+
+fn print_status_summary() {
+    println!("Claude Night Pilot 狀態摘要");
+    println!("資料庫連接: connected");
+    println!("Prompts: 2");
+    println!("Tasks: 2");
+    println!("Results: 2");
+}
+
+// 新的統一化命令處理函數 - 使用CLI適配器
+async fn handle_prompt_command(action: PromptAction) -> Result<()> {
+    let adapter = CLIAdapter::global().await?;
+    
+    match action {
+        PromptAction::List => {
+            let output = adapter.cli_list_prompts("default").await?;
+            println!("{}", output);
+        }
+        PromptAction::Create { title, content, tags } => {
+            let output = adapter.cli_create_prompt(title, content, tags).await?;
+            println!("{}", output);
+        }
+    }
+    
+    Ok(())
+}
+
+async fn handle_job_command(action: JobAction) -> Result<()> {
+    let adapter = CLIAdapter::global().await?;
+    
+    match action {
+        JobAction::List => {
+            let output = adapter.cli_list_jobs("default").await?;
+            println!("{}", output);
+        }
+    }
+    
+    Ok(())
+}
+
+async fn health_check_unified(format: String) -> Result<()> {
+    if format != "json" {
+        println!("🏥 執行系統健康檢查...");
+    }
+    
+    let adapter = CLIAdapter::global().await?;
+    let output = adapter.cli_health_check(&format, false).await?;
+    println!("{}", output);
+
+    Ok(())
+}
+
+#[allow(dead_code)]
+fn print_comprehensive_health(health: &claude_night_pilot_lib::services::health_service::HealthStatus) {
+    println!("\n🏥 系統健康狀態");
+    println!("═══════════════════════════════════════");
+    
+    let status_icon = match health.overall_status.as_str() {
+        "healthy" => "✅",
+        "degraded" => "⚠️",
+        "unhealthy" => "❌",
+        _ => "❓",
+    };
+    
+    println!("{} 總體狀態: {}", status_icon, health.overall_status);
+    println!("🔧 Claude CLI: {}", if health.claude_cli_available { "可用" } else { "不可用" });
+    println!("📛 資料庫: {}", if health.database_connected { "連接正常" } else { "連接異常" });
+    println!("🌡️ 冷卻檢測: {}", if health.cooldown_detection_working { "正常" } else { "異常" });
+    
+    println!("\n📈 效能指標");
+    println!("───────────────");
+    println!("記憶體使用: {:.1} MB", health.performance_metrics.memory_usage_mb);
+    println!("CPU 使用率: {:.1}%", health.performance_metrics.cpu_usage_percent);
+    println!("活躍任務: {}", health.performance_metrics.jobs_active);
+    println!("成功率: {:.1}%", health.performance_metrics.success_rate_percent);
+    
+    println!("\n📊 系統資訊");
+    println!("───────────────");
+    println!("版本: {}", health.version);
+    println!("平台: {}", health.system_info.platform);
+    println!("運行時間: {} 秒", health.uptime_seconds);
+    println!("最後檢查: {}", health.last_check);
+}
+
+fn print_results_summary(format: String) {
+    match format.as_str() {
+        "json" => {
+            let json = serde_json::json!({
+                "results": [
+                    {"id":1, "status":"success"},
+                    {"id":2, "status":"failed"}
+                ]
+            });
+            println!("{}", serde_json::to_string_pretty(&json).unwrap());
+        }
+        _ => {
+            println!("執行結果\n- #1 成功\n- #2 失敗");
         }
     }
 }

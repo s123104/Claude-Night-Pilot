@@ -23,6 +23,7 @@ impl Default for DatabaseConfig {
     }
 }
 
+#[derive(Debug)]
 pub struct DatabaseManager {
     db: Arc<Mutex<SimpleDatabase>>,
     config: DatabaseConfig,
@@ -63,6 +64,18 @@ impl DatabaseManager {
         .map_err(DatabaseError::Connection)
     }
 
+    pub async fn list_prompts_async(&self) -> DatabaseResult<Vec<SimplePrompt>> {
+        let db = self.db.clone();
+        
+        tokio::task::spawn_blocking(move || {
+            let rt = tokio::runtime::Handle::current();
+            let db = rt.block_on(async { db.lock().await });
+            db.list_prompts()
+        })
+        .await?
+        .map_err(DatabaseError::Connection)
+    }
+
     pub async fn get_prompt_async(&self, id: i64) -> DatabaseResult<Option<SimplePrompt>> {
         let db = self.db.clone();
         
@@ -70,6 +83,18 @@ impl DatabaseManager {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
             db.get_prompt(id)
+        })
+        .await?
+        .map_err(DatabaseError::Connection)
+    }
+
+    pub async fn delete_prompt_async(&self, id: i64) -> DatabaseResult<bool> {
+        let db = self.db.clone();
+        
+        tokio::task::spawn_blocking(move || {
+            let rt = tokio::runtime::Handle::current();
+            let db = rt.block_on(async { db.lock().await });
+            db.delete_prompt(id)
         })
         .await?
         .map_err(DatabaseError::Connection)
@@ -90,6 +115,30 @@ impl DatabaseManager {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
             db.create_schedule(prompt_id, &schedule_time, cron_expr.as_deref())
+        })
+        .await?
+        .map_err(DatabaseError::Connection)
+    }
+
+    pub async fn get_all_schedules_async(&self) -> DatabaseResult<Vec<SimpleSchedule>> {
+        let db = self.db.clone();
+        
+        tokio::task::spawn_blocking(move || {
+            let rt = tokio::runtime::Handle::current();
+            let db = rt.block_on(async { db.lock().await });
+            db.list_schedules()
+        })
+        .await?
+        .map_err(DatabaseError::Connection)
+    }
+
+    pub async fn get_schedule_async(&self, id: i64) -> DatabaseResult<Option<SimpleSchedule>> {
+        let db = self.db.clone();
+        
+        tokio::task::spawn_blocking(move || {
+            let rt = tokio::runtime::Handle::current();
+            let db = rt.block_on(async { db.lock().await });
+            db.get_schedule(id)
         })
         .await?
         .map_err(DatabaseError::Connection)

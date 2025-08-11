@@ -1,9 +1,8 @@
-/**
+/*!
  * Claude 冷卻狀態檢測器
  * 基於對 research-projects 的分析和網路研究實現
  * 支援多種檢測方法：API 回應解析、時間窗口管理、使用量追蹤
  */
-
 use chrono::{DateTime, Local, Duration, Timelike};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -120,7 +119,7 @@ impl ClaudeCooldownDetector {
         for cmd in &commands {
             if let Ok(output) = Command::new("sh")
                 .arg("-c")
-                .arg(&format!("command -v {}", cmd.split_whitespace().next()?))
+                .arg(format!("command -v {}", cmd.split_whitespace().next()?))
                 .output()
             {
                 if output.status.success() {
@@ -173,7 +172,7 @@ impl ClaudeCooldownDetector {
         // 執行 ccusage blocks 命令
         let output = Command::new("sh")
             .arg("-c")
-            .arg(&format!("{} blocks", ccusage_cmd))
+            .arg(format!("{} blocks", ccusage_cmd))
             .output()
             .context("執行 ccusage 命令失敗")?;
 
@@ -239,7 +238,7 @@ impl ClaudeCooldownDetector {
             if path.extension().and_then(|s| s.to_str()) == Some("jsonl") {
                 if let Ok(metadata) = entry.metadata() {
                     if let Ok(modified) = metadata.modified() {
-                        if latest_file.as_ref().map_or(true, |(_, time)| modified > *time) {
+                        if latest_file.as_ref().is_none_or(|(_, time)| modified > *time) {
                             latest_file = Some((path, modified));
                         }
                     }
@@ -285,10 +284,10 @@ impl ClaudeCooldownDetector {
     fn extract_cooldown_time(&self, error_message: &str) -> u64 {
         // 嘗試提取具體的等待時間
         let wait_patterns = [
-            r"wait\s*(\d+)\s*seconds?",
-            r"retry\s*in\s*(\d+)\s*seconds?",
-            r"retry-after:\s*(\d+)",
-            r"(\d+)\s*minutes?",
+            r"(?i)wait\s*(\d+)\s*seconds?",
+            r"(?i)retry\s*in\s*(\d+)\s*seconds?", 
+            r"(?i)retry-after:\s*(\d+)",
+            r"(?i)(\d+)\s*minutes?",
         ];
 
         for pattern_str in &wait_patterns {

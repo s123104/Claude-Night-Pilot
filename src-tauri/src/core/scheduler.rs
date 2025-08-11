@@ -398,3 +398,332 @@ impl Scheduler for SessionScheduler {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::time::Duration;
+
+    #[tokio::test]
+    async fn test_cron_scheduler_creation() {
+        let result = CronScheduler::new().await;
+        assert!(result.is_ok());
+        let scheduler = result.unwrap();
+        assert_eq!(scheduler.jobs.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_cron_scheduler_lifecycle() {
+        let mut scheduler = CronScheduler::new().await.unwrap();
+        
+        // 启动调度器
+        scheduler.start().await.unwrap();
+        
+        // 关闭调度器
+        scheduler.shutdown().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_cron_scheduler_schedule_job() {
+        let mut scheduler = CronScheduler::new().await.unwrap();
+        scheduler.start().await.unwrap();
+        
+        let config = CronConfig {
+            expression: "*/5 * * * * *".to_string(), // 每5秒执行
+            timezone: "Asia/Shanghai".to_string(),
+            max_concurrent: 1,
+            timeout_seconds: 30,
+        };
+        
+        let handle = scheduler.schedule(config).await.unwrap();
+        assert!(!scheduler.is_running(&handle)); // 刚调度时不是运行状态
+        
+        let active_jobs = scheduler.list_active().await;
+        assert_eq!(active_jobs.len(), 1);
+        assert_eq!(active_jobs[0], handle);
+        
+        // 取消任务
+        scheduler.cancel(handle).await.unwrap();
+        let active_jobs_after_cancel = scheduler.list_active().await;
+        assert_eq!(active_jobs_after_cancel.len(), 0);
+        
+        scheduler.shutdown().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_cron_scheduler_reschedule() {
+        let mut scheduler = CronScheduler::new().await.unwrap();
+        scheduler.start().await.unwrap();
+        
+        let original_config = CronConfig {
+            expression: "*/10 * * * * *".to_string(),
+            timezone: "Asia/Shanghai".to_string(),
+            max_concurrent: 1,
+            timeout_seconds: 30,
+        };
+        
+        let original_handle = scheduler.schedule(original_config).await.unwrap();
+        
+        let new_config = CronConfig {
+            expression: "*/5 * * * * *".to_string(),
+            timezone: "Asia/Shanghai".to_string(),
+            max_concurrent: 2,
+            timeout_seconds: 60,
+        };
+        
+        let new_handle = scheduler.reschedule(original_handle, new_config).await.unwrap();
+        assert_ne!(original_handle, new_handle);
+        
+        let active_jobs = scheduler.list_active().await;
+        assert_eq!(active_jobs.len(), 1);
+        assert_eq!(active_jobs[0], new_handle);
+        
+        scheduler.shutdown().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_adaptive_scheduler_creation() {
+        let config = AdaptiveConfig {
+            intervals: vec![(60, 30), (30, 15), (10, 5)],
+            ccusage_integration: false,
+            fallback_to_time_based: true,
+        };
+        
+        let scheduler = AdaptiveScheduler::new(config);
+        assert_eq!(scheduler.timers.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_adaptive_scheduler_schedule() {
+        let config = AdaptiveConfig {
+            intervals: vec![(60, 30), (30, 15), (10, 5)],
+            ccusage_integration: false,
+            fallback_to_time_based: true,
+        };
+        
+        let mut scheduler = AdaptiveScheduler::new(config.clone());
+        let handle = scheduler.schedule(config).await.unwrap();
+        
+        assert!(!scheduler.is_running(&handle));
+        
+        let active_timers = scheduler.list_active().await;
+        assert_eq!(active_timers.len(), 1);
+        assert_eq!(active_timers[0], handle);
+        
+        // 取消任务
+        scheduler.cancel(handle).await.unwrap();
+        let active_after_cancel = scheduler.list_active().await;
+        assert_eq!(active_after_cancel.len(), 0);
+    }
+
+    #[test]
+    fn test_adaptive_scheduler_interval_calculation() {
+        let intervals = vec![(60, 30), (30, 15), (10, 5)];
+        
+        // 测试不同剩余时间的间隔计算
+        assert_eq!(AdaptiveScheduler::calculate_adaptive_interval(&intervals, 70), Duration::from_secs(30));
+        assert_eq!(AdaptiveScheduler::calculate_adaptive_interval(&intervals, 45), Duration::from_secs(15));
+        assert_eq!(AdaptiveScheduler::calculate_adaptive_interval(&intervals, 15), Duration::from_secs(5));
+        assert_eq!(AdaptiveScheduler::calculate_adaptive_interval(&intervals, 5), Duration::from_secs(30)); // 默认值
+    }
+
+    #[tokio::test]
+    async fn test_session_scheduler_creation() {
+        let scheduler = SessionScheduler::new();
+        assert_eq!(scheduler.sessions.len(), 0);
+    }
+
+    #[test]
+    fn test_session_scheduler_time_parsing() {
+        let scheduler = SessionScheduler::new();
+        
+        // 测试有效时间格式
+        assert_eq!(scheduler.parse_time("09:30").unwrap(), (9, 30));
+        assert_eq!(scheduler.parse_time("23:59").unwrap(), (23, 59));
+        assert_eq!(scheduler.parse_time("00:00").unwrap(), (0, 0));
+        
+        // 测试无效时间格式
+        assert!(scheduler.parse_time("9:30").is_ok()); // 单位数小时有效
+        assert!(scheduler.parse_time("25:00").is_err()); // 小时超出范围
+        assert!(scheduler.parse_time("12:60").is_err()); // 分钟超出范围
+        assert!(scheduler.parse_time("12-30").is_err()); // 错误分隔符
+        assert!(scheduler.parse_time("12:30:45").is_err()); // 过多组件
+    }
+
+    #[test]
+    fn test_session_scheduler_next_execution_calculation() {
+        let scheduler = SessionScheduler::new();
+        let now = chrono::Local::now();
+        
+        // 测试未来时间（今天）
+        let future_hour = if now.hour() < 23 { now.hour() + 1 } else { 1 };
+        let next_execution = scheduler.calculate_next_execution(future_hour, 0);
+        
+        if now.hour() < 23 {
+            // 应该是今天的未来时间
+            assert_eq!(next_execution.date_naive(), now.date_naive());
+        } else {
+            // 如果现在是23点，下一个执行时间应该是明天
+            assert_eq!(next_execution.date_naive(), (now + chrono::Duration::days(1)).date_naive());
+        }
+        
+        // 测试过去时间（应该安排到明天）
+        let past_hour = if now.hour() > 0 { now.hour() - 1 } else { 23 };
+        let past_execution = scheduler.calculate_next_execution(past_hour, 0);
+        
+        if now.hour() > 0 {
+            // 应该是明天的同一时间
+            assert_eq!(past_execution.date_naive(), (now + chrono::Duration::days(1)).date_naive());
+        }
+        // 如果现在是0点，过去时间（23点）应该是今天
+    }
+
+    #[tokio::test]
+    async fn test_session_scheduler_schedule() {
+        let mut scheduler = SessionScheduler::new();
+        
+        // 计算一个未来时间（5秒后）
+        let now = chrono::Local::now();
+        let future_time = now + chrono::Duration::seconds(5);
+        let time_str = format!("{}:{:02}", future_time.hour(), future_time.minute());
+        
+        let config = SessionConfig {
+            scheduled_time: time_str,
+            auto_reschedule: false,
+            daily_repeat: false,
+        };
+        
+        let handle = scheduler.schedule(config).await.unwrap();
+        assert!(!scheduler.is_running(&handle));
+        
+        let active_sessions = scheduler.list_active().await;
+        assert_eq!(active_sessions.len(), 1);
+        
+        // 取消会话
+        scheduler.cancel(handle).await.unwrap();
+        let active_after_cancel = scheduler.list_active().await;
+        assert_eq!(active_after_cancel.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_session_scheduler_invalid_time() {
+        let mut scheduler = SessionScheduler::new();
+        
+        let config = SessionConfig {
+            scheduled_time: "25:00".to_string(), // 无效小时
+            auto_reschedule: false,
+            daily_repeat: false,
+        };
+        
+        let result = scheduler.schedule(config).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_multiple_schedulers_integration() {
+        // 测试多种调度器可以同时工作
+        
+        // Cron 调度器
+        let mut cron_scheduler = CronScheduler::new().await.unwrap();
+        cron_scheduler.start().await.unwrap();
+        
+        let cron_config = CronConfig {
+            expression: "*/30 * * * * *".to_string(),
+            timezone: "UTC".to_string(),
+            max_concurrent: 1,
+            timeout_seconds: 30,
+        };
+        
+        let cron_handle = cron_scheduler.schedule(cron_config).await.unwrap();
+        
+        // 自适应调度器
+        let adaptive_config = AdaptiveConfig {
+            intervals: vec![(60, 30)],
+            ccusage_integration: false,
+            fallback_to_time_based: true,
+        };
+        
+        let mut adaptive_scheduler = AdaptiveScheduler::new(adaptive_config.clone());
+        let adaptive_handle = adaptive_scheduler.schedule(adaptive_config).await.unwrap();
+        
+        // 会话调度器
+        let mut session_scheduler = SessionScheduler::new();
+        let future_time = chrono::Local::now() + chrono::Duration::seconds(10);
+        let session_config = SessionConfig {
+            scheduled_time: format!("{}:{:02}", future_time.hour(), future_time.minute()),
+            auto_reschedule: false,
+            daily_repeat: false,
+        };
+        
+        let session_handle = session_scheduler.schedule(session_config).await.unwrap();
+        
+        // 验证所有调度器都有活动任务
+        assert_eq!(cron_scheduler.list_active().await.len(), 1);
+        assert_eq!(adaptive_scheduler.list_active().await.len(), 1);
+        assert_eq!(session_scheduler.list_active().await.len(), 1);
+        
+        // 清理
+        cron_scheduler.cancel(cron_handle).await.unwrap();
+        adaptive_scheduler.cancel(adaptive_handle).await.unwrap();
+        session_scheduler.cancel(session_handle).await.unwrap();
+        
+        cron_scheduler.shutdown().await.unwrap();
+        
+        // 验证所有任务已取消
+        assert_eq!(cron_scheduler.list_active().await.len(), 0);
+        assert_eq!(adaptive_scheduler.list_active().await.len(), 0);
+        assert_eq!(session_scheduler.list_active().await.len(), 0);
+    }
+
+    #[test]
+    fn test_scheduling_config_serialization() {
+        let config = SchedulingConfig {
+            scheduler_type: SchedulerType::Cron,
+            cron: Some(CronConfig {
+                expression: "0 9 * * *".to_string(),
+                timezone: "Asia/Shanghai".to_string(),
+                max_concurrent: 3,
+                timeout_seconds: 300,
+            }),
+            adaptive: None,
+            session: None,
+        };
+        
+        // 测试序列化和反序列化
+        let serialized = serde_json::to_string(&config).unwrap();
+        let deserialized: SchedulingConfig = serde_json::from_str(&serialized).unwrap();
+        
+        assert!(matches!(deserialized.scheduler_type, SchedulerType::Cron));
+        assert!(deserialized.cron.is_some());
+        assert!(deserialized.adaptive.is_none());
+        assert!(deserialized.session.is_none());
+        
+        let cron_config = deserialized.cron.unwrap();
+        assert_eq!(cron_config.expression, "0 9 * * *");
+        assert_eq!(cron_config.timezone, "Asia/Shanghai");
+        assert_eq!(cron_config.max_concurrent, 3);
+        assert_eq!(cron_config.timeout_seconds, 300);
+    }
+
+    #[test]
+    fn test_job_status_variants() {
+        // 测试所有 JobStatus 变体
+        let scheduled = JobStatus::Scheduled;
+        let running = JobStatus::Running;
+        let completed = JobStatus::Completed;
+        let failed = JobStatus::Failed("Test error".to_string());
+        let cancelled = JobStatus::Cancelled;
+        
+        // 测试模式匹配
+        assert!(matches!(scheduled, JobStatus::Scheduled));
+        assert!(matches!(running, JobStatus::Running));
+        assert!(matches!(completed, JobStatus::Completed));
+        assert!(matches!(failed, JobStatus::Failed(_)));
+        assert!(matches!(cancelled, JobStatus::Cancelled));
+        
+        // 测试失败状态的错误消息
+        if let JobStatus::Failed(msg) = &failed {
+            assert_eq!(msg, "Test error");
+        }
+    }
+}

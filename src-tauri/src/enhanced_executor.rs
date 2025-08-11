@@ -10,7 +10,7 @@ use crate::core::{
     Scheduler, SchedulingConfig, SchedulerType
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnhancedClaudeResponse {
     pub completion: String,
     pub model: Option<String>,
@@ -18,13 +18,13 @@ pub struct EnhancedClaudeResponse {
     pub execution_metadata: ExecutionMetadata,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Usage {
     pub input_tokens: Option<u32>,
     pub output_tokens: Option<u32>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionMetadata {
     pub execution_id: Uuid,
     pub start_time: SystemTime,

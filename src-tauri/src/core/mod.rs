@@ -3,6 +3,7 @@ pub mod scheduler;
 pub mod cooldown;
 pub mod retry;
 pub mod process;
+pub mod database;
 
 // 測試模組 (暫時禁用，等待實現匹配)
 // #[cfg(test)]
@@ -30,4 +31,17 @@ pub use retry::{
 pub use process::{
     ProcessOrchestrator, ProcessHandle, ProcessType, ProcessStatus,
     ProcessMetadata, ExecutionOptions, CleanupType, ProcessStats
+};
+
+// 數據庫相關導出
+pub use database::{
+    DatabaseManager, DatabaseConfig, DatabaseError, DatabaseResult,
+    Repository, PromptRepository, JobRepository, UsageRepository,
+    ConnectionManager, MigrationManager,
+    Entity, Timestamped, EntityId,
+    Prompt, Job, ExecutionResult, UsageStats,
+    QueryOptions, PagedResult, JobStatus, ScheduleType, JobPriority,
+    ResultStatus, TokenUsage,
+    initialize_global_database_manager, get_global_database_manager,
+    DatabaseHealthStatus, DatabaseStatistics, BackupResult, MaintenanceResult
 };

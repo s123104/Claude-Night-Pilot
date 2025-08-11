@@ -1,0 +1,30 @@
+---
+description: "基礎開發規範 - 所有程式碼必須遵循"
+type: "Auto Attached"
+pattern: "**/*.{js,ts,jsx,tsx,py,go,java,rs}"
+version: "1.0.0"
+author: "s123104"
+last_updated: "2025-08-08T00:00:00+08:00"
+---
+
+# 基礎開發規範
+
+## 型別與命名
+
+- TypeScript 啟用 strict；Rust 保持清晰型別與錯誤處理（thiserror/anyhow）
+- 變數/函數使用 camelCase；常數使用 UPPER_SNAKE_CASE；類別/型別使用 PascalCase
+
+## 控制流程
+
+- 使用 guard clause，避免過深巢狀
+- 非同步/並行優先以不可變資料傳遞
+
+## 錯誤處理
+
+- 使用具體錯誤型別，不吞錯；GUI 以 snackbar 呈現；CLI 以非 0 退出碼
+
+## 禁止事項
+
+- 禁止將 secrets 硬編碼
+- 禁止在生產使用 console.log（以 logger/telemetry 替代）
+- 禁止提交未完成 TODO 註解

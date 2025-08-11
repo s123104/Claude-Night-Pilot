@@ -1,0 +1,14 @@
+---
+description: "測試規範"
+type: "Auto Attached"
+pattern: "tests/**/*.{js,ts,rs}"
+version: "1.0.0"
+author: "s123104"
+last_updated: "2025-08-08T00:00:00+08:00"
+---
+
+# 測試規範
+
+- 測試金字塔：單元 > 整合 > E2E
+- Playwright：GUI/CLI 一致性必測
+- 新功能需附對應測試；修復需含回歸測試
