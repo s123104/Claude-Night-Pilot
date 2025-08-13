@@ -136,7 +136,7 @@ lto = "fat"  # 完整連結時優化
 panic = "abort"  # 禁用 panic 處理器，減小二進制大小
 strip = "debuginfo"  # 移除除錯符號但保留回溯信息
 overflow-checks = false  # 生產環境禁用以提高性能
-target-cpu = "native"  # Optimize for current CPU architecture
+# target-cpu = "native"  # Optimize for current CPU architecture (commented out due to compatibility)
 
 [profile.release-with-debug]
 inherits = "release"

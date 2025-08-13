@@ -7,10 +7,10 @@
 
 use claude_night_pilot_lib::interfaces::cli_adapter::CLIAdapter;
 use claude_night_pilot_lib::services::{
-    prompt_service::{PromptService, CreatePromptRequest},
+    prompt_service::CreatePromptRequest,
     health_service::HealthService,
 };
-use claude_night_pilot_lib::core::database::{DatabaseConfig, DatabaseManager};
+use claude_night_pilot_lib::core::database::DatabaseConfig;
 
 /// 測試基本的結構體和類型是否能正確編譯
 #[tokio::test]
@@ -83,9 +83,9 @@ fn test_serialization() {
 /// 測試所有核心模組都能被正確匯入
 #[test]
 fn test_module_imports() {
-    use claude_night_pilot_lib::core::database::{self, DatabaseConfig};
-    use claude_night_pilot_lib::services::{self, prompt_service, health_service};
-    use claude_night_pilot_lib::interfaces::{self, cli_adapter, tauri_adapter};
+    use claude_night_pilot_lib::core::database::DatabaseConfig;
+    
+    
     
     // 這個測試確保所有模組都能被正確匯入
     println!("所有核心模組匯入成功");

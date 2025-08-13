@@ -13,10 +13,8 @@ use claude_night_pilot_lib::services::{
 use claude_night_pilot_lib::interfaces::{
     tauri_adapter::TauriAdapter,
     cli_adapter::CLIAdapter,
-    shared_types::*,
 };
 use tempfile::tempdir;
-use tokio_test;
 use std::sync::Arc;
 use std::time::Duration;
 

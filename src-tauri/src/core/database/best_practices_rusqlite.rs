@@ -63,6 +63,7 @@ impl Default for RusqliteBestPracticesConfig {
 /// 企業級Rusqlite數據庫管理器
 pub struct RusqliteBestPracticesManager {
     connection: Arc<RwLock<Connection>>,
+    #[allow(dead_code)]
     config: RusqliteBestPracticesConfig,
 }
 

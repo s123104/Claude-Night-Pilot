@@ -3,8 +3,6 @@
 
 use std::time::{Duration, Instant};
 use tempfile::tempdir;
-use tokio::time::timeout;
-use uuid::Uuid;
 
 // 基於Rusqlite實現的性能測試套件
 // 已適配rusqlite接口，可正常運行

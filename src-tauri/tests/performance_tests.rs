@@ -5,13 +5,9 @@
 
 use claude_night_pilot_lib::core::database::manager::DatabaseManager;
 use claude_night_pilot_lib::interfaces::cli_adapter::CLIAdapter;
-use claude_night_pilot_lib::services::{prompt_service::PromptService, job_service::JobService, health_service::HealthService, sync_service::SyncService};
 use tempfile::tempdir;
-use tokio_test;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use std::process::Command;
-use std::thread;
 
 /// 性能測試環境設置
 struct PerformanceTestEnv {
@@ -355,7 +351,7 @@ async fn test_long_running_stability() {
 /// 獲取進程記憶體使用情況（簡化版實現）
 fn get_process_memory_usage() -> u64 {
     // 這是一個簡化的實現，實際項目中可能需要更複雜的記憶體監控
-    use std::fs;
+    
     
     #[cfg(target_os = "linux")]
     {
