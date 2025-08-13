@@ -1,75 +1,282 @@
 #!/usr/bin/env node
 
 /**
- * 穩定的開發伺服器腳本
- * 使用固定端口 8080，簡化配置
+ * Claude Night Pilot - 穩定的前端開發伺服器
+ * 用於測試和開發環境，支持端口自動切換和 SPA 路由
  */
 
-import { spawn } from "child_process";
+import express from "express";
 import path from "path";
+import fs from "fs";
+import { createServer } from "http";
 import { fileURLToPath } from "url";
-import { dirname } from "path";
-import http from "http";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-const PORT = 8081;
-const SRC_DIR = path.join(__dirname, "..", "src");
+class StableDevelopmentServer {
+  constructor() {
+    this.app = express();
+    this.port = process.env.PORT || 8080;
+    this.fallbackPort = 8081;
+    this.srcDir = path.join(__dirname, "../src");
+    this.server = null;
 
-function checkPort() {
-  return new Promise((resolve) => {
-    const server = http.createServer();
-    server.listen(PORT, () => {
-      server.close(() => resolve(true));
-    });
-    server.on("error", () => resolve(false));
-  });
-}
-
-async function startServer() {
-  console.log(`🔍 檢查端口 ${PORT}...`);
-
-  if (!(await checkPort())) {
-    console.error(`❌ 端口 ${PORT} 已被占用，請先停止占用該端口的程序`);
-    process.exit(1);
+    this.setupMiddleware();
+    this.setupRoutes();
   }
 
-  console.log(`🚀 啟動開發伺服器在端口 ${PORT}...`);
+  setupMiddleware() {
+    // CORS 支持
+    this.app.use((req, res, next) => {
+      res.header("Access-Control-Allow-Origin", "*");
+      res.header(
+        "Access-Control-Allow-Methods",
+        "GET, POST, PUT, DELETE, OPTIONS"
+      );
+      res.header(
+        "Access-Control-Allow-Headers",
+        "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+      );
 
-  const server = spawn(
-    "python3",
-    ["-m", "http.server", PORT.toString(), "--directory", SRC_DIR],
-    {
-      stdio: "inherit",
-      cwd: path.join(__dirname, ".."),
-    }
-  );
+      if (req.method === "OPTIONS") {
+        res.sendStatus(200);
+      } else {
+        next();
+      }
+    });
 
-  console.log(`✅ 開發伺服器已啟動: http://localhost:${PORT}`);
-  console.log("📝 使用 Ctrl+C 停止伺服器");
+    // 靜態文件服務
+    this.app.use(
+      express.static(this.srcDir, {
+        maxAge: "1h",
+        etag: false,
+        lastModified: false,
+      })
+    );
 
-  // 優雅關閉
-  process.on("SIGINT", () => {
-    console.log("\n🛑 正在停止開發伺服器...");
-    server.kill("SIGTERM");
-    setTimeout(() => {
-      server.kill("SIGKILL");
+    // JSON 解析
+    this.app.use(express.json());
+  }
+
+  setupRoutes() {
+    // 健康檢查端點
+    this.app.get("/health", (req, res) => {
+      res.json({
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        port: this.port,
+        srcDir: this.srcDir,
+      });
+    });
+
+    // API 模擬端點 (用於測試)
+    this.app.get("/api/test", (req, res) => {
+      res.json({
+        message: "Test API endpoint working",
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    // SPA 路由支持 - 所有其他請求返回 index.html
+    this.app.get("*", (req, res) => {
+      const indexPath = path.join(this.srcDir, "index.html");
+
+      if (fs.existsSync(indexPath)) {
+        // 讀取並修改 index.html 以支持測試模式
+        let indexContent = fs.readFileSync(indexPath, "utf8");
+
+        // 在測試環境中注入測試標記
+        if (process.env.NODE_ENV === "test") {
+          indexContent = indexContent.replace(
+            '<body data-test-mode="false">',
+            '<body data-test-mode="true">'
+          );
+
+          // 注入測試輔助腳本
+          const testScript = `
+            <script>
+              // 測試模式輔助
+              window.__TEST_MODE__ = true;
+              window.__APP_READY__ = false;
+              
+              // 加速應用載入
+              document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => {
+                  window.__APP_READY__ = true;
+                  console.log('🧪 Test mode: App ready signal sent');
+                }, 100);
+              });
+              
+              // 測試用的全域函數
+              window.testHelpers = {
+                waitForElement: (selector, timeout = 5000) => {
+                  return new Promise((resolve, reject) => {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                      resolve(element);
+                      return;
+                    }
+                    
+                    const observer = new MutationObserver(() => {
+                      const element = document.querySelector(selector);
+                      if (element) {
+                        observer.disconnect();
+                        resolve(element);
+                      }
+                    });
+                    
+                    observer.observe(document.body, {
+                      childList: true,
+                      subtree: true
+                    });
+                    
+                    setTimeout(() => {
+                      observer.disconnect();
+                      reject(new Error(\`Element \${selector} not found within \${timeout}ms\`));
+                    }, timeout);
+                  });
+                },
+                
+                makeElementVisible: (selector) => {
+                  const element = document.querySelector(selector);
+                  if (element) {
+                    element.style.display = 'block';
+                    element.style.visibility = 'visible';
+                    element.style.opacity = '1';
+                    return true;
+                  }
+                  return false;
+                }
+              };
+            </script>
+          `;
+
+          indexContent = indexContent.replace(
+            "</head>",
+            testScript + "</head>"
+          );
+        }
+
+        res.send(indexContent);
+      } else {
+        res.status(404).json({
+          error: "Index file not found",
+          path: indexPath,
+          srcDir: this.srcDir,
+        });
+      }
+    });
+  }
+
+  async start() {
+    return new Promise((resolve, reject) => {
+      this.server = this.app.listen(this.port, (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        console.log(`🚀 Claude Night Pilot 前端開發伺服器啟動成功`);
+        console.log(`📍 地址: http://localhost:${this.port}`);
+        console.log(`📁 服務目錄: ${this.srcDir}`);
+        console.log(
+          `🧪 測試模式: ${process.env.NODE_ENV === "test" ? "啟用" : "停用"}`
+        );
+        console.log(`⏰ 啟動時間: ${new Date().toLocaleString("zh-TW")}`);
+
+        resolve(this.server);
+      });
+
+      this.server.on("error", (err) => {
+        if (err.code === "EADDRINUSE") {
+          console.log(
+            `⚠️  端口 ${this.port} 被佔用，嘗試端口 ${this.fallbackPort}`
+          );
+
+          if (this.port !== this.fallbackPort) {
+            this.port = this.fallbackPort;
+            this.start().then(resolve).catch(reject);
+          } else {
+            reject(new Error("所有端口都被佔用，請手動釋放端口 8080 或 8081"));
+          }
+        } else {
+          reject(err);
+        }
+      });
+    });
+  }
+
+  async stop() {
+    return new Promise((resolve) => {
+      if (this.server) {
+        this.server.close(() => {
+          console.log("🛑 前端開發伺服器已停止");
+          resolve();
+        });
+      } else {
+        resolve();
+      }
+    });
+  }
+}
+
+// 優雅關閉處理
+function setupGracefulShutdown(server) {
+  const shutdown = async (signal) => {
+    console.log(`\n收到 ${signal} 信號，正在優雅關閉伺服器...`);
+
+    try {
+      await server.stop();
+      console.log("✅ 伺服器已安全關閉");
       process.exit(0);
-    }, 3000);
-  });
+    } catch (error) {
+      console.error("❌ 關閉伺服器時發生錯誤:", error);
+      process.exit(1);
+    }
+  };
 
-  server.on("error", (error) => {
-    console.error("❌ 伺服器錯誤:", error);
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGUSR2", () => shutdown("SIGUSR2")); // nodemon 重啟信號
+}
+
+// 主執行邏輯
+async function main() {
+  const server = new StableDevelopmentServer();
+
+  try {
+    await server.start();
+    setupGracefulShutdown(server);
+
+    // 在測試環境中，提供額外的狀態信息
+    if (process.env.NODE_ENV === "test") {
+      console.log("\n🧪 測試環境配置:");
+      console.log(`   - 自動設置 data-test-mode="true"`);
+      console.log(`   - 注入測試輔助函數`);
+      console.log(`   - 加速應用載入`);
+      console.log(`   - 健康檢查: http://localhost:${server.port}/health`);
+    }
+  } catch (error) {
+    console.error("❌ 伺服器啟動失敗:", error.message);
+
+    if (error.code === "EADDRINUSE") {
+      console.log("\n💡 解決建議:");
+      console.log("   1. 檢查是否有其他服務佔用端口:");
+      console.log("      lsof -i :8080 -i :8081");
+      console.log("   2. 終止佔用端口的進程:");
+      console.log("      kill -9 <PID>");
+      console.log("   3. 或使用不同端口:");
+      console.log("      PORT=3000 npm run dev:frontend");
+    }
+
     process.exit(1);
-  });
-
-  server.on("close", (code) => {
-    console.log(`📋 開發伺服器已關閉 (code: ${code})`);
-    process.exit(code || 0);
-  });
+  }
 }
 
+// 如果直接執行此腳本
 if (import.meta.url === `file://${process.argv[1]}`) {
-  startServer().catch(console.error);
+  main().catch(console.error);
 }
+
+export default StableDevelopmentServer;
