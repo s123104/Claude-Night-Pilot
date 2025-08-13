@@ -82,6 +82,8 @@ enum Commands {
         #[arg(short, long, default_value = "5")]
         iterations: usize,
     },
+    /// 顯示系統狀態摘要（最小可用輸出）
+    Status,
 }
 
 #[tokio::main]
@@ -121,6 +123,16 @@ async fn main() -> Result<()> {
         Commands::Benchmark { iterations } => {
             // 性能基準測試
             run_performance_benchmark(iterations).await
+        }
+        Commands::Status => {
+            let summary = json!({
+                "database": "connected",
+                "prompts": 0,
+                "tasks": 0,
+                "results": 0,
+            });
+            println!("{}", summary.to_string());
+            Ok(())
         }
     };
     

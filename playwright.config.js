@@ -114,7 +114,7 @@ export default defineConfig({
   webServer: {
     command: "npm run dev:frontend",
     port: 8080,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 60000,  // Increased timeout for slower systems
     env: {
       NODE_ENV: 'test'

@@ -13,7 +13,7 @@ fn benchmark_cli_startup(c: &mut Criterion) {
             let start = Instant::now();
             let output = Command::new("cargo")
                 .args(&["run", "--bin", "cnp-unified", "--", "--help"])
-                .current_dir("src-tauri")
+                .current_dir(".")
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .output()
@@ -37,7 +37,7 @@ fn benchmark_cli_commands(c: &mut Criterion) {
             let start = Instant::now();
             let output = Command::new("cargo")
                 .args(&["run", "--bin", "cnp-unified", "--", "health", "--format", "json"])
-                .current_dir("src-tauri")
+                .current_dir(".")
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .output()
@@ -54,7 +54,7 @@ fn benchmark_cli_commands(c: &mut Criterion) {
             let start = Instant::now();
             let output = Command::new("cargo")
                 .args(&["run", "--bin", "cnp-unified", "--", "cooldown", "--format", "json"])
-                .current_dir("src-tauri")
+                .current_dir(".")
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .output()
@@ -78,14 +78,14 @@ fn benchmark_build_performance(c: &mut Criterion) {
             // 清理之前的構建
             Command::new("cargo")
                 .args(&["clean", "--bin", "cnp-unified"])
-                .current_dir("src-tauri")
+                .current_dir(".")
                 .output()
                 .expect("Clean failed");
             
             let start = Instant::now();
             let output = Command::new("cargo")
                 .args(&["build", "--bin", "cnp-unified"])
-                .current_dir("src-tauri")
+                .current_dir(".")
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .output()
@@ -116,7 +116,7 @@ fn benchmark_cli_under_load(c: &mut Criterion) {
                             let start = Instant::now();
                             let output = Command::new("cargo")
                                 .args(&["run", "--bin", "cnp-unified", "--", "health", "--format", "json"])
-                                .current_dir("src-tauri")
+                                .current_dir(".")
                                 .stdout(Stdio::piped())
                                 .stderr(Stdio::piped())
                                 .output()
@@ -156,7 +156,7 @@ fn benchmark_cli_input_sizes(c: &mut Criterion) {
             |b, _| {
                 b.iter(|| {
                     let start = Instant::now();
-                    let output = Command::new("cargo")
+            let output = Command::new("cargo")
                         .args(&[
                             "run", "--bin", "cnp-unified", "--",
                             "execute",
@@ -164,7 +164,7 @@ fn benchmark_cli_input_sizes(c: &mut Criterion) {
                             "--mode", "sync",
                             "--format", "json"
                         ])
-                        .current_dir("src-tauri")
+                        .current_dir(".")
                         .stdout(Stdio::piped())
                         .stderr(Stdio::piped())
                         .output()
@@ -189,7 +189,7 @@ fn benchmark_memory_usage(c: &mut Criterion) {
             // 啟動進程並測量記憶體使用
             let mut child = Command::new("cargo")
                 .args(&["run", "--bin", "cnp-unified", "--", "health"])
-                .current_dir("src-tauri")
+                .current_dir(".")
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
