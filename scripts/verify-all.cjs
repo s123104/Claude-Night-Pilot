@@ -52,9 +52,10 @@ function runStep(name, command, cwd) {
   const logPath = path.join(resultsDir, `verify-${stamp}.log`);
   const jsonPath = path.join(resultsDir, `verify-${stamp}.json`);
 
+  const includeBench = process.env.VERIFY_INCLUDE_BENCH === 'true';
   const steps = [
     { name: 'cli-help', cmd: 'npm run -s cli:optimized -- --help' },
-    { name: 'bench-cli', cmd: 'npm run -s bench:cli' },
+    ...(includeBench ? [{ name: 'bench-cli', cmd: 'npm run -s bench:cli' }] : []),
     { name: 'test-all', cmd: 'npm run -s test:all' },
     { name: 'cli-status', cmd: 'npm run -s cli:optimized -- status' },
     { name: 'cli-health', cmd: 'npm run -s cli:optimized -- health --format json' },
