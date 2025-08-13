@@ -68,7 +68,10 @@
     "performance:report": "cd src-tauri && cargo bench && echo '📊 Performance Report Generated'",
     "port:status": "node scripts/cleanup-ports.js status",
     "port:cleanup": "node scripts/cleanup-ports.js cleanup --force",
-    "port:find": "node scripts/cleanup-ports.js find"
+    "port:find": "node scripts/cleanup-ports.js find",
+    "analyze:project": "node run-project-analysis.js",
+    "analyze:cli": "node analysis/tools/cli-analyzer.js",
+    "analyze:files": "node analysis/tools/file-analyzer.js"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
