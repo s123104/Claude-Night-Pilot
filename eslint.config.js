@@ -19,37 +19,40 @@ export default defineConfig([
         localStorage: "readonly",
         CustomEvent: "readonly",
         FormData: "readonly",
-        navigator: "readonly"
-      }
+        navigator: "readonly",
+      },
     },
     rules: {
       // Error Prevention
-      "no-unused-vars": ["error", { 
-        "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_"
-      }],
+      "no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
       "no-undef": "error",
       "no-redeclare": "error",
       "no-unreachable": "error",
-      "no-console": "warn",
-      
+      "no-console": "off", // 允許調試用的 console 語句
+
       // Best Practices
-      "eqeqeq": ["error", "always"],
-      "curly": ["error", "all"],
+      eqeqeq: ["error", "always"],
+      curly: ["error", "all"],
       "no-var": "error",
       "prefer-const": "error",
       "prefer-arrow-callback": "error",
-      
+
       // Style
-      "semi": ["error", "always"],
-      "quotes": ["error", "double"],
-      "indent": ["error", 2],
+      semi: ["error", "always"],
+      quotes: ["error", "double"],
+      indent: ["error", 2],
       "comma-dangle": ["error", "always-multiline"],
-      
+
       // ES6+
       "arrow-spacing": "error",
       "template-curly-spacing": "error",
-      "object-shorthand": "error"
-    }
-  }
+      "object-shorthand": "error",
+    },
+  },
 ]);
