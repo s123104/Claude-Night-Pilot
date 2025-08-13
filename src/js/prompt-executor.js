@@ -17,7 +17,9 @@ class PromptExecutor {
    * @returns {Promise<Object>} 執行結果
    */
   async executePrompt(prompt, options = {}) {
-    const executionId = window.crypto?.randomUUID?.() || "exec_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+    const executionId =
+      window.crypto?.randomUUID?.() ||
+      "exec_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
     const startTime = Date.now();
 
     try {
@@ -104,6 +106,7 @@ class PromptExecutor {
 
       return await this.executePrompt(prompt, options);
     } catch (error) {
+       
       console.error("執行Prompt失敗:", error);
       snackbarManager.error(`執行失敗：${error.message}`);
       throw error;
@@ -278,6 +281,7 @@ class PromptExecutor {
    */
   updateStatusPanel(executionId, title, status) {
     // 實現狀態面板更新邏輯
+     
     console.log(`執行狀態更新: ${executionId} - ${status}`);
   }
 
@@ -329,9 +333,13 @@ class PromptExecutor {
   }
 
   formatDuration(ms) {
-    if (ms < 1000) {return `${ms}ms`;}
+    if (ms < 1000) {
+      return `${ms}ms`;
+    }
     const seconds = Math.floor(ms / 1000);
-    if (seconds < 60) {return `${seconds}s`;}
+    if (seconds < 60) {
+      return `${seconds}s`;
+    }
     const minutes = Math.floor(seconds / 60);
     return `${minutes}m ${seconds % 60}s`;
   }

@@ -12,15 +12,18 @@ class UnifiedApiClient {
   detectTauriEnvironment() {
     // Check for Tauri 2.0 API first
     if (window.__TAURI__ && window.__TAURI__.core) {
+       
       console.log("Tauri 2.0 detected");
       return true;
     }
     // Fallback to Tauri 1.x
     if (window.__TAURI_API__) {
+       
       console.log("Tauri 1.x detected");
       return true;
     }
     // Development/test mode
+     
     console.log("Development mode detected");
     return false;
   }
@@ -30,12 +33,14 @@ class UnifiedApiClient {
       try {
         // Test basic API connectivity
         await this.invokeCommand("health_check").catch(() => {
+           
           console.warn(
             "Tauri API health check failed, falling back to development mode",
           );
           this.isProduction = false;
         });
       } catch (error) {
+         
         console.warn("API initialization failed:", error);
         this.isProduction = false;
       }
@@ -68,6 +73,7 @@ class UnifiedApiClient {
   }
 
   getMockResponse(command, args) {
+     
     console.log(`Using mock response for: ${command}`);
     return this.mockResponse(command, args);
   }
@@ -411,7 +417,9 @@ class UnifiedApiClient {
 
     case "job_service_list_jobs":
     case "list_jobs": {
-      if (!this.__mockJobs) { this.__mockJobs = this.mockJobsResponse(); }
+      if (!this.__mockJobs) {
+        this.__mockJobs = this.mockJobsResponse();
+      }
       return this.__mockJobs;
     }
 
