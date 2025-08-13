@@ -51,7 +51,18 @@ impl DatabaseManager {
     
     /// 使用默认配置创建数据库管理器
     pub async fn with_default_config() -> DatabaseResult<Self> {
-        Self::new(DatabaseConfig::default()).await
+        // 在測試環境下，使用臨時檔案避免寫入專案根目錄，也避免路徑被清理導致檔案大小為0
+        if cfg!(test) {
+            let mut config = DatabaseConfig::default();
+            let path = std::env::temp_dir().join(format!(
+                "cnp_default_{}.db",
+                uuid::Uuid::new_v4().to_string()
+            ));
+            config.path = path.to_string_lossy().to_string();
+            Self::new(config).await
+        } else {
+            Self::new(DatabaseConfig::default()).await
+        }
     }
     
     /// 确保数据库迁移
@@ -149,18 +160,18 @@ impl DatabaseManager {
         let validation = self.migration_manager.validate_database()?;
         operations.push(format!("完整性检查: {}", if validation.is_valid { "通过" } else { "失败" }));
         
-        // 2. 执行 VACUUM 优化
-        self.connection_manager.execute_transaction(|tx| {
-            tx.execute("VACUUM", [])?;
-            Ok(())
-        })?;
+        // 2. 执行 VACUUM 优化（不可在事务內執行）
+        {
+            let conn = self.connection_manager.get_connection()?;
+            conn.execute("VACUUM", [])?;
+        }
         operations.push("VACUUM 优化: 完成".to_string());
         
-        // 3. 重新分析统计信息
-        self.connection_manager.execute_transaction(|tx| {
-            tx.execute("ANALYZE", [])?;
-            Ok(())
-        })?;
+        // 3. 重新分析统计信息（建議也在非交易上下文直接執行）
+        {
+            let conn = self.connection_manager.get_connection()?;
+            conn.execute("ANALYZE", [])?;
+        }
         operations.push("统计信息分析: 完成".to_string());
         
         // 4. 清理过期数据（可选）

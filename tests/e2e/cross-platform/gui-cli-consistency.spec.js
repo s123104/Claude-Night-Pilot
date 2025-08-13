@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 
 const CLI_BINARY = path.join(
   __dirname,
-  "../src-tauri/target/debug/cnp-unified"
+  "../../src-tauri/target/debug/cnp-unified"
 );
 
 test.describe("GUI與CLI功能一致性測試", () => {

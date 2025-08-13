@@ -11,7 +11,7 @@ use tracing::{error, info, warn, debug, instrument};
 // === 核心模組系統 ===
 // 公開模組供 CLI 和 GUI 共享使用
 pub mod simple_db;
-pub mod high_perf_db;
+// pub mod high_perf_db; // 暫時禁用以解決 r2d2 依賴衝突
 pub mod executor;
 pub mod claude_cooldown_detector;
 
@@ -20,6 +20,7 @@ pub mod core;
 pub mod enhanced_executor;
 pub mod unified_interface;
 pub mod agents_registry;
+// mod scheduler_bootstrap; // 移除未使用的 module 宣告
 
 // 共享服務層 - GUI 和 CLI 統一業務邏輯
 pub mod services;
@@ -762,6 +763,18 @@ pub fn run() {
                     error!("啟動健康檢查失敗: {}", e);
                 } else {
                     info!("✅ 啟動健康檢查完成");
+                }
+                // 啟動 Scheduler Runner（最小原型）
+                if let Ok(db_manager) = get_database_manager(&app_state).await {
+                    use crate::core::scheduler_runner::{scheduler_runner_loop, SchedulerRunnerConfig};
+                    let cfg = SchedulerRunnerConfig::default();
+                    let db_clone = db_manager.clone();
+                    tauri::async_runtime::spawn(async move {
+                        scheduler_runner_loop(db_clone, cfg).await;
+                    });
+                    info!("Scheduler Runner 已啟動");
+                } else {
+                    warn!("無法啟動 Scheduler Runner：資料庫未就緒");
                 }
                 
                 info!("🚀 Claude Night Pilot 已就緒");

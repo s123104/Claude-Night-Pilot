@@ -11,18 +11,26 @@ import fs from "fs";
 import net from "net";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import http from "http";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // 動態導入 get-port (ES Module)
 async function getAvailablePort() {
+  // 使用固定端口 8080，避免配置不同步
+  const FIXED_PORT = 8080;
+  
+  if (await isPortAvailable(FIXED_PORT)) {
+    return FIXED_PORT;
+  }
+  
+  // 如果 8080 被佔用，嘗試備用端口
+  console.warn("⚠️ 端口 8080 被占用，嘗試其他端口");
   try {
     const getPort = (await import("get-port")).default;
     return await getPort({
-      port: [
-        8080, 8081, 8082, 8083, 8084, 8085, 3000, 3001, 4000, 4001, 5000, 5001,
-      ],
+      port: [8081, 8082, 8083, 8084, 8085, 3000, 3001, 4000, 4001],
     });
   } catch (error) {
     console.error("❌ 無法導入 get-port，嘗試備用方案");
@@ -54,6 +62,41 @@ function isPortAvailable(port) {
     });
     server.on("error", () => resolve(false));
   });
+}
+
+// 健康檢查函數
+async function performHealthCheck(port, maxRetries = 5) {
+  console.log("🔍 執行伺服器健康檢查...");
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await new Promise((resolve, reject) => {
+        const req = http.get(`http://localhost:${port}/index.html`, (res) => {
+          if (res.statusCode === 200) {
+            console.log("✅ 健康檢查通過：主頁面可正常訪問");
+            resolve();
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}`));
+          }
+        });
+        
+        req.on('error', reject);
+        req.setTimeout(3000, () => {
+          req.destroy();
+          reject(new Error('請求超時'));
+        });
+      });
+      
+      return; // 健康檢查成功
+    } catch (error) {
+      console.warn(`⚠️ 健康檢查失敗 (${i + 1}/${maxRetries}): ${error.message}`);
+      if (i < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+  }
+  
+  throw new Error(`健康檢查失敗：無法連接到伺服器端口 ${port}`);
 }
 
 async function startDevServer() {
@@ -92,12 +135,18 @@ async function startDevServer() {
       }
     });
 
-    // 確認伺服器啟動
-    setTimeout(() => {
-      console.log(`✅ 開發伺服器已成功啟動: http://localhost:${port}`);
-      console.log("📝 伺服器將持續運行，請使用 Ctrl+C 停止");
-      console.log("🔄 每30秒顯示一次運行狀態...");
-    }, 1000);
+    // 延遲執行健康檢查，讓伺服器有時間啟動
+    setTimeout(async () => {
+      try {
+        await performHealthCheck(port);
+      } catch (error) {
+        console.warn(`⚠️ 健康檢查警告: ${error.message}`);
+      }
+    }, 2000);
+    
+    console.log(`✅ 開發伺服器已成功啟動: http://localhost:${port}`);
+    console.log("📝 伺服器將持續運行，請使用 Ctrl+C 停止");
+    console.log("🔄 每30秒顯示一次運行狀態...");
 
     // 設置保持運行的狀態檢查
     const keepAliveInterval = setInterval(() => {
@@ -159,6 +208,12 @@ async function startDevServer() {
 }
 
 async function updateTauriConfig(port) {
+  // 只有在非標準端口 8080 時才更新配置，避免不必要的檔案修改
+  if (port === 8080) {
+    console.log("✅ 使用標準端口 8080，無需更新 Tauri 配置");
+    return;
+  }
+
   const configPath = path.join(__dirname, "..", "src-tauri", "tauri.conf.json");
 
   try {
@@ -167,8 +222,8 @@ async function updateTauriConfig(port) {
 
       // 更新 devPath
       if (config.build) {
-        config.build.devPath = `http://localhost:${port}`;
-        console.log(`📝 更新 Tauri 配置 devPath: http://localhost:${port}`);
+        config.build.devUrl = `http://localhost:${port}`;
+        console.log(`📝 更新 Tauri 配置 devUrl: http://localhost:${port}`);
       }
 
       // 寫回配置文件

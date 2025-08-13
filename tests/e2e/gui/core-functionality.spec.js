@@ -4,7 +4,7 @@ import { waitForAppReady } from "../../utils/test-helpers.js";
 
 test.describe("Claude Night Pilot 核心功能測試", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("http://localhost:8081", {
+    await page.goto("/", {
       waitUntil: "networkidle",
       timeout: 30000,
     });

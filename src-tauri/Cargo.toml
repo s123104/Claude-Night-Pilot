@@ -82,8 +82,9 @@ dashmap = "6.1"                        # High-performance concurrent HashMap
 arc-swap = "1.7"                       # Lock-free atomic reference counting
 parking_lot = "0.12"                   # Faster synchronization primitives
 rayon = "1.10"                         # Data parallelism for CPU-bound work
-r2d2 = "0.8"                          # Connection pooling
-r2d2_sqlite = "0.25"                  # SQLite connection pool adapter
+# Connection pooling removed due to SQLite version conflicts - use direct rusqlite connections
+# r2d2 = "0.8"                          # Connection pooling
+# r2d2_sqlite = "0.26"                  # SQLite connection pool adapter (removed due to version conflict)
 tokio-util = { version = "0.7", features = ["full"] }
 flume = "0.11"                         # Multi-producer, multi-consumer channels
 

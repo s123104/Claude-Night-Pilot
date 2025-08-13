@@ -52,28 +52,28 @@ impl ConnectionManager {
     
     /// 配置数据库连接
     fn configure_connection(conn: &Connection, config: &DatabaseConfig) -> DatabaseResult<()> {
-        // 启用外键约束
+        // 启用外键约束（使用 pragma_update 以避免返回结果集導致的錯誤）
         if config.enable_foreign_keys {
-            conn.execute("PRAGMA foreign_keys = ON", [])
+            conn.pragma_update(None, "foreign_keys", true)
                 .map_err(DatabaseError::Connection)?;
         }
         
-        // 设置同步模式
-        conn.execute(&format!("PRAGMA synchronous = {}", config.synchronous_mode), [])
+        // 设置同步模式（"OFF"/"NORMAL"/"FULL"）
+        conn.pragma_update(None, "synchronous", format!("{}", config.synchronous_mode))
             .map_err(DatabaseError::Connection)?;
         
-        // 设置日志模式
+        // 设置日志模式（journal_mode 會返回結果，使用 pragma_update）
         if config.enable_wal_mode {
-            conn.execute(&format!("PRAGMA journal_mode = {}", config.journal_mode), [])
+            conn.pragma_update(None, "journal_mode", format!("{}", config.journal_mode))
                 .map_err(DatabaseError::Connection)?;
         }
         
         // 设置缓存大小
-        conn.execute(&format!("PRAGMA cache_size = {}", config.cache_size), [])
+        conn.pragma_update(None, "cache_size", config.cache_size)
             .map_err(DatabaseError::Connection)?;
         
-        // 设置临时存储模式
-        conn.execute(&format!("PRAGMA temp_store = {}", config.temp_store), [])
+        // 设置临时存储模式（DEFAULT/FILE/MEMORY）
+        conn.pragma_update(None, "temp_store", format!("{}", config.temp_store))
             .map_err(DatabaseError::Connection)?;
         
         // 设置忙等超时
@@ -330,10 +330,18 @@ impl ConnectionManager {
         let result_count: i64 = conn.query_row("SELECT COUNT(*) FROM execution_results", [], |row| row.get(0))
             .map_err(DatabaseError::Connection)?;
         
-        // 获取数据库文件大小
-        let db_size = std::fs::metadata(&self.config.path)
+        // 获取数据库文件大小；若檔案大小為 0 或無法讀取，回退以 PRAGMA 計算
+        let mut db_size = std::fs::metadata(&self.config.path)
             .map(|m| m.len())
             .unwrap_or(0);
+        if db_size == 0 {
+            let page_count: i64 = conn.query_row("PRAGMA page_count", [], |row| row.get(0))
+                .unwrap_or(0);
+            let page_size: i64 = conn.query_row("PRAGMA page_size", [], |row| row.get(0))
+                .unwrap_or(0);
+            let calc = page_count.saturating_mul(page_size);
+            if calc > 0 { db_size = calc as u64; }
+        }
         
         Ok(DatabaseStats {
             prompt_count: prompt_count as u64,

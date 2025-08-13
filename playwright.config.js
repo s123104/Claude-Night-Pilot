@@ -22,7 +22,7 @@ export default defineConfig({
   ],
   
   use: {
-    baseURL: "http://localhost:8081",
+    baseURL: "http://localhost:8080",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -31,7 +31,7 @@ export default defineConfig({
     actionTimeout: 15000,  // Increased for slower operations
     navigationTimeout: 45000,  // Increased for app startup
     
-    // Performance optimizations
+    // Tauri & Performance optimizations
     launchOptions: {
       args: [
         '--disable-web-security',
@@ -43,7 +43,13 @@ export default defineConfig({
         '--no-sandbox',  // Faster startup in CI
         '--disable-dev-shm-usage',
         '--memory-pressure-off',
+        '--allow-running-insecure-content',  // For localhost resources
+        '--ignore-certificate-errors',  // For development
+        '--ignore-ssl-errors',
+        '--ignore-certificate-errors-spki-list',
       ],
+      // Additional Chromium flags for better stability
+      ignoreDefaultArgs: ['--disable-extensions'],
     },
   },
 
@@ -107,7 +113,7 @@ export default defineConfig({
   // Optimized development server configuration
   webServer: {
     command: "npm run dev:frontend",
-    port: 8081,
+    port: 8080,
     reuseExistingServer: !process.env.CI,
     timeout: 60000,  // Increased timeout for slower systems
     env: {

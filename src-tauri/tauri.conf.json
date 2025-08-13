@@ -38,7 +38,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ipc: http://localhost:8080 http://127.0.0.1:8080; worker-src 'none';",
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' ipc: http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*; worker-src 'none'; media-src 'self' data: blob:;",
       "dangerousDisableAssetCspModification": false,
       "freezePrototype": true,
       "capabilities": [
@@ -139,7 +139,6 @@
           "name": "config",
           "short": "c",
           "takesValue": true,
-          "valueNames": ["FILE"],
           "description": "指定配置檔案路徑 (預設: ~/.claude-night-pilot/config.toml)"
         },
         {

@@ -3,7 +3,7 @@
 > 企業級 Claude Code 自動化平台 - 智能排程、使用監控、本地安全、生產就緒
 
 <p align="center">
-  <a href="#installation"><img alt="Version" src="https://img.shields.io/badge/version-0.1.0-blue.svg" /></a>
+  <a href="#installation"><img alt="Version" src="https://img.shields.io/badge/version-0.1.1-blue.svg" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg" /></a>
   <a href="#"><img alt="Status" src="https://img.shields.io/badge/status-production%20ready-brightgreen.svg" /></a>
   <a href="#tests"><img alt="Tests" src="https://img.shields.io/badge/tests-176%20passing-success.svg" /></a>
@@ -21,6 +21,64 @@
 - 🛡️ **企業級安全** - 多層風險評估、SHA256 審計、沙盒執行
 - 💎 **雙模式介面** - Material Design 3.0 桌面應用 + 全功能 CLI 工具
 - 🔧 **開發者友好** - Hot reload、自動測試、Git hooks、性能監控
+
+### 🏗️ 完整功能清單
+
+#### 1. 本地優先架構
+- **完全私隱保護**：所有數據都存儲在本地 SQLite 資料庫，零雲端依賴
+- **離線運作**：無需網路連線即可管理提示詞和排程任務
+- **資料安全**：內建 SQLite 加密與備份功能，SHA256 審計追蹤
+
+#### 2. 雙模式操作介面
+- **GUI 桌面應用**：Material Design 3.0 + htmx 動態介面
+  - 支援淺色/深色/自動主題切換
+  - 響應式設計，適應各種螢幕尺寸
+  - 即時更新，無需重新整理頁面
+- **CLI 命令列工具**：兩個版本可選擇
+  - `cnp-unified`：完整功能版本，適合生產環境
+  - `cnp-optimized`：效能優化版本，啟動時間僅 11.7ms
+
+#### 3. Claude Code 深度整合
+- **@ 符號檔案引用**：完整支援 `@file.md`, `@folder/`, `@*.ts` 語法
+- **工作目錄管理**：Git worktree 整合，提供隔離執行環境
+- **會話持續性**：支援 `--resume=session_id` 繼續中斷的對話
+- **串流處理**：即時解析 Claude 的 stream-json 輸出格式
+- **使用追蹤**：自動統計 token 使用量與費用分析
+
+#### 4. 智慧排程系統
+- **完整 Cron 支援**：Unix cron 表達式，精確控制執行時間
+- **智慧重試機制**：指數退避演算法，自動處理暫時性錯誤
+- **API 冷卻感知**：自動檢測 Claude API 限制並調整排程
+- **狀態管道**：pending → queued → running → completed/failed/cancelled
+- **資源監控**：執行時記憶體和 CPU 使用量即時監控
+
+#### 5. 企業級資料庫管理
+- **SQL 最佳實踐**：基於 Context7 建議和 Vibe-Kanban 模式設計
+- **Rusqlite 驅動**：高效能 SQLite 接口，支援併發讀取
+- **連接池管理**：自動連接生命週期管理，防止資源洩漏
+- **完整事務支援**：ACID 保證，確保資料一致性
+- **157 項測試覆蓋**：功能測試、整合測試、效能測試全方位驗證
+
+#### 6. 進階提示詞系統
+- **智慧標籤管理**：多標籤分類、階層式組織、全文搜尋
+- **範本系統**：變數替換、條件邏輯、批次處理功能
+- **收藏與評分**：重要提示詞快速存取，使用頻率統計
+- **版本控制**：提示詞變更歷史追蹤，支援回滾操作
+- **匯出入功能**：JSON/YAML 格式，團隊協作支援
+
+#### 7. 效能監控與最佳化
+- **即時使用追蹤**：token 消耗、API 呼叫次數、費用計算
+- **多目錄支援**：`~/.claude/` 和 `~/.config/claude/` 路徑自動偵測
+- **會話分析**：每次對話的詳細使用統計與最佳化建議
+- **效能基準測試**：啟動時間、記憶體使用、響應延遲監控
+- **匯出報告**：JSON/CSV 格式匯出，支援第三方分析工具
+
+#### 8. 全面測試架構
+- **176 項 E2E 測試**：Playwright 自動化測試，完整用戶工作流驗證
+- **157 項 Rust 測試**：單元測試、整合測試、效能基準測試
+- **中文 UI 測試**：完整支援中文介面的自動化測試
+- **跨平台測試**：Windows、macOS、Linux 相容性驗證
+- **持續整合**：GitHub Actions 自動化測試與部署
 
 ## 🚀 快速開始
 
@@ -47,34 +105,42 @@ npm install && npm run cli:build
 
 ### 30 秒上手指南
 ```bash
-# 1. 初始化數據庫
-cnp init
+# 1. 安裝並初始化
+npm install
+npm run cli:build
 
 # 2. 健康檢查 (11.7ms 響應)
-cnp health --fast
+npm run cli:optimized -- health --fast --format json
 
-# 3. 創建第一個 Prompt
-cnp prompt create "專案優化" "分析 @README.md 並提供性能優化建議"
+# 3. 執行 Claude 命令 (推薦使用優化版本)
+npm run cli:optimized -- execute --prompt "分析 @README.md 並提供改進建議" --format pretty
 
-# 4. 立即執行
-cnp run --prompt "專案優化"
-
-# 5. 設置每日排程
-cnp schedule --cron "0 9 * * *" --prompt "專案優化" --name "每日性能檢查"
-
-# 6. 啟動 GUI (可選)
+# 4. 啟動 GUI (推薦)
 npm run tauri dev
+
+# 5. 運行完整測試 (驗證功能)
+npm test
+
+# 6. 建置生產版本
+npm run tauri build
 ```
 
 ### 驗證安裝
 ```bash
-# 檢查版本和性能
-cnp --version
-cnp benchmark --iterations 3
+# 檢查 CLI 工具 (推薦使用優化版本)
+npm run cli:optimized -- --help
 
-# 完整系統檢查
-cnp health --format json
-cnp status
+# 運行性能基準測試
+npm run bench:cli
+
+# 完整測試套件 (157 Rust + 176 E2E 測試)
+npm run test:all
+
+# 檢查系統狀態
+npm run cli:optimized -- status
+
+# 驗證 Claude Code 整合
+npm run cli:optimized -- health --format json
 ```
 
 ## 📚 文檔生態系統
@@ -118,7 +184,7 @@ cnp status
 
 ## 🏗️ 企業級架構
 
-### 技術棧優勢
+### 現代化技術堆疊
 ```mermaid
 graph TD
     A[用戶界面] --> B[Tauri 2.0 IPC]
@@ -131,17 +197,58 @@ graph TD
     H[JavaScript 狀態管理] --> A
     
     I[tokio 非同步運行時] --> C
-    J[r2d2 連接池] --> D
+    J[Rusqlite 連接池] --> D
     K[Stream-JSON 解析] --> E
+    L[Cron 排程器] --> C
+    M[審計日誌系統] --> C
 ```
 
-### 核心優勢
+### 核心技術優勢
 - **🔒 零雲端架構** - 100% 本地執行，完全隱私保護
 - **⚡ 極致性能** - Rust 核心 + 智能優化 = 亞秒級響應
 - **🛡️ 企業安全** - 多層審計 + 沙盒執行 + 風險評估
 - **📱 現代界面** - Material Design 3.0 + 響應式設計
 - **🔧 開發友好** - Hot reload + 自動測試 + Git 集成
 - **🌍 跨平台** - Windows, macOS, Linux 原生支援
+
+### 🛠️ 技術實現細節
+
+#### 前端架構
+- **Material Design 3.0**：現代設計語言，支援動態主題切換
+- **htmx + 進階 JavaScript**：無重新整理頁面更新，類別式狀態管理
+- **響應式設計**：CSS 自訂屬性，行動優先設計模式
+- **漸進式增強**：基礎 HTML 功能，JavaScript 增強體驗
+
+#### 後端架構  
+- **Rust + Tauri 2.0**：跨平台桌面應用框架，原生效能
+- **增強安全功能**：多層權限檢查，沙盒執行環境
+- **tokio 非同步運行時**：高併發處理，非阻塞 I/O
+- **智能錯誤恢復**：自動重試機制，優雅降級策略
+
+#### 資料庫層
+- **SQLite + Rusqlite**：類型安全查詢，事務 ACID 保證
+- **使用追蹤擴展**：即時 token 統計，成本分析
+- **備份與恢復**：自動備份排程，一鍵資料恢復
+- **效能最佳化**：WAL 模式，適應性查詢快取
+
+#### 排程系統
+- **tokio-cron-scheduler**：高精度 Cron 表達式支援
+- **自適應監控**：動態調整監控頻率，節省資源
+- **智能重試邏輯**：指數退避演算法，API 限制感知
+- **狀態持久化**：跨重啟狀態保持，任務恢復機制
+
+#### 測試架構
+- **Playwright E2E**：176 項測試，涵蓋完整使用者工作流
+- **全面中文 UI 測試**：中文介面自動化測試覆蓋
+- **Rust 單元測試**：157 項測試，核心邏輯驗證
+- **效能基準測試**：Criterion.rs 框架，回歸檢測
+
+#### Claude Code 整合層
+- **@ 符號處理**：完整檔案引用解析，權限驗證
+- **工作目錄管理**：Git worktree 整合，隔離執行
+- **會話管理**：`--resume=session_id` 續接支援
+- **串流處理**：即時解析 stream-json 格式
+- **使用監控**：自動 token 統計，成本追蹤
 
 ## 📊 測試與質量保證
 
@@ -211,6 +318,710 @@ npm run test:coverage      # 代碼覆蓋率分析
 - 🟢 **積極維護** - 定期更新與安全修復
 - 📈 **持續改進** - 功能增強與性能優化
 - 🛡️ **安全優先** - 及時安全更新與漏洞修復
+
+## 💻 CLI 指令完整參考
+
+### 🔧 可用 CLI 工具
+
+| 工具 | 特性 | 使用時機 |
+|------|------|--------|
+| `npm run cli:unified` | 統一介面，完整功能 | **推薦使用** |
+| `npm run cli:optimized` | 性能優化，11.7ms 啟動 | 高頻使用 |
+| `npm run cli` | 統一介面別名 | 一般使用 |
+
+### 📝 Prompt 管理命令
+
+#### 新增 Prompt
+```bash
+# 基本新增
+npm run cli:unified -- prompt create "標題" "內容"
+
+# 範例：新增程式码分析 Prompt
+npm run cli:unified -- prompt create "程式碼分析" "請分析 @src/ 目錄的程式碼品質並提供改進建議"
+
+# 支援 @ 符號檔案引用
+npm run cli:unified -- prompt create "README 分析" "分析 @README.md 的結構和內容"
+```
+
+#### 查看 Prompt 列表
+```bash
+# 列出所有 Prompt
+npm run cli:unified -- prompt list
+
+# 輸出範例：
+# - #2: CLI測試提示詞 (2025-08-13T13:20:00.808933+00:00)
+# - #1: 測試CLI標題 (2025-08-11T18:37:08.892571+00:00)
+```
+
+### ⚡ Prompt 執行命令
+
+#### 直接執行
+```bash
+# 直接執行文字 Prompt
+npm run cli:unified -- execute --prompt "你的問題或指令"
+
+# 從檔案讀取 Prompt
+npm run cli:unified -- execute --file "prompts/analyze.txt"
+
+# 從 stdin 讀取
+echo "分析 @package.json" | npm run cli:unified -- execute --stdin
+```
+
+#### 執行模式
+```bash
+# 同步執行（預設）- 立即執行並等待結果
+npm run cli:unified -- execute --prompt "分析專案" --mode sync
+
+# 非同步執行 - 背景執行
+npm run cli:unified -- execute --prompt "分析專案" --mode async
+
+# 排程執行 - 納入排程佇列
+npm run cli:unified -- execute --prompt "分析專案" --mode scheduled
+```
+
+#### 進階執行選項
+```bash
+# 指定工作目錄
+npm run cli:unified -- execute --prompt "分析當前目錄" --work-dir "/path/to/project"
+
+# 啟用重試機制
+npm run cli:unified -- execute --prompt "分析" --retry
+
+# 跳過權限檢查（僅測試用）
+npm run cli:unified -- execute --prompt "測試" --dangerously-skip-permissions
+
+# 啟用冷却檢查
+npm run cli:unified -- execute --prompt "分析" --cooldown-check
+```
+
+#### 輸出格式
+```bash
+# JSON 格式（適合腳本處理）
+npm run cli:unified -- execute --prompt "分析" --format json
+
+# Pretty 格式（適合人類閱讀，預設）
+npm run cli:unified -- execute --prompt "分析" --format pretty
+
+# 結合 jq 處理 JSON 輸出
+npm run cli:unified -- execute --prompt "分析" --format json | jq '.result'
+```
+
+### 📋 任務排程管理
+
+#### 任務列表
+```bash
+# 列出所有排程任務
+npm run cli:unified -- job list
+
+# 輸出範例：
+# 無排程任務  或
+# - Job #1: 每日分析 (next: 2025-08-14 09:00:00)
+```
+
+### 🔍 系統狀態監控
+
+#### 健康檢查
+```bash
+# 快速健康檢查 (0ms)
+npm run cli:unified -- health --fast
+
+# 完整健康檢查
+npm run cli:unified -- health
+
+# JSON 格式輸出
+npm run cli:unified -- health --format json
+```
+
+#### 冷却狀態檢查
+```bash
+# 檢查 Claude API 冷却狀態
+npm run cli:unified -- cooldown
+
+# JSON 格式（適合監控腳本）
+npm run cli:unified -- cooldown --format json
+
+# 持續監控模式
+npm run cli:unified -- cooldown --monitor
+```
+
+#### 系統狀態總覽
+```bash
+# 顯示系統整體狀態
+npm run cli:unified -- status
+
+# 輸出範例：
+# Claude Night Pilot 狀態摘要
+# 資料庫連接: connected
+# Prompts: 2
+# Tasks: 2
+# Results: 2
+```
+
+#### 執行結果查看
+```bash
+# 查看最近執行結果
+npm run cli:unified -- results
+
+# 輸出範例：
+# 執行結果
+# - #1 成功
+# - #2 失敗
+```
+
+### 🛠️ 工具管理
+
+#### 初始化
+```bash
+# 初始化資料庫和配置
+npm run cli:unified -- init
+```
+
+#### 批量處理
+```bash
+# 批量執行多個 Prompts
+npm run cli:unified -- batch --prompts "1,2,3"
+
+# 從檔案批量執行
+npm run cli:unified -- batch --file "batch_prompts.txt"
+```
+
+### 📊 Claude Code 深度整合
+
+#### @ 符號檔案引用
+```bash
+# 引用單一檔案
+npm run cli:unified -- execute --prompt "分析 @README.md 的內容"
+
+# 引用多個檔案
+npm run cli:unified -- execute --prompt "比較 @package.json 和 @Cargo.toml"
+
+# 引用資料夾
+npm run cli:unified -- execute --prompt "檢查 @src/ 資料夾的結構"
+
+# 使用萬用字元
+npm run cli:unified -- execute --prompt "分析所有 @*.rs 檔案"
+
+# 引用配置檔案
+npm run cli:unified -- execute --prompt "檢查 @tsconfig.json 配置是否正確"
+```
+
+### 🚀 效能測試命令
+
+```bash
+# CLI 啟動性能測試
+npm run bench:startup
+
+# CLI 結合效能測試
+npm run bench:cli
+
+# 資料庫效能測試
+npm run bench:database
+
+# 紡合效能測試
+npm run bench:all
+```
+
+### 🧪 除錯與診斷
+
+```bash
+# 啟用 Rust 除錯日誌
+RUST_LOG=debug npm run cli:unified -- execute --prompt "test"
+
+# 啟用 Trace 級別日誌
+RUST_LOG=trace npm run cli:unified -- health
+
+# 檢查版本訊息
+npm run cli:unified -- --version
+
+# 系統資訊診斷
+npm run cli:unified -- health --verbose
+```
+
+---
+
+## 💻 詳細使用指南
+
+### GUI 使用方式 (推薦新手)
+
+#### 啟動桌面應用程式
+```bash
+# 開發模式 (即時更新)
+npm run tauri dev
+
+# 生產模式建置
+npm run tauri build
+```
+
+#### GUI 功能特色
+- **🎨 Material Design 3.0** - 現代化使用者介面
+- **🌙 主題切換** - 支援淺色/深色/自動模式
+- **📱 響應式設計** - 支援各種螢幕尺寸
+- **⚡ 即時更新** - htmx 驅動的動態介面
+- **🔒 本地執行** - 完全離線運作，保護隱私
+
+#### GUI 操作流程
+1. **啟動應用** → 執行 `npm run tauri dev`
+2. **建立 Prompt** → 點擊「新增 Prompt」按鈕
+3. **輸入內容** → 支援 `@file.md` 檔案引用語法
+4. **立即執行** → 點擊「執行」按鈕
+5. **查看結果** → 即時顯示執行狀態和結果
+6. **排程設定** → 使用 Cron 表達式設定自動執行
+
+### CLI 使用方式 (推薦開發者)
+
+#### 可用的 CLI 工具
+```bash
+# 統一介面 CLI (推薦)
+npm run cli:unified -- [command]
+
+# 效能優化版本 
+npm run cli:optimized -- [command]
+
+# 標準版本
+npm run cli -- [command]
+```
+
+#### 核心命令
+
+**執行 Claude 命令**
+```bash
+# 直接執行 prompt
+npm run cli:unified -- execute --prompt "請分析這個專案的結構"
+
+# 從檔案讀取 prompt
+npm run cli:unified -- execute --file "prompts/analyze.txt"
+
+# 從 stdin 讀取
+echo "分析 @package.json" | npm run cli:unified -- execute --stdin
+
+# 指定工作目錄
+npm run cli:unified -- execute --prompt "分析當前目錄" --work-dir "/path/to/project"
+
+# 輸出格式選項
+npm run cli:unified -- execute --prompt "Hello" --format json
+npm run cli:unified -- execute --prompt "Hello" --format pretty  # 預設
+```
+
+**檢查 Claude API 狀態**
+```bash
+# 檢查冷卻狀態
+npm run cli:unified -- cooldown
+
+# JSON 格式輸出
+npm run cli:unified -- cooldown --format json
+
+# 監控模式
+npm run cli:unified -- cooldown --monitor
+```
+
+**執行模式選項**
+```bash
+# 同步執行 (預設)
+npm run cli:unified -- execute --prompt "分析專案" --mode sync
+
+# 非同步執行
+npm run cli:unified -- execute --prompt "分析專案" --mode async
+
+# 排程執行
+npm run cli:unified -- execute --prompt "分析專案" --mode scheduled
+```
+
+### Claude Code 整合
+
+#### @ 符號檔案引用
+Claude Night Pilot 完整支援 Claude Code 的檔案引用語法：
+
+```bash
+# 引用單一檔案
+npm run cli:unified -- execute --prompt "分析 @README.md 的內容"
+
+# 引用多個檔案
+npm run cli:unified -- execute --prompt "比較 @package.json 和 @Cargo.toml"
+
+# 引用資料夾
+npm run cli:unified -- execute --prompt "檢查 @src/ 資料夾的結構"
+
+# 使用萬用字元
+npm run cli:unified -- execute --prompt "分析所有 @*.rs 檔案"
+```
+
+#### 進階執行選項
+```bash
+# 跳過權限檢查 (測試用)
+npm run cli:unified -- execute --prompt "測試" --dangerously-skip-permissions
+
+# 啟用重試機制
+npm run cli:unified -- execute --prompt "分析" --retry
+
+# 停用冷卻檢查
+npm run cli:unified -- execute --prompt "快速測試" --cooldown-check false
+```
+
+### 自動化工作流程範例
+
+#### 每日程式碼審查
+```bash
+# 建立每日審查腳本
+cat > daily_review.sh << 'EOF'
+#!/bin/bash
+echo "開始每日程式碼審查..."
+npm run cli:unified -- execute --prompt "分析 @src/ 的程式碼品質和安全性，提供改進建議" --format json > review_$(date +%Y%m%d).json
+echo "審查完成，結果儲存至 review_$(date +%Y%m%d).json"
+EOF
+
+# 設定執行權限並執行
+chmod +x daily_review.sh
+./daily_review.sh
+```
+
+#### CI/CD 整合
+```bash
+# 在 GitHub Actions 中使用
+- name: Run Claude Analysis
+  run: |
+    npm install
+    npm run cli:unified -- execute --prompt "檢查這次 commit 的程式碼變更" --format json > analysis.json
+    cat analysis.json
+```
+
+#### 批次處理多個檔案
+```bash
+# 分析多個配置檔案
+for file in *.json *.toml *.yaml; do
+  echo "分析 $file..."
+  npm run cli:unified -- execute --prompt "檢查 @$file 的配置是否正確" --format pretty
+done
+```
+
+## 🚨 常見問題 FAQ
+
+### 安裝與設定
+
+**Q: 安裝時出現權限錯誤？**
+```bash
+# 解決方案 1: 使用 npm 權限修復
+npm config set prefix ~/.npm
+export PATH="$HOME/.npm/bin:$PATH"
+
+# 解決方案 2: 使用 sudo (不推薦)
+sudo npm install
+
+# 解決方案 3: 使用 nvm 管理 Node.js 版本
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+nvm install node
+```
+
+**Q: Rust 編譯失敗？**
+```bash
+# 更新 Rust 工具鏈
+rustup update
+rustup default stable
+
+# 清除快取重新編譯
+cargo clean
+npm run cli:build
+
+# 檢查 Rust 版本 (需要 1.76+)
+rustc --version
+```
+
+**Q: Claude Code 未安裝或找不到？**
+```bash
+# 安裝 Claude Code
+npm install -g @anthropic-ai/claude-code
+
+# 驗證安裝
+npx @anthropic-ai/claude-code@latest --help
+
+# 檢查版本
+which claude || echo "Claude Code 未在 PATH 中找到"
+```
+
+### GUI 問題
+
+**Q: GUI 無法啟動？**
+```bash
+# 檢查連接埠使用情況
+npm run port:status
+
+# 清理連接埠
+npm run port:cleanup
+
+# 使用其他連接埠啟動
+PORT=8081 npm run tauri dev
+
+# 檢查錯誤日誌
+npm run tauri dev --verbose
+```
+
+**Q: 前端頁面空白？**
+```bash
+# 檢查前端開發伺服器
+npm run dev:frontend
+
+# 瀏覽器開發者工具查看錯誤
+# Chrome: F12 → Console
+# Firefox: F12 → 主控台
+
+# 重新建置前端
+npm run build:frontend
+```
+
+**Q: Material Design 樣式異常？**
+```bash
+# 清除瀏覽器快取
+# Chrome: Ctrl+Shift+R
+# Firefox: Ctrl+F5
+
+# 檢查 CSS 載入
+curl -I http://localhost:8080/styles.css
+
+# 重新安裝依賴
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### CLI 問題
+
+**Q: CLI 命令找不到？**
+```bash
+# 檢查建置狀態
+ls -la target/release/cnp*
+
+# 重新建置
+npm run cli:build
+
+# 使用完整路徑執行
+./target/release/cnp-unified --help
+
+# 安裝到全域
+npm run cli:install
+```
+
+**Q: 執行權限被拒？**
+```bash
+# 設定執行權限
+chmod +x target/release/cnp-unified
+
+# 檢查檔案權限
+ls -la target/release/cnp-unified
+
+# macOS 安全檢查
+xattr -d com.apple.quarantine target/release/cnp-unified
+```
+
+**Q: Claude Code 整合失敗？**
+```bash
+# 測試 Claude Code 連線
+npx @anthropic-ai/claude-code@latest --help
+
+# 檢查 API 金鑰
+echo $ANTHROPIC_API_KEY
+
+# 檢查冷卻狀態
+npm run cli:unified -- cooldown --format json
+
+# 測試簡單命令
+npm run cli:unified -- execute --prompt "hello" --format pretty
+```
+
+### 效能問題
+
+**Q: 啟動速度慢？**
+```bash
+# 使用效能優化版本
+npm run cli:optimized -- --help
+
+# 執行效能基準測試
+npm run bench:startup
+
+# 檢查系統資源
+top -p $(pgrep -f claude-night-pilot)
+
+# 啟用快速健康檢查
+npm run cli:unified -- cooldown --fast
+```
+
+**Q: 記憶體使用過高？**
+```bash
+# 檢查記憶體使用
+ps aux | grep claude
+
+# 執行記憶體分析
+cargo build --release
+valgrind --tool=massif target/release/cnp-unified
+
+# 清理舊日誌和快取
+rm -rf ~/.claude-night-pilot/logs/*
+```
+
+**Q: 網路連線問題？**
+```bash
+# 測試網路連線
+curl -I https://api.anthropic.com
+
+# 檢查防火牆設定
+sudo ufw status
+
+# 使用代理伺服器
+HTTPS_PROXY=http://proxy:8080 npm run cli:unified -- execute --prompt "test"
+```
+
+### 測試與除錯
+
+**Q: 測試失敗？**
+```bash
+# 執行特定測試群組
+npm run test:gui
+npm run test:cli
+npm run test:rust
+
+# 使用 headed 模式除錯
+npm run test:headed
+
+# 檢視測試報告
+npm run test:ui
+
+# 執行效能測試
+npm run test:performance
+```
+
+**Q: 如何啟用除錯模式？**
+```bash
+# Rust 除錯日誌
+RUST_LOG=debug npm run cli:unified -- execute --prompt "test"
+
+# GUI 除錯模式
+DEBUG=true npm run tauri dev
+
+# 前端除錯
+open http://localhost:8080
+# 按 F12 開啟開發者工具
+```
+
+**Q: 如何重置所有設定？**
+```bash
+# 清理所有產生的檔案
+npm run clean
+rm -rf target/
+rm -rf node_modules/
+
+# 重新安裝
+npm install
+npm run cli:build
+
+# 重置資料庫
+rm -f claude-pilot.db*
+```
+
+### 進階配置
+
+**Q: 如何自訂輸出格式？**
+```bash
+# JSON 格式（適合腳本處理）
+npm run cli:unified -- execute --prompt "分析" --format json
+
+# Pretty 格式（適合人類閱讀）
+npm run cli:unified -- execute --prompt "分析" --format pretty
+
+# 自訂 JSON 處理
+npm run cli:unified -- execute --prompt "分析" --format json | jq '.result'
+```
+
+**Q: 如何配置 Claude API 設定？**
+```bash
+# 設定環境變數
+export ANTHROPIC_API_KEY="your-api-key"
+export CLAUDE_MODEL="claude-3-sonnet-20240229"
+
+# 檢查配置
+echo $ANTHROPIC_API_KEY | head -c 20
+
+# 測試 API 連線
+npx @anthropic-ai/claude-code@latest doctor
+```
+
+**Q: 如何整合到現有專案？**
+```bash
+# 建立專案配置檔案
+cat > claude-night-pilot.json << 'EOF'
+{
+  "prompts": {
+    "code-review": "分析 @src/ 的程式碼品質",
+    "security-check": "檢查 @. 的安全性漏洞",
+    "performance-analysis": "分析效能瓶頸和優化建議"
+  },
+  "schedules": {
+    "daily-review": "0 9 * * *",
+    "security-scan": "0 2 * * 0"
+  }
+}
+EOF
+
+# 在 package.json 中新增腳本
+npm pkg set scripts.review="npm run cli:unified -- execute --prompt @claude-night-pilot.json#code-review"
+```
+
+### 支援與社群
+
+**Q: 如何回報問題？**
+1. 檢查 [已知問題](https://github.com/s123104/claude-night-pilot/issues)
+2. 收集系統資訊：`npm run cli:unified -- cooldown --format json`
+3. 提供重現步驟和錯誤訊息
+4. 在 [GitHub Issues](https://github.com/s123104/claude-night-pilot/issues/new) 建立新議題
+
+**Q: 如何貢獻程式碼？**
+1. Fork 專案並建立 feature branch
+2. 遵循 [CONTRIBUTING.md](CONTRIBUTING.md) 指引
+3. 執行完整測試：`npm run test:all`
+4. 提交 Pull Request
+
+**Q: 如何獲得技術支援？**
+- 📚 查看 [完整文檔](docs/)
+- 💬 加入 [GitHub Discussions](https://github.com/s123104/claude-night-pilot/discussions)
+- 🐛 回報問題至 [GitHub Issues](https://github.com/s123104/claude-night-pilot/issues)
+- 🔒 安全問題請寄送至 security@claude-night-pilot.dev
+
+---
+
+## 📋 快速參考
+
+### 常用命令速查
+```bash
+# 基本操作
+npm run tauri dev              # 啟動 GUI
+npm run cli:unified -- --help  # CLI 幫助
+npm test                      # 執行測試
+
+# 執行 Claude 命令
+npm run cli:unified -- execute --prompt "你的問題"
+npm run cli:unified -- execute --file "prompt.txt"
+echo "prompt" | npm run cli:unified -- execute --stdin
+
+# 系統檢查
+npm run cli:unified -- cooldown --format json
+npm run bench:cli
+```
+
+### 問題排除步驟
+1. **檢查依賴**：`npm install`
+2. **建置專案**：`npm run cli:build`
+3. **執行測試**：`npm test`
+4. **檢查狀態**：`npm run cli:unified -- cooldown`
+5. **查看日誌**：查看 Console 或執行 `--verbose`
+6. **重新開始**：清理並重新安裝
+
+### 性能最佳化建議
+- 使用 `cnp-optimized` 以獲得最佳啟動速度 (11.7ms)
+- 啟用 `--fast` 模式進行快速健康檢查
+- 使用 JSON 輸出格式配合 `jq` 進行腳本處理
+- 定期執行 `npm run bench` 監控性能
+
+### 開發者提示
+- 程式碼遵循 [Conventional Commits](https://www.conventionalcommits.org/) 標準
+- 使用 `npm run precommit` 進行提交前檢查
+- GUI 支援 Hot Reload，修改前端程式碼即時生效
+- 全部 176 測試必須通過才能合併程式碼
 
 ## 🏆 致謝與認證
 

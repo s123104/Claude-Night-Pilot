@@ -1,18 +1,15 @@
-// 高性能資料庫模組，使用 r2d2 連接池和優化配置
-// High-performance database module with r2d2 connection pooling and optimized configuration
+// 高性能資料庫模組，使用直接 SQLite 連接（移除 r2d2 避免版本衝突）
+// High-performance database module with direct SQLite connections (removed r2d2 to avoid version conflicts)
 
 use rusqlite::{Connection, Result, params, OpenFlags};
 use chrono::Utc;
-use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Arc;
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
 use tokio::task;
-use parking_lot::{RwLock, Mutex};
+use parking_lot::RwLock;
 use dashmap::DashMap;
 use std::time::{Duration, Instant};
-use anyhow::{Context, anyhow};
+use anyhow::{Result as AnyhowResult, Context};
 use tracing::{info, warn, error, debug};
 
 // Re-export types from simple_db for compatibility
@@ -30,12 +27,10 @@ struct QueryMetric {
     last_updated: Instant,
 }
 
-type DbPool = Pool<SqliteConnectionManager>;
-type PooledConnection = r2d2::PooledConnection<SqliteConnectionManager>;
-
+// 簡化的數據庫結構，使用直接連接替代連接池
 #[derive(Debug, Clone)]
 pub struct HighPerfDatabase {
-    pool: Arc<DbPool>,
+    db_path: Arc<String>,
     cache: Arc<DashMap<String, (String, Instant)>>, // Simple query result cache
     performance_mode: bool,
 }
@@ -313,7 +308,12 @@ impl HighPerfDatabase {
         self.execute_with_metrics("optimize", |conn| {
             conn.pragma_update(None, "optimize", ())?;
             conn.execute("VACUUM", [])?;
-            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)", [])?;
+            // PRAGMA wal_checkpoint 會返回結果列，需使用 query_row/查詢API 而非 execute
+            let _checkpoint_result: (i64, i64, i64) = conn.query_row(
+                "PRAGMA wal_checkpoint(TRUNCATE)",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )?;
             conn.execute("ANALYZE", [])?; // Update statistics
             info!("Database optimization completed");
             Ok(())
@@ -570,7 +570,8 @@ impl HighPerfDatabase {
     // Health check
     pub async fn health_check(&self) -> Result<bool> {
         self.execute_with_metrics("health_check", |conn| {
-            conn.execute("SELECT 1", [])?;
+            // SELECT 查詢需使用 query_row 以避免 ExecuteReturnedResults 錯誤
+            let _: i32 = conn.query_row("SELECT 1", [], |row| row.get(0))?;
             Ok(true)
         }).await
     }

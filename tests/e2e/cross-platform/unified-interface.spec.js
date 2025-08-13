@@ -12,11 +12,11 @@ const __dirname = path.dirname(__filename);
 // 測試配置
 const TAURI_BINARY = path.join(
   __dirname,
-  "../src-tauri/target/debug/claude-night-pilot"
+  "../../src-tauri/target/debug/claude-night-pilot"
 );
 const CLI_BINARY = path.join(
   __dirname,
-  "../src-tauri/target/debug/cnp-unified"
+  "../../src-tauri/target/debug/cnp-unified"
 );
 
 test.describe("統一介面端到端測試", () => {
