@@ -186,6 +186,10 @@ docs/**/*-wip.md
 # 自動生成的報告檔案
 docs/reports/auto-generated/
 docs/reports/temp/
+*_REPORT.md
+*_FIXES_REPORT.md
+PRIVACY_AUDIT_REPORT.md
+test-analysis-report.md
 
 # 測試相關臨時檔案
 test_*.sh
@@ -195,3 +199,17 @@ stress_test.sh
 AUTOMATION_TEST_REPORT.md
 claude_output.log
 .data/
+
+# ==== 隱私保護 ====
+# 備份檔案
+*.backup
+*.bak
+
+# 資料庫檔案
+claude-pilot.db
+claude-pilot.db-wal
+claude-pilot.db-shm
+
+# 用戶特定配置
+.user-config
+user-settings.json
