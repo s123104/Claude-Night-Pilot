@@ -31,7 +31,7 @@ class UnifiedApiClient {
         // Test basic API connectivity
         await this.invokeCommand("health_check").catch(() => {
           console.warn(
-            "Tauri API health check failed, falling back to development mode"
+            "Tauri API health check failed, falling back to development mode",
           );
           this.isProduction = false;
         });
@@ -176,48 +176,48 @@ class UnifiedApiClient {
   async invokeCommand(command, args = {}) {
     // 映射舊命令到新的服務API
     switch (command) {
-      case "list_prompts":
-      case "get_prompts":
-        return this.listPromptsService();
+    case "list_prompts":
+    case "get_prompts":
+      return this.listPromptsService();
 
-      case "create_prompt":
-        return this.createPromptService(args.title, args.content, args.tags);
+    case "create_prompt":
+      return this.createPromptService(args.title, args.content, args.tags);
 
-      case "delete_prompt":
-        return this.deletePromptService(args.id);
+    case "delete_prompt":
+      return this.deletePromptService(args.id);
 
-      case "list_jobs":
-      case "get_jobs":
-        return this.listJobsService();
+    case "list_jobs":
+    case "get_jobs":
+      return this.listJobsService();
 
-      case "create_job":
-        return this.createJobService(
-          args.prompt_id || args.promptId,
-          args.name || args.job_name || "新任務",
-          args.cron_expression || args.cronExpression,
-          args.description
-        );
+    case "create_job":
+      return this.createJobService(
+        args.prompt_id || args.promptId,
+        args.name || args.job_name || "新任務",
+        args.cron_expression || args.cronExpression,
+        args.description,
+      );
 
-      case "delete_job":
-        return this.deleteJobService(args.id);
+    case "delete_job":
+      return this.deleteJobService(args.id);
 
-      case "run_prompt_sync":
-        return this.executeClaudeUnified(args.prompt || args.content, {
-          mode: args.mode || "sync",
-          cronExpr: args.cron_expr,
-        });
+    case "run_prompt_sync":
+      return this.executeClaudeUnified(args.prompt || args.content, {
+        mode: args.mode || "sync",
+        cronExpr: args.cron_expr,
+      });
 
-      case "get_cooldown_status":
-        return this.getCooldownStatusUnified();
+    case "get_cooldown_status":
+      return this.getCooldownStatusUnified();
 
-      case "get_system_info":
-      case "get_app_info":
-      case "get_performance_info":
-        return this.getSystemHealthUnified();
+    case "get_system_info":
+    case "get_app_info":
+    case "get_performance_info":
+      return this.getSystemHealthUnified();
 
-      default:
-        // 使用統一調用方式 - 修復無限遞歸
-        return await this.invokeCommandDirect(command, args);
+    default:
+      // 使用統一調用方式 - 修復無限遞歸
+      return await this.invokeCommandDirect(command, args);
     }
   }
 
@@ -382,89 +382,89 @@ class UnifiedApiClient {
   mockResponse(command, _args) {
     // 兼容原有的mock響應系統
     switch (command) {
-      case "prompt_service_list_prompts":
-      case "list_prompts":
-        return this.mockPromptsResponse();
+    case "prompt_service_list_prompts":
+    case "list_prompts":
+      return this.mockPromptsResponse();
 
-      case "prompt_service_create_prompt":
-      case "create_prompt":
-        return Math.floor(Math.random() * 1000) + 100;
+    case "prompt_service_create_prompt":
+    case "create_prompt":
+      return Math.floor(Math.random() * 1000) + 100;
 
-      case "prompt_service_delete_prompt":
-      case "delete_prompt":
-        return true;
+    case "prompt_service_delete_prompt":
+    case "delete_prompt":
+      return true;
 
-      case "job_service_list_jobs":
-      case "list_jobs":
-        return this.mockJobsResponse();
+    case "job_service_list_jobs":
+    case "list_jobs":
+      return this.mockJobsResponse();
 
-      case "job_service_create_job":
-      case "create_job":
-        return Math.floor(Math.random() * 1000) + 200;
+    case "job_service_create_job":
+    case "create_job":
+      return Math.floor(Math.random() * 1000) + 200;
 
-      case "job_service_delete_job":
-      case "delete_job":
-        return true;
+    case "job_service_delete_job":
+    case "delete_job":
+      return true;
 
-      case "sync_service_get_status":
-        return this.mockSyncStatusResponse();
+    case "sync_service_get_status":
+      return this.mockSyncStatusResponse();
 
-      case "sync_service_trigger_sync":
-        return "sync_" + Date.now();
+    case "sync_service_trigger_sync":
+      return "sync_" + Date.now();
 
-      case "execute_unified_claude":
-        return this.mockExecuteResponse(
-          _args?.prompt || "test prompt",
-          _args?.options || {}
-        );
+    case "execute_unified_claude":
+      return this.mockExecuteResponse(
+        _args?.prompt || "test prompt",
+        _args?.options || {},
+      );
 
-      case "get_unified_cooldown_status":
-      case "get_cooldown_status":
-        return this.mockCooldownResponse();
+    case "get_unified_cooldown_status":
+    case "get_cooldown_status":
+      return this.mockCooldownResponse();
 
-      case "get_unified_system_health":
-      case "get_system_info":
-      case "get_app_info":
-      case "get_performance_info":
-        return this.mockHealthResponse();
+    case "get_unified_system_health":
+    case "get_system_info":
+    case "get_app_info":
+    case "get_performance_info":
+      return this.mockHealthResponse();
 
-      case "get_agents_catalog":
-        return { version: "dev", departments: [] };
+    case "get_agents_catalog":
+      return { version: "dev", departments: [] };
 
-      case "health_check":
-        return { status: "healthy", timestamp: new Date().toISOString() };
+    case "health_check":
+      return { status: "healthy", timestamp: new Date().toISOString() };
 
-      case "get_results":
-        return [
-          {
-            id: 1,
-            prompt_id: 1,
-            prompt_title: "架構分析 Prompt",
-            status: "success",
-            output:
+    case "get_results":
+      return [
+        {
+          id: 1,
+          prompt_id: 1,
+          prompt_title: "架構分析 Prompt",
+          status: "success",
+          output:
               "專案架構分析完成。\n\n✅ 前端使用 Material Design 3.0\n✅ 後端採用 Rust + Tauri\n✅ 資料庫使用 SQLite\n\n建議改進：\n- 加強錯誤處理機制\n- 增加單元測試覆蓋率\n- 優化載入效能",
-            execution_time: 2340,
-            created_at: new Date(Date.now() - 3600000).toISOString(),
-          },
-          {
-            id: 2,
-            prompt_id: 2,
-            prompt_title: "程式碼品質檢查",
-            status: "error",
-            output:
+          execution_time: 2340,
+          created_at: new Date(Date.now() - 3600000).toISOString(),
+        },
+        {
+          id: 2,
+          prompt_id: 2,
+          prompt_title: "程式碼品質檢查",
+          status: "error",
+          output:
               "執行過程中發生錯誤：\n\nError: Connection timeout\n請檢查網路連接或 Claude API 配置。",
-            execution_time: 5000,
-            created_at: new Date(Date.now() - 7200000).toISOString(),
-          },
-        ];
+          execution_time: 5000,
+          created_at: new Date(Date.now() - 7200000).toISOString(),
+        },
+      ];
 
-      default:
-        console.log(`Unknown mock command: ${command}`);
-        return {
-          success: true,
-          message: `Mock response for ${command}`,
-          command,
-        };
+    default:
+      console.log(`Unknown mock command: ${command}`);
+      return {
+        success: true,
+        message: `Mock response for ${command}`,
+        command,
+      };
     }
   }
 }
