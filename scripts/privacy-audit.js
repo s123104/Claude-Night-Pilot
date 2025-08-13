@@ -20,11 +20,11 @@ class PrivacyAuditor {
       /\/home\/[^\/\s]+/g,
       /C:\\Users\\[^\\]+/g,
 
-      // 特定用戶名
-      /azlife\.eth/g,
+      // 特定用戶名 (示例模式)
+      /[a-zA-Z0-9]+\.eth/g,
 
-      // 敏感檔案路徑
-      /\/Users\/azlife\.eth\/[^\s]*/g,
+      // 敏感檔案路徑 (示例模式)
+      /\/Users\/[^\/\s]+\/[^\s]*/g,
 
       // 其他可能的敏感信息
       /localhost:\d+/g,

@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import os from "os";
+import process from "process";
 
 /**
  * Claude Night Pilot E2E 測試配置 - 重構版
