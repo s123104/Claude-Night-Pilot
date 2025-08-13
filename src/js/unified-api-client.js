@@ -309,34 +309,37 @@ class UnifiedApiClient {
 
   // 增強的Mock響應系統 - 使用服務格式
   mockPromptsResponse() {
-    return [
-      {
-        id: 1,
-        title: "架構分析 Prompt",
-        content:
-          "@README.md @src/ 請分析這個專案的整體架構，包括前端、後端和資料庫設計，並提供改進建議。",
-        tags: "architecture,analysis,code-review",
-        created_at: new Date(Date.now() - 86400000).toISOString(),
-        updated_at: null,
-      },
-      {
-        id: 2,
-        title: "程式碼品質檢查",
-        content:
-          "@src/**/*.js @src/**/*.ts 檢查程式碼品質，找出潛在的bug和效能問題。",
-        tags: "quality,performance,debugging",
-        created_at: new Date(Date.now() - 172800000).toISOString(),
-        updated_at: null,
-      },
-      {
-        id: 3,
-        title: "文檔生成助手",
-        content: "根據程式碼自動生成API文檔和使用說明。",
-        tags: "documentation,api,automation",
-        created_at: new Date(Date.now() - 259200000).toISOString(),
-        updated_at: null,
-      },
-    ];
+    if (!this.__mockPrompts) {
+      this.__mockPrompts = [
+        {
+          id: 1,
+          title: "架構分析 Prompt",
+          content:
+            "@README.md @src/ 請分析這個專案的整體架構，包括前端、後端和資料庫設計，並提供改進建議。",
+          tags: "architecture,analysis,code-review",
+          created_at: new Date(Date.now() - 86400000).toISOString(),
+          updated_at: null,
+        },
+        {
+          id: 2,
+          title: "程式碼品質檢查",
+          content:
+            "@src/**/*.js @src/**/*.ts 檢查程式碼品質，找出潛在的bug和效能問題。",
+          tags: "quality,performance,debugging",
+          created_at: new Date(Date.now() - 172800000).toISOString(),
+          updated_at: null,
+        },
+        {
+          id: 3,
+          title: "文檔生成助手",
+          content: "根據程式碼自動生成API文檔和使用說明。",
+          tags: "documentation,api,automation",
+          created_at: new Date(Date.now() - 259200000).toISOString(),
+          updated_at: null,
+        },
+      ];
+    }
+    return this.__mockPrompts;
   }
 
   mockJobsResponse() {
@@ -387,16 +390,30 @@ class UnifiedApiClient {
       return this.mockPromptsResponse();
 
     case "prompt_service_create_prompt":
-    case "create_prompt":
-      return Math.floor(Math.random() * 1000) + 100;
+    case "create_prompt": {
+      const newId = Math.floor(Math.random() * 1000) + 100;
+      const item = {
+        id: newId,
+        title: _args?.title || `Prompt ${newId}`,
+        content: _args?.content || "",
+        tags: _args?.tags || "",
+        created_at: new Date().toISOString(),
+        updated_at: null,
+      };
+      this.__mockPrompts = this.mockPromptsResponse();
+      this.__mockPrompts.unshift(item);
+      return newId;
+    }
 
     case "prompt_service_delete_prompt":
     case "delete_prompt":
       return true;
 
     case "job_service_list_jobs":
-    case "list_jobs":
-      return this.mockJobsResponse();
+    case "list_jobs": {
+      if (!this.__mockJobs) { this.__mockJobs = this.mockJobsResponse(); }
+      return this.__mockJobs;
+    }
 
     case "job_service_create_job":
     case "create_job":

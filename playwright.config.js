@@ -1,9 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
-import os from 'os';
+import os from "os";
 
 /**
  * Claude Night Pilot E2E 測試配置 - 重構版
- * 
+ *
  * 支援新的測試架構：e2e, integration, cross-platform
  */
 export default defineConfig({
@@ -11,45 +11,47 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : Math.max(1, Math.floor(os.cpus().length * 0.75)),  // Optimize worker count
-  
+  workers: process.env.CI
+    ? 2
+    : Math.max(1, Math.floor(os.cpus().length * 0.75)), // Optimize worker count
+
   // 增強報告配置
   reporter: [
     ["html", { outputFolder: "./coverage/playwright-report" }],
     ["json", { outputFile: "./coverage/test-results.json" }],
     ["junit", { outputFile: "./coverage/junit-results.xml" }],
-    ...(process.env.CI ? [["github"]] : [])
+    ...(process.env.CI ? [["github"]] : []),
   ],
-  
+
   use: {
-    baseURL: "http://localhost:8080",
+    baseURL: "http://localhost:8081",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
-    
+
     // Optimized timeout settings for performance
-    actionTimeout: 15000,  // Increased for slower operations
-    navigationTimeout: 45000,  // Increased for app startup
-    
+    actionTimeout: 15000, // Increased for slower operations
+    navigationTimeout: 45000, // Increased for app startup
+
     // Tauri & Performance optimizations
     launchOptions: {
       args: [
-        '--disable-web-security',
-        '--disable-features=TranslateUI',
-        '--disable-ipc-flooding-protection',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-background-timer-throttling',
-        '--no-sandbox',  // Faster startup in CI
-        '--disable-dev-shm-usage',
-        '--memory-pressure-off',
-        '--allow-running-insecure-content',  // For localhost resources
-        '--ignore-certificate-errors',  // For development
-        '--ignore-ssl-errors',
-        '--ignore-certificate-errors-spki-list',
+        "--disable-web-security",
+        "--disable-features=TranslateUI",
+        "--disable-ipc-flooding-protection",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-background-timer-throttling",
+        "--no-sandbox", // Faster startup in CI
+        "--disable-dev-shm-usage",
+        "--memory-pressure-off",
+        "--allow-running-insecure-content", // For localhost resources
+        "--ignore-certificate-errors", // For development
+        "--ignore-ssl-errors",
+        "--ignore-certificate-errors-spki-list",
       ],
       // Additional Chromium flags for better stability
-      ignoreDefaultArgs: ['--disable-extensions'],
+      ignoreDefaultArgs: ["--disable-extensions"],
     },
   },
 
@@ -58,7 +60,7 @@ export default defineConfig({
     {
       name: "gui-tests",
       testDir: "./tests/e2e/gui",
-      use: { 
+      use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1280, height: 720 },
         // Parallel execution within project
@@ -67,8 +69,8 @@ export default defineConfig({
     },
     {
       name: "cli-tests",
-      testDir: "./tests/e2e/cli", 
-      use: { 
+      testDir: "./tests/e2e/cli",
+      use: {
         ...devices["Desktop Chrome"],
         fullyParallel: true,
       },
@@ -76,7 +78,7 @@ export default defineConfig({
     {
       name: "integration-tests",
       testDir: "./tests/integration",
-      use: { 
+      use: {
         ...devices["Desktop Chrome"],
         fullyParallel: true,
       },
@@ -86,7 +88,7 @@ export default defineConfig({
     {
       name: "cross-platform-tests",
       testDir: "./tests/e2e/cross-platform",
-      use: { 
+      use: {
         ...devices["Desktop Chrome"],
         fullyParallel: true,
       },
@@ -95,7 +97,7 @@ export default defineConfig({
     {
       name: "mobile-chrome",
       testDir: "./tests/e2e/gui",
-      use: { 
+      use: {
         ...devices["Pixel 5"],
         // Slightly longer timeouts for mobile
         actionTimeout: 20000,
@@ -103,7 +105,7 @@ export default defineConfig({
       },
       // Run mobile tests only when specifically requested
       grep: process.env.MOBILE_TESTS ? undefined : /^(?!.*mobile).*$/,
-    }
+    },
   ],
 
   // 全域設定（注意：暫時禁用以避免 ES 模組導入問題）
@@ -113,37 +115,32 @@ export default defineConfig({
   // Optimized development server configuration
   webServer: {
     command: "npm run dev:frontend",
-    port: 8080,
+    port: 8081,
     reuseExistingServer: true,
-    timeout: 60000,  // Increased timeout for slower systems
+    timeout: 60000, // Increased timeout for slower systems
     env: {
-      NODE_ENV: 'test'
+      NODE_ENV: "test",
     },
     // Optimize startup detection
-    stdout: 'pipe',
-    stderr: 'pipe',
+    stdout: "pipe",
+    stderr: "pipe",
   },
-  
+
   // Optimized test timeout settings
-  timeout: 120000,  // Increased for complex tests
+  timeout: 120000, // Increased for complex tests
   expect: {
-    timeout: 15000  // Increased for async operations
+    timeout: 15000, // Increased for async operations
   },
-  
+
   // Global test configuration for better performance
-  globalTimeout: 600000,  // 10 minutes for entire test suite
-  
+  globalTimeout: 600000, // 10 minutes for entire test suite
+
   // Optimize test execution
-  maxFailures: process.env.CI ? 5 : undefined,  // Stop after too many failures
-  
+  maxFailures: process.env.CI ? 5 : undefined, // Stop after too many failures
+
   // 測試匹配模式
-  testMatch: [
-    "**/*.spec.js",
-    "**/*.test.js"
-  ],
-  
+  testMatch: ["**/*.spec.js", "**/*.test.js"],
+
   // 忽略 demos 目錄（除非明確指定）
-  testIgnore: process.env.INCLUDE_DEMOS ? [] : [
-    "**/demos/**"
-  ]
+  testIgnore: process.env.INCLUDE_DEMOS ? [] : ["**/demos/**"],
 });

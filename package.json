@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
-    "dev:frontend": "python3 -m http.server 8080 --directory src",
-    "dev:frontend:legacy": "python3 -m http.server 8080 --directory src",
+    "dev:frontend": "node scripts/stable-dev-server.js",
+    "dev:frontend:legacy": "node scripts/stable-dev-server.js",
     "build:frontend": "echo 'Frontend build complete - using static files'",
     "tauri": "tauri",
     "test": "playwright test",

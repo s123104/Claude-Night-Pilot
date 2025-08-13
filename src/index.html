@@ -724,7 +724,7 @@
                   style="display: none"
                 >
                   <span class="material-symbols-outlined">warning</span>
-                  偵測到危險模式
+                  檢測到危險模式
                 </div>
                 <div
                   id="permission-skipped"
@@ -795,6 +795,14 @@
                   檢查間隔: 10分鐘
                 </div>
                 <div class="button-group">
+                  <button
+                    id="mock-usage-near-limit-btn"
+                    data-testid="mock-usage-near-limit"
+                    class="md-outlined-button"
+                  >
+                    <span class="material-symbols-outlined">priority_high</span>
+                    模擬接近限制
+                  </button>
                   <button
                     id="start-monitoring-btn"
                     data-testid="start-monitoring"
@@ -1022,6 +1030,14 @@
                   >
                     <span class="material-symbols-outlined">verified</span>
                     檢查一致性
+                  </button>
+                  <button
+                    id="mock-ccusage-error-btn"
+                    data-testid="mock-ccusage-error"
+                    class="md-outlined-button"
+                  >
+                    <span class="material-symbols-outlined">error</span>
+                    模擬 ccusage 失敗
                   </button>
                 </div>
                 <div
