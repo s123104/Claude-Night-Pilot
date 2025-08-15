@@ -1,4 +1,7 @@
 #[cfg(test)]
+mod integration_tests;
+
+#[cfg(test)]
 mod service_tests {
     use crate::services::prompt_service::{PromptService, CreatePromptRequest, UpdatePromptRequest};
     use crate::services::health_service::HealthService;

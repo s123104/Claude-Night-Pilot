@@ -27,6 +27,10 @@ pub mod services;
 pub mod interfaces;
 pub mod state;
 
+// vibe-kanban 模組化架構
+pub mod models;
+pub mod routes;
+
 // 數據庫最佳實踐模組 (保持向後兼容)
 pub mod database_error;
 pub mod database_manager_impl;
