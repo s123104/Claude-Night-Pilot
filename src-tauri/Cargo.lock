@@ -695,6 +695,7 @@ dependencies = [
  "dirs 5.0.1",
  "flume",
  "futures",
+ "lazy_static",
  "log",
  "mock_instant",
  "once_cell",

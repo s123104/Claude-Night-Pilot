@@ -31,6 +31,10 @@ pub mod state;
 pub mod models;
 pub mod routes;
 
+// 新增 Session 管理和 Worktree 管理
+pub mod claude_session_manager;
+pub mod worktree_manager;
+
 // 數據庫最佳實踐模組 (保持向後兼容)
 pub mod database_error;
 pub mod database_manager_impl;

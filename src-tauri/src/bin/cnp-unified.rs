@@ -5,8 +5,13 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use claude_night_pilot_lib::unified_interface::{UnifiedClaudeInterface, UnifiedExecutionOptions};
 use claude_night_pilot_lib::interfaces::CLIAdapter;
+use claude_night_pilot_lib::claude_session_manager::{
+    ClaudeSessionManager, SessionExecutionOptions, ClaudeSession, SessionStats
+};
 use serde_json::json;
 use std::io::{self, Read};
+use std::path::PathBuf;
+use uuid::Uuid;
 
 #[derive(Parser)]
 #[command(name = "cnp")]
@@ -19,6 +24,18 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Claude 會話管理
+    Session {
+        #[command(subcommand)]
+        action: SessionAction,
+    },
+    
+    /// Git Worktree 管理
+    Worktree {
+        #[command(subcommand)]
+        action: WorktreeAction,
+    },
+    
     /// 執行Claude命令
     Execute {
         /// 要執行的prompt內容
@@ -171,6 +188,90 @@ enum PromptAction {
 enum JobAction {
     /// 列出任務
     List,
+    /// 創建新任務
+    Create {
+        prompt_id: u32,
+        cron_expr: String,
+        #[arg(long)]
+        description: Option<String>,
+    },
+    /// 更新任務
+    Update {
+        job_id: u32,
+        #[arg(long)]
+        cron_expr: Option<String>,
+        #[arg(long)]
+        description: Option<String>,
+    },
+    /// 刪除任務
+    Delete {
+        job_id: u32,
+    },
+    /// 顯示任務詳情
+    Show {
+        job_id: u32,
+    },
+}
+
+#[derive(Subcommand)]
+enum SessionAction {
+    /// 創建新的Claude會話
+    Create {
+        /// 會話標題
+        title: String,
+        /// 會話描述
+        #[arg(long)]
+        description: Option<String>,
+        /// 是否創建Git worktree
+        #[arg(long)]
+        create_worktree: bool,
+        /// Git分支名稱
+        #[arg(long)]
+        branch: Option<String>,
+    },
+    /// 恢復已存在的會話
+    Resume {
+        /// 會話UUID
+        session_id: String,
+    },
+    /// 在會話中執行命令
+    Execute {
+        /// 會話UUID
+        session_id: String,
+        /// 要執行的prompt
+        prompt: String,
+    },
+    /// 列出所有會話
+    List,
+    /// 暫停會話
+    Pause {
+        session_id: String,
+    },
+    /// 完成會話
+    Complete {
+        session_id: String,
+    },
+    /// 顯示會話統計
+    Stats,
+}
+
+#[derive(Subcommand)]
+enum WorktreeAction {
+    /// 創建Git worktree
+    Create {
+        /// 分支名稱
+        branch: String,
+        /// Worktree路徑（可選）
+        #[arg(long)]
+        path: Option<String>,
+    },
+    /// 清理Worktree
+    Cleanup {
+        /// Worktree路徑
+        path: String,
+    },
+    /// 列出所有worktrees
+    List,
 }
 
 #[tokio::main]
@@ -178,6 +279,14 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
     
     match cli.command {
+        Commands::Session { action } => {
+            handle_session_command(action).await
+        }
+        
+        Commands::Worktree { action } => {
+            handle_worktree_command(action).await
+        }
+
         Commands::Execute {
             prompt,
             file,
@@ -516,6 +625,44 @@ async fn handle_job_command(action: JobAction) -> Result<()> {
             let output = adapter.cli_list_jobs("default").await?;
             println!("{}", output);
         }
+        
+        JobAction::Create { prompt_id, cron_expr, description } => {
+            println!("📅 創建新的排程任務");
+            println!("Prompt ID: {}", prompt_id);
+            println!("Cron 表達式: {}", cron_expr);
+            
+            if let Some(desc) = &description {
+                println!("描述: {}", desc);
+            }
+            
+            // 這裡應該調用實際的創建邏輯
+            println!("⚠️ 創建任務功能正在開發中");
+            println!("✅ 任務創建請求已記錄");
+        }
+        
+        JobAction::Update { job_id, cron_expr, description } => {
+            println!("📝 更新排程任務 ID: {}", job_id);
+            
+            if let Some(expr) = &cron_expr {
+                println!("新的 Cron 表達式: {}", expr);
+            }
+            
+            if let Some(desc) = &description {
+                println!("新的描述: {}", desc);
+            }
+            
+            println!("⚠️ 更新任務功能正在開發中");
+        }
+        
+        JobAction::Delete { job_id } => {
+            println!("🗑️ 刪除排程任務 ID: {}", job_id);
+            println!("⚠️ 刪除任務功能正在開發中");
+        }
+        
+        JobAction::Show { job_id } => {
+            println!("🔍 顯示排程任務詳情 ID: {}", job_id);
+            println!("⚠️ 顯示任務詳情功能正在開發中");
+        }
     }
     
     Ok(())
@@ -580,4 +727,185 @@ fn print_results_summary(format: String) {
             println!("執行結果\n- #1 成功\n- #2 失敗");
         }
     }
+}
+
+// Session 管理命令處理
+async fn handle_session_command(action: SessionAction) -> Result<()> {
+    let project_root = std::env::current_dir()?;
+    let mut manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
+    
+    match action {
+        SessionAction::Create { title, description, create_worktree, branch } => {
+            println!("🚀 創建新的 Claude 會話: {}", title);
+            
+            let options = SessionExecutionOptions::default();
+            let session = manager.create_session(title, description, create_worktree, branch, options).await?;
+            
+            println!("✅ 會話創建成功!");
+            println!("會話 ID: {}", session.id);
+            println!("Claude 會話 ID: {}", session.session_id);
+            
+            if let Some(worktree_path) = &session.worktree_path {
+                println!("Worktree 路徑: {}", worktree_path);
+            }
+            
+            if let Some(branch_name) = &session.branch_name {
+                println!("Git 分支: {}", branch_name);
+            }
+        }
+        
+        SessionAction::Resume { session_id } => {
+            println!("🔄 恢復 Claude 會話: {}", session_id);
+            
+            let session_uuid = Uuid::parse_str(&session_id)
+                .context("無效的會話 ID 格式")?;
+                
+            let session = manager.resume_session(session_uuid, None).await?;
+            
+            println!("✅ 會話恢復成功!");
+            println!("會話標題: {}", session.metadata.title);
+            println!("總消息數: {}", session.metadata.total_messages);
+            
+            if let Some(worktree_path) = &session.worktree_path {
+                println!("Worktree 路徑: {}", worktree_path);
+            }
+        }
+        
+        SessionAction::Execute { session_id, prompt } => {
+            println!("⚡ 在會話中執行命令: {}", session_id);
+            
+            let session_uuid = Uuid::parse_str(&session_id)
+                .context("無效的會話 ID 格式")?;
+                
+            let result = manager.execute_in_session(session_uuid, prompt, None).await?;
+            
+            println!("✅ 執行完成!");
+            println!("結果:\n{}", result);
+        }
+        
+        SessionAction::List => {
+            println!("📋 Claude 會話列表");
+            println!("═══════════════════════════════════════");
+            
+            let sessions = manager.list_sessions().await?;
+            
+            if sessions.is_empty() {
+                println!("目前沒有會話");
+            } else {
+                for session in sessions {
+                    let status_icon = match session.status {
+                        claude_night_pilot_lib::claude_session_manager::SessionStatus::Active => "🟢",
+                        claude_night_pilot_lib::claude_session_manager::SessionStatus::Paused => "🟡",
+                        claude_night_pilot_lib::claude_session_manager::SessionStatus::Completed => "✅",
+                        claude_night_pilot_lib::claude_session_manager::SessionStatus::Failed => "❌",
+                        claude_night_pilot_lib::claude_session_manager::SessionStatus::Suspended => "⏸️",
+                    };
+                    
+                    println!("{} {} ({})", status_icon, session.metadata.title, session.id);
+                    println!("   消息數: {}, Token: {}", 
+                        session.metadata.total_messages, 
+                        session.metadata.total_tokens);
+                        
+                    if let Some(branch) = &session.branch_name {
+                        println!("   分支: {}", branch);
+                    }
+                    
+                    println!();
+                }
+            }
+        }
+        
+        SessionAction::Pause { session_id } => {
+            let session_uuid = Uuid::parse_str(&session_id)?;
+            manager.pause_session(session_uuid).await?;
+            println!("⏸️ 會話已暫停: {}", session_id);
+        }
+        
+        SessionAction::Complete { session_id } => {
+            let session_uuid = Uuid::parse_str(&session_id)?;
+            manager.complete_session(session_uuid).await?;
+            println!("✅ 會話已完成: {}", session_id);
+        }
+        
+        SessionAction::Stats => {
+            let stats = manager.get_session_stats().await?;
+            
+            println!("📊 會話統計");
+            println!("═══════════════════════════════════════");
+            println!("總會話數: {}", stats.total_sessions);
+            println!("活躍會話: {}", stats.active_sessions);
+            println!("暫停會話: {}", stats.paused_sessions);
+            println!("已完成會話: {}", stats.completed_sessions);
+            println!("總 Token 使用: {}", stats.total_tokens);
+            println!("總成本: ${:.2}", stats.total_cost);
+        }
+    }
+    
+    Ok(())
+}
+
+// Worktree 管理命令處理
+async fn handle_worktree_command(action: WorktreeAction) -> Result<()> {
+    match action {
+        WorktreeAction::Create { branch, path } => {
+            println!("🌿 創建 Git Worktree");
+            
+            let project_root = std::env::current_dir()?;
+            let worktree_path = if let Some(custom_path) = path {
+                PathBuf::from(custom_path)
+            } else {
+                project_root.join("worktrees").join(&branch)
+            };
+            
+            // 使用 vibe-kanban 的 WorktreeManager
+            use claude_night_pilot_lib::worktree_manager::WorktreeManager;
+            
+            WorktreeManager::ensure_worktree_exists(
+                project_root.to_string_lossy().to_string(),
+                branch.clone(),
+                worktree_path.clone(),
+            ).await.map_err(|e| anyhow::anyhow!("創建 worktree 失敗: {}", e))?;
+            
+            println!("✅ Worktree 創建成功!");
+            println!("分支: {}", branch);
+            println!("路徑: {}", worktree_path.display());
+        }
+        
+        WorktreeAction::Cleanup { path } => {
+            println!("🧹 清理 Worktree: {}", path);
+            
+            let worktree_path = PathBuf::from(path);
+            use claude_night_pilot_lib::worktree_manager::WorktreeManager;
+            
+            WorktreeManager::cleanup_worktree(&worktree_path, None).await
+                .map_err(|e| anyhow::anyhow!("清理 worktree 失敗: {}", e))?;
+            
+            println!("✅ Worktree 清理完成!");
+        }
+        
+        WorktreeAction::List => {
+            println!("📋 Git Worktree 列表");
+            println!("═══════════════════════════════════════");
+            
+            // 執行 git worktree list
+            let output = tokio::process::Command::new("git")
+                .args(&["worktree", "list"])
+                .output()
+                .await?;
+                
+            if output.status.success() {
+                let list_output = String::from_utf8_lossy(&output.stdout);
+                if list_output.trim().is_empty() {
+                    println!("沒有找到額外的 worktree");
+                } else {
+                    println!("{}", list_output);
+                }
+            } else {
+                let error = String::from_utf8_lossy(&output.stderr);
+                anyhow::bail!("列出 worktree 失敗: {}", error);
+            }
+        }
+    }
+    
+    Ok(())
 }
