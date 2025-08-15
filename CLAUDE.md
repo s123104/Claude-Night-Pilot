@@ -15,7 +15,11 @@ npm run lint:check && npm typecheck && npm test
 # Development (GUI + CLI)
 npm run tauri dev          # Full desktop application
 npm run dev:frontend       # Frontend-only development
-npm run cli -- [args]      # CLI tool development
+npm run cli -- [args]      # Legacy CLI tool development
+
+# Enhanced CLI Development (Dual Architecture)
+./target/debug/cnp-optimized [command]  # Performance-optimized CLI (11.7ms startup)
+./target/debug/cnp-unified [command]     # Full-featured CLI with session management
 
 # Quality Assurance
 npm run commitlint         # Validate commit messages
@@ -26,6 +30,7 @@ npm run test:ui            # Interactive test debugging
 npm run tauri build        # Desktop application
 npm run cli:build          # CLI binary
 npm run cli:install        # Install CLI globally
+cargo build --release      # Build optimized CLI binaries
 ```
 
 ## Project Overview
@@ -34,7 +39,7 @@ Claude Night Pilot (夜間自動打工仔) is a modern automation tool for Claud
 
 - **Local-only execution** - Complete privacy protection, no cloud dependencies
 - **Dual-mode operation** - Both GUI (Tauri desktop app) and CLI interfaces  
-- **Ultra-lightweight** - Single executable < 10MB, startup time < 3s
+- **Ultra-lightweight** - Single executable < 10MB, CLI startup time 11.7ms (88% faster than target)
 - **Modern tech stack** - Tauri 2.0 + Rust backend + htmx frontend + SQLite database
 
 ## Development Commands
@@ -133,7 +138,7 @@ cargo clippy
 - **Database**: SQLite with sqlx for type-safe queries + usage tracking extensions
 - **Scheduling**: tokio-cron-scheduler for background jobs + adaptive monitoring
 - **Testing**: Playwright for E2E testing with comprehensive Chinese UI test coverage
-- **CLI**: Full-featured command-line interface with colored output and subcommands
+- **CLI**: Dual-architecture CLI system - `cnp-optimized` (11.7ms startup) and `cnp-unified` (full features with session management)
 - **Integration**: Claude Code executor with stream-json parsing + usage detection
 
 ### Key Directories
@@ -146,17 +151,22 @@ cargo clippy
 ├── src-tauri/             # Rust backend
 │   ├── src/
 │   │   ├── lib.rs         # Main application logic & Tauri commands
-│   │   ├── db.rs          # Database models and operations
+│   │   ├── unified_interface.rs # Unified Claude interface system
+│   │   ├── database_manager.rs # Enhanced database management
 │   │   ├── executor.rs    # Claude CLI execution wrapper with stream-json parsing
-│   │   ├── scheduler.rs   # Cron job scheduler
-│   │   ├── usage_tracker.rs # Usage tracking (integrated ccusage functionality)
-│   │   ├── claude_executor.rs # Enhanced Claude integration with @ symbol support
-│   │   └── bin/cnp.rs     # CLI binary entry point
+│   │   ├── claude_session_manager.rs # Session management with Git worktree integration
+│   │   ├── worktree_manager.rs # Git worktree management and cleanup
+│   │   ├── agents_registry.rs # Agent coordination and registry
+│   │   ├── enhanced_executor.rs # Advanced execution with cooldown detection
+│   │   └── bin/
+│   │       ├── cnp-optimized.rs # Performance-optimized CLI (11.7ms startup)
+│   │       └── cnp-unified.rs   # Full-featured CLI with session management
 │   ├── Cargo.toml         # Rust dependencies
 │   └── tauri.conf.json    # Tauri configuration
 ├── tests/                 # E2E test suite with Chinese UI coverage
-├── docs/                  # Documentation
-└── research-projects/     # Integration analysis and implementation guides
+├── docs/
+│   └── tmp/               # Enhanced CLI documentation and testing reports
+└── research-projects/     # Integration analysis and vibe-kanban patterns
 ```
 
 ### Core Components
@@ -189,25 +199,36 @@ cargo clippy
 - **Responsive Design**: Mobile-friendly interface with CSS custom properties
 - **Ripple Effects**: Material Design interaction animations
 
-#### CLI Tool (`src-tauri/src/bin/cnp.rs`)
-- **Command Structure**: Clap-based argument parsing with subcommands
-- **Database Integration**: Direct SQLite access for all operations
-- **Colored Output**: Professional terminal output with status indicators
-- **Subcommands**:
-  - `init`: Initialize database
-  - `prompt`: Manage prompts (list, create, delete, show)
-  - `job`: Manage scheduled jobs (list, create, cancel)
-  - `run`: Execute prompts directly or schedule them
+#### Dual CLI Architecture
+
+##### Performance CLI (`src-tauri/src/bin/cnp-optimized.rs`)
+- **Ultra-Fast Startup**: 11.7ms startup time (88% faster than 100ms target)
+- **Core Commands**: `execute`, `status`, `health`, `benchmark`
+- **Optimized for**: Frequent usage, script integration, performance-critical workflows
+- **Output Formats**: JSON, text, pretty formatting
+
+##### Full-Featured CLI (`src-tauri/src/bin/cnp-unified.rs`)
+- **Complete Feature Set**: All functionality with GUI consistency
+- **Session Management**: Create, resume, execute within Claude sessions
+- **Git Worktree Integration**: Isolated development environments
+- **Enhanced Subcommands**:
+  - `session`: Create, resume, list, execute, pause, complete Claude sessions
+  - `worktree`: Create, list, cleanup Git worktrees
+  - `prompt`: Full CRUD operations (list, create, delete, show, update)
+  - `job`: Complete job management (list, create, update, delete, show)
+  - `run`/`execute`: Execute prompts with session support
+  - `batch`: Concurrent prompt execution
   - `status`: System status and health checks
-  - `cooldown`: Check Claude CLI cooldown status
-  - `results`: View execution results and logs
+  - `results`: Enhanced results viewing with filtering
 
 #### Advanced Modules
-- **usage_tracker.rs**: Integrated ccusage functionality for Claude usage monitoring
-- **claude_executor.rs**: Enhanced Claude Code integration with @ symbol file reference support
-- **adaptive_monitor.rs**: Intelligent monitoring frequency adjustment
-- **smart_scheduler.rs**: Enhanced scheduling with adaptive logic
-- **prompt_parser.rs**: Advanced prompt parsing with @ symbol detection and file resolution
+- **claude_session_manager.rs**: Comprehensive session management with Git worktree integration
+- **worktree_manager.rs**: Git worktree creation, management, and intelligent cleanup
+- **unified_interface.rs**: Unified Claude interface with enhanced error handling
+- **database_manager.rs**: Advanced database operations with connection pooling
+- **agents_registry.rs**: Agent coordination and specialized task delegation
+- **enhanced_executor.rs**: Advanced execution with cooldown detection and retry logic
+- **claude_cooldown_detector.rs**: Intelligent Claude API rate limit detection
 
 ## Development Patterns
 
@@ -342,6 +363,13 @@ class MaterialThemeManager {
 
 ## Key Features Implementation
 
+### Enhanced Session Management with Git Worktree Integration
+- **Session Creation**: Create Claude sessions with automatic Git worktree setup
+- **Branch Isolation**: Each session gets its own Git branch and working directory
+- **Session Persistence**: Resume sessions across terminal sessions with full context
+- **Worktree Cleanup**: Intelligent cleanup of worktrees and metadata when sessions complete
+- **Cross-Platform Support**: Windows/WSL compatibility with path normalization
+
 ### Enhanced Prompt Management
 - Create, edit, delete prompts with advanced tagging system
 - **@ Symbol Support**: Full Claude Code file reference syntax (`@file.md`, `@folder/`, `@*.ts`)
@@ -357,7 +385,8 @@ class MaterialThemeManager {
 - **Resource Management**: Memory and CPU usage monitoring during execution
 
 ### Smart Cooldown Management
-- **Rate Limit Detection**: Advanced parsing of Claude API responses
+- **Parallel Detection**: Concurrent cooldown checking with `tokio::join!` for <50ms response
+- **Rate Limit Parsing**: Advanced parsing of Claude API responses and error codes
 - **Predictive Countdown**: Real-time cooldown estimation and display
 - **Adaptive Scheduling**: Automatic job rescheduling based on rate limits
 - **Usage Optimization**: Intelligent batching to minimize API calls
@@ -369,19 +398,35 @@ class MaterialThemeManager {
 - **Session Analytics**: Per-session usage breakdown and optimization insights
 - **Export Capabilities**: JSON/CSV export for usage analysis
 
-### Dual Interface Architecture
+### Triple Interface Architecture
 - **GUI**: Tauri desktop app with Material Design 3.0 and htmx
-- **CLI**: Full-featured Rust binary (`cnp`) with colored output and subcommands
+- **Performance CLI**: `cnp-optimized` - Ultra-fast CLI (11.7ms startup) for frequent operations
+- **Full CLI**: `cnp-unified` - Complete feature set with session management and Git worktree integration
 - **API Integration**: RESTful endpoints with WebSocket streaming
 - **Cross-Platform**: Windows, macOS, Linux support with native performance
+- **Session Management**: Claude session persistence with worktree isolation
+- **Git Integration**: Automatic branch creation and cleanup for development workflows
 
 ## Common Tasks
 
 ### Adding a New Database Table
 1. Update SQL schema in `src-tauri/migrations/0001_init.sql`
-2. Add corresponding Rust struct in `db.rs` with `#[derive(FromRow)]`
-3. Implement CRUD methods in `Database` impl block
+2. Add corresponding Rust struct in database modules with `#[derive(FromRow)]`
+3. Implement CRUD methods in `DatabaseManager` impl block
 4. Add Tauri commands if GUI access needed
+5. Update both CLI binaries if needed
+
+### Adding Session Management Features
+1. Extend `ClaudeSessionManager` in `claude_session_manager.rs`
+2. Add worktree operations in `worktree_manager.rs` if needed
+3. Update CLI commands in `cnp-unified.rs`
+4. Test with both session creation and resumption workflows
+
+### Performance Optimization
+1. Profile with `cargo build --release` and benchmark
+2. Use `which::which()` for binary existence checks
+3. Implement parallel operations with `tokio::join!`
+4. Minimize initialization overhead for frequently-used commands
 
 ### Modifying the GUI
 1. Edit HTML structure in `src/index.html`
@@ -390,10 +435,18 @@ class MaterialThemeManager {
 4. Test with `npm run tauri dev`
 
 ### CLI Command Development
-1. Modify `src-tauri/src/bin/cnp.rs` for argument parsing
-2. Add business logic using existing database/executor modules
-3. Test with `npm run cli -- your-command`
-4. Build release binary with `npm run cli:build`
+
+#### Performance CLI (cnp-optimized)
+1. Modify `src-tauri/src/bin/cnp-optimized.rs` for new commands
+2. Focus on minimal dependencies and fast startup
+3. Test with `./target/debug/cnp-optimized your-command`
+4. Optimize for <100ms operations
+
+#### Full-Featured CLI (cnp-unified)
+1. Modify `src-tauri/src/bin/cnp-unified.rs` for comprehensive features
+2. Add session management and worktree integration
+3. Test with `./target/debug/cnp-unified your-command`
+4. Build with `cargo build --release`
 
 ## Configuration Files
 
@@ -448,8 +501,11 @@ Enhanced Claude Code integration with advanced stream processing and usage track
 
 ### Advanced Features
 - **@ Symbol Processing**: Full file reference resolution (`@file.md`, `@folder/`, `@*.ts`)
-- **Working Directory Management**: Git worktree integration for isolated execution
-- **Session Persistence**: Resume interrupted conversations with full context
+- **Git Worktree Integration**: Automatic branch creation and isolated working directories
+- **Session Management**: Create, resume, pause, and complete Claude sessions with full context
+- **Cross-Platform Worktree Support**: Windows/WSL compatibility with intelligent path handling
+- **Session Persistence**: SQLite-backed session storage with metadata and token tracking
+- **Intelligent Cleanup**: Safe worktree removal with Git reference cleanup
 - **Error Recovery**: Intelligent retry with exponential backoff
 - **Rate Limit Awareness**: Proactive cooldown detection and management
 
@@ -468,10 +524,19 @@ match json_line.get("type") {
 
 ## Performance Targets & Results
 
-### CLI 工具性能 (cnp-optimized.rs)
+### Dual CLI Performance Results
+
+#### cnp-optimized (Performance CLI)
 - **啟動時間**: 目標 100ms → **實際 11.7ms** ✅ (超越目標 88%)
-- **健康檢查**: 目標 200ms → **快速模式 0ms** ✅ **完美達成**
-- **標準健康檢查**: 353ms (適合深度檢查場景)
+- **健康檢查**: 目標 200ms → **快速模式 12ms** ✅ (超越目標 94%)
+- **標準健康檢查**: 311ms (完整驗證適用)
+- **狀態查詢**: <10ms (超快響應)
+
+#### cnp-unified (Full-Featured CLI)
+- **啟動時間**: ~50ms (包含完整功能初始化)
+- **會話創建**: <2s (包含 Git worktree 設置)
+- **會話恢復**: <500ms (快速上下文載入)
+- **批量執行**: 3個並發任務支援
 
 ### 應用程式性能
 - **Binary Size**: < 10MB final executable
@@ -489,14 +554,20 @@ match json_line.get("type") {
 
 ### 效能測試命令
 ```bash
-# 測試啟動時間和健康檢查性能
-./target/release/cnp-optimized benchmark --iterations 5
+# Performance CLI 測試
+./target/debug/cnp-optimized benchmark --iterations 5
+./target/debug/cnp-optimized health --fast --format json
+./target/debug/cnp-optimized status
 
-# 快速健康檢查 (<50ms)
-./target/release/cnp-optimized health --fast --format json
+# Full-Featured CLI 測試
+./target/debug/cnp-unified session list
+./target/debug/cnp-unified worktree list
+./target/debug/cnp-unified job list --format pretty
 
-# 標準健康檢查 (完整驗證)
-./target/release/cnp-optimized health --format json
+# 建置優化版本
+cargo build --release
+./target/release/cnp-optimized benchmark
+./target/release/cnp-unified session create "測試會話"
 ```
 
 ## Security Considerations
@@ -598,12 +669,79 @@ claude code commit --diff-lines=100
 - **commit-msg**: 驗證 commit 訊息格式
 - 自動觸發 commitlint 規則驗證
 - 支援 AI 生成的 commit 訊息後處理
+## Enhanced Workflow Examples
+
+### Session-Based Development Workflow
+```bash
+# 1. Create development session with Git worktree
+cnp-unified session create "User Authentication Feature" \
+  --description "Implementing OAuth2 login system" \
+  --create-worktree \
+  --branch "feature-oauth-login"
+
+# 2. Work in isolated environment
+cnp-unified session execute <session-uuid> \
+  "Analyze current authentication patterns and create implementation plan"
+
+# 3. Continue development in same session
+cnp-unified session execute <session-uuid> \
+  "Implement OAuth2 provider integration with proper error handling"
+
+# 4. Complete and cleanup
+cnp-unified session complete <session-uuid>  # Auto-cleanup worktree
+```
+
+### Performance-Critical Automation
+```bash
+# Use cnp-optimized for frequent operations
+./target/release/cnp-optimized status  # <10ms
+./target/release/cnp-optimized health --fast  # 12ms
+./target/release/cnp-optimized execute -p "Quick analysis"  # Minimal overhead
+
+# Use cnp-unified for complex workflows
+./target/release/cnp-unified batch -f analysis-tasks.json --concurrent 3
+```
+
+### Git Worktree Management
+```bash
+# Create isolated worktrees for different features
+cnp-unified worktree create feature-payments
+cnp-unified worktree create hotfix-security
+
+# List active worktrees
+cnp-unified worktree list
+
+# Clean up when done
+cnp-unified worktree cleanup /path/to/feature-worktree
+```
+
+## SuperClaude Framework Integration
+
+This project integrates with the SuperClaude framework patterns from `~/.claude/` directory:
+
+### Framework Features
+- **Task Management**: TodoWrite integration for complex workflows
+- **Persona System**: Auto-activation based on development context
+- **MCP Server Integration**: Context7 for documentation, Sequential for analysis
+- **Token Efficiency**: Intelligent compression and optimization
+- **Quality Gates**: 8-step validation cycle with evidence-based completion
+
+### Framework Commands Support
+```bash
+# SuperClaude commands work seamlessly with CLI
+cnp-unified execute -p "/analyze @src-tauri/src/claude_session_manager.rs --think-hard"
+cnp-unified execute -p "/improve @src-tauri/src/ --focus performance --persona-architect"
+```
+
 ## Important Development Notes
 
 - The frontend uses Chinese text extensively - all UI tests are in Chinese
 - All mock responses include Chinese content for authentic testing
-- The CLI tool (`cnp`) provides a complete command-line interface to all functionality
+- **Dual CLI Architecture**: `cnp-optimized` (11.7ms startup) vs `cnp-unified` (full features)
+- **Session Management**: Git worktree integration provides isolated development environments
+- **SuperClaude Integration**: Full compatibility with framework patterns and personas
 - Security features are designed with production use in mind
 - Database schema supports future enterprise features like audit compliance
 - **Commit messages must follow Conventional Commits standard**
 - **AI commit generation tools should limit diff context to 100 lines per direction**
+- **Performance Testing**: Use `./target/debug/cnp-optimized benchmark` for performance validation
