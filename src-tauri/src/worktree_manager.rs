@@ -10,11 +10,9 @@ use std::{
 use anyhow::{Context, Result};
 use tracing::{debug, info};
 
-// Global synchronization for worktree creation to prevent race conditions
-lazy_static::lazy_static! {
-    static ref WORKTREE_CREATION_LOCKS: Arc<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>> =
-        Arc::new(Mutex::new(HashMap::new()));
-}
+// Global synchronization for worktree creation to prevent race conditions - Updated to use std::sync::LazyLock
+static WORKTREE_CREATION_LOCKS: std::sync::LazyLock<Arc<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>>> =
+    std::sync::LazyLock::new(|| Arc::new(Mutex::new(HashMap::new())));
 
 pub struct WorktreeManager;
 

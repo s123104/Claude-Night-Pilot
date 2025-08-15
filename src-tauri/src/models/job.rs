@@ -39,14 +39,17 @@ pub struct Job {
     
     /// 通知配置
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub notification_config: Option<NotificationConfig>,
     
     /// 下次執行時間
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub next_run_time: Option<DateTime<Utc>>,
     
     /// 上次執行時間
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub last_run_time: Option<DateTime<Utc>>,
     
     /// 執行次數
@@ -73,6 +76,7 @@ pub struct Job {
     
     /// 創建者
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub created_by: Option<String>,
 }
 
@@ -125,6 +129,7 @@ pub struct JobExecutionOptions {
     
     /// 工作目錄
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub working_directory: Option<String>,
     
     /// 環境變數
@@ -133,6 +138,7 @@ pub struct JobExecutionOptions {
     
     /// 資源限制
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub resource_limits: Option<ResourceLimits>,
 }
 
@@ -199,6 +205,7 @@ pub struct NotificationConfig {
     
     /// 自定義訊息模板
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub custom_message_template: Option<String>,
 }
 
@@ -220,14 +227,17 @@ pub enum NotificationChannel {
 pub struct ResourceLimits {
     /// 最大記憶體 (MB)
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub max_memory_mb: Option<u64>,
     
     /// 最大 CPU 使用率 (%)
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub max_cpu_percent: Option<f64>,
     
     /// 最大磁碟使用 (MB)
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub max_disk_mb: Option<u64>,
 }
 

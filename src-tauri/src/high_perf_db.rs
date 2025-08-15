@@ -15,9 +15,9 @@ use tracing::{info, warn, error, debug};
 // Re-export types from simple_db for compatibility
 pub use crate::simple_db::{SimplePrompt, SimpleSchedule, ExecutionResult, TokenUsageStats};
 
-// Performance tracking
-static QUERY_METRICS: once_cell::sync::Lazy<Arc<DashMap<String, QueryMetric>>> = 
-    once_cell::sync::Lazy::new(|| Arc::new(DashMap::new()));
+// Performance tracking - Updated to use std::sync::LazyLock for better performance
+static QUERY_METRICS: std::sync::LazyLock<Arc<DashMap<String, QueryMetric>>> = 
+    std::sync::LazyLock::new(|| Arc::new(DashMap::new()));
 
 #[derive(Debug, Clone)]
 struct QueryMetric {
