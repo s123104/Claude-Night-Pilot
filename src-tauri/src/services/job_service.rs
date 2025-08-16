@@ -1,9 +1,9 @@
 // Job服務 - GUI和CLI共享排程管理邏輯
+use crate::database_manager_impl::DatabaseManager as OldDatabaseManager;
+use crate::simple_db::SimpleSchedule;
+use crate::state::AppStateManager;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use crate::simple_db::SimpleSchedule;
-use crate::database_manager_impl::DatabaseManager as OldDatabaseManager;
-use crate::state::AppStateManager;
 use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -78,16 +78,17 @@ impl JobService {
             .into_iter()
             .map(JobServiceResponse::from)
             .collect();
-        
+
         // 觸發狀態同步
         self.state_manager.notify_jobs_changed(&responses).await?;
-        
+
         Ok(responses)
     }
 
     /// 創建新排程任務
     pub async fn create_job(&self, request: CreateJobRequest) -> Result<i64> {
-        let job_id = self.db_manager
+        let job_id = self
+            .db_manager
             .create_schedule_async(
                 request.prompt_id,
                 &request.name,
@@ -96,8 +97,10 @@ impl JobService {
             .await?;
 
         // 觸發狀態同步
-        self.state_manager.notify_job_created(job_id, &request).await?;
-        
+        self.state_manager
+            .notify_job_created(job_id, &request)
+            .await?;
+
         Ok(job_id)
     }
 
@@ -114,7 +117,7 @@ impl JobService {
             .into_iter()
             .map(JobServiceResponse::from)
             .collect();
-        
+
         Ok(responses)
     }
 
@@ -127,16 +130,18 @@ impl JobService {
         }
 
         // 使用DatabaseManager的更新方法
-        self.db_manager.update_schedule_async(
-            request.id,
-            request.cron_expression.as_deref(),
-            request.status.as_deref(),
-            None, // schedule_time不變
-        ).await?;
+        self.db_manager
+            .update_schedule_async(
+                request.id,
+                request.cron_expression.as_deref(),
+                request.status.as_deref(),
+                None, // schedule_time不變
+            )
+            .await?;
 
         // 觸發狀態同步
         self.state_manager.notify_job_updated(&request).await?;
-        
+
         Ok(())
     }
 
@@ -156,7 +161,7 @@ impl JobService {
 
         // 觸發狀態同步
         self.state_manager.notify_job_deleted(id).await?;
-        
+
         Ok(())
     }
 
@@ -169,7 +174,7 @@ impl JobService {
             status: Some("paused".to_string()),
             description: None,
         };
-        
+
         self.update_job(request).await
     }
 
@@ -182,12 +187,15 @@ impl JobService {
             status: Some("active".to_string()),
             description: None,
         };
-        
+
         self.update_job(request).await
     }
 
     /// 手動執行任務
-    pub async fn execute_job(&self, id: i64) -> Result<crate::enhanced_executor::EnhancedClaudeResponse> {
+    pub async fn execute_job(
+        &self,
+        id: i64,
+    ) -> Result<crate::enhanced_executor::EnhancedClaudeResponse> {
         let job = self.get_job(id).await?;
         if let Some(job_data) = job {
             // 獲取關聯的prompt
@@ -200,11 +208,13 @@ impl JobService {
                 working_directory: None,
             };
 
-            let result = prompt_service.execute_prompt(job_data.prompt_id, options).await?;
-            
+            let result = prompt_service
+                .execute_prompt(job_data.prompt_id, options)
+                .await?;
+
             // 觸發狀態同步 - 記錄執行
             self.state_manager.notify_job_executed(id, &result).await?;
-            
+
             Ok(result)
         } else {
             Err(anyhow::anyhow!("排程任務 {} 不存在", id))
@@ -227,11 +237,11 @@ pub async fn job_service_create_job(
     description: Option<String>,
 ) -> Result<i64, String> {
     let service = JobService::new().await.map_err(|e| e.to_string())?;
-    let request = CreateJobRequest { 
-        prompt_id, 
-        name, 
-        cron_expression, 
-        description 
+    let request = CreateJobRequest {
+        prompt_id,
+        name,
+        cron_expression,
+        description,
     };
     service.create_job(request).await.map_err(|e| e.to_string())
 }

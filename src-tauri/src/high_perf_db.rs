@@ -15,9 +15,13 @@ use tracing::{info, warn, error, debug};
 // Re-export types from simple_db for compatibility
 pub use crate::simple_db::{SimplePrompt, SimpleSchedule, ExecutionResult, TokenUsageStats};
 
-// Performance tracking - Updated to use std::sync::LazyLock for better performance
-static QUERY_METRICS: std::sync::LazyLock<Arc<DashMap<String, QueryMetric>>> = 
-    std::sync::LazyLock::new(|| Arc::new(DashMap::new()));
+// Performance tracking - Using OnceLock for MSRV 1.70.0 compatibility
+use std::sync::OnceLock;
+static QUERY_METRICS: OnceLock<Arc<DashMap<String, QueryMetric>>> = OnceLock::new();
+
+fn get_query_metrics() -> &'static Arc<DashMap<String, QueryMetric>> {
+    QUERY_METRICS.get_or_init(|| Arc::new(DashMap::new()))
+}
 
 #[derive(Debug, Clone)]
 struct QueryMetric {
@@ -253,7 +257,7 @@ impl HighPerfDatabase {
         let duration = start.elapsed();
         
         // Update metrics
-        QUERY_METRICS.entry(operation_name.clone())
+        get_query_metrics().entry(operation_name.clone())
             .and_modify(|metric| {
                 metric.total_calls += 1;
                 metric.total_duration_ms += duration.as_millis() as u64;
@@ -299,7 +303,7 @@ impl HighPerfDatabase {
     }
     
     pub fn get_performance_metrics(&self) -> Vec<(String, QueryMetric)> {
-        QUERY_METRICS.iter()
+        get_query_metrics().iter()
             .map(|entry| (entry.key().clone(), entry.value().clone()))
             .collect()
     }

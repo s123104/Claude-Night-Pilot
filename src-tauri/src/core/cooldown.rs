@@ -1,8 +1,8 @@
 // 冷卻檢測與管理系統 - 基於研究分析的最佳實踐
-use regex::Regex;
-use chrono::{DateTime, Local, NaiveTime, TimeZone};
-use serde::{Deserialize, Serialize};
 use anyhow::Result;
+use chrono::{DateTime, Local, NaiveTime, TimeZone};
+use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,7 +35,7 @@ impl CooldownDetector {
         Ok(Self {
             // 基於 Claude-Autopilot 的高精度正則表達式
             usage_limit_regex: Regex::new(
-                r"(?i)(Claude\s+)?usage\s+limit\s+reached.*?reset\s+at\s+(\d{1,2}[:\d]*(?:\s*[APM]{2})?(?:\s*\([^)]+\))?)"
+                r"(?i)(Claude\s+)?usage\s+limit\s+reached.*?reset\s+at\s+(\d{1,2}[:\d]*(?:\s*[APM]{2})?(?:\s*\([^)]+\))?)",
             )?,
             time_parsing_regex: Regex::new(r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)?")?,
             rate_limit_regex: Regex::new(r"(?i)rate\s+limit.*?(\d+)\s+(seconds?|minutes?|hours?)")?,
@@ -77,9 +77,7 @@ impl CooldownDetector {
 
     /// 檢測使用限制錯誤 - 基於 Claude-Autopilot 邏輯增強
     fn detect_usage_limit(&self, output: &str) -> Option<CooldownInfo> {
-        let matches: Vec<_> = self.usage_limit_regex
-            .captures_iter(output)
-            .collect();
+        let matches: Vec<_> = self.usage_limit_regex.captures_iter(output).collect();
 
         if matches.is_empty() {
             return None;
@@ -96,7 +94,7 @@ impl CooldownDetector {
         // 檢查是否在 6 小時窗口內（Claude-Autopilot 的邏輯）
         let duration = reset_time.signed_duration_since(now);
         let hours_diff = duration.num_hours();
-        
+
         if hours_diff > 6 || duration.num_seconds() <= 0 {
             return Some(CooldownInfo {
                 is_cooling: false,
@@ -136,7 +134,8 @@ impl CooldownDetector {
         let caps = self.time_parsing_regex.captures(&clean_time)?;
 
         let hours: u32 = caps.get(1)?.as_str().parse().ok()?;
-        let minutes: u32 = caps.get(2)
+        let minutes: u32 = caps
+            .get(2)
             .map(|m| m.as_str().parse().unwrap_or(0))
             .unwrap_or(0);
         let ampm = caps.get(3).map(|m| m.as_str());
@@ -185,7 +184,7 @@ impl CooldownDetector {
                 if let Some(seconds_str) = caps.get(1) {
                     if let Ok(seconds) = seconds_str.as_str().parse::<u64>() {
                         let next_time = SystemTime::now() + std::time::Duration::from_secs(seconds);
-                        
+
                         return Some(CooldownInfo {
                             is_cooling: seconds > 0,
                             seconds_remaining: seconds,
@@ -363,13 +362,13 @@ impl CooldownDetector {
     async fn adaptive_wait(&self, total_seconds: u64) {
         // 對於長期冷卻，建議使用外部工具如 ccusage 進行更精確的追蹤
         tracing::info!("啟動適應性等待模式，總時長: {} 秒", total_seconds);
-        
+
         // 初始等待 10 分鐘，然後檢查狀態
         let initial_wait = 600; // 10 分鐘
         tokio::time::sleep(std::time::Duration::from_secs(initial_wait)).await;
-        
+
         let mut remaining = total_seconds.saturating_sub(initial_wait);
-        
+
         // 之後每 5 分鐘檢查一次
         while remaining > 0 {
             // 檢查是否可以透過 claude doctor 獲得更準確的狀態
@@ -378,14 +377,14 @@ impl CooldownDetector {
                     tracing::info!("適應性等待檢測到冷卻已結束");
                     return;
                 }
-                
+
                 // 更新剩餘時間
                 if current_status.seconds_remaining < remaining {
                     remaining = current_status.seconds_remaining;
                     tracing::info!("適應性等待更新剩餘時間: {} 秒", remaining);
                 }
             }
-            
+
             let next_check = remaining.min(300); // 最多等待 5 分鐘
             tokio::time::sleep(std::time::Duration::from_secs(next_check)).await;
             remaining = remaining.saturating_sub(next_check);
@@ -420,7 +419,10 @@ impl CooldownDetector {
 
         match &cooldown_info.cooldown_pattern {
             Some(CooldownPattern::UsageLimitReached { reset_time }) => {
-                format!("⏳ 使用限制冷卻中，重置時間: {} (剩餘: {})", reset_time, time_str)
+                format!(
+                    "⏳ 使用限制冷卻中，重置時間: {} (剩餘: {})",
+                    reset_time, time_str
+                )
             }
             Some(CooldownPattern::RateLimitExceeded { .. }) => {
                 format!("⏳ 速率限制冷卻中，剩餘: {}", time_str)
@@ -446,7 +448,7 @@ mod tests {
     #[test]
     fn test_usage_limit_detection() {
         let detector = CooldownDetector::new().unwrap();
-        
+
         let test_cases = [
             "Claude usage limit reached. Your limit will reset at 4:30 PM (EST)",
             "usage limit reached, reset at 11pm",
@@ -456,7 +458,7 @@ mod tests {
         for case in &test_cases {
             let result = detector.detect_cooldown(case);
             assert!(result.is_some(), "Failed to detect cooldown in: {}", case);
-            
+
             let cooldown = result.unwrap();
             assert!(matches!(
                 cooldown.cooldown_pattern,
@@ -468,7 +470,7 @@ mod tests {
     #[test]
     fn test_seconds_cooldown_detection() {
         let detector = CooldownDetector::new().unwrap();
-        
+
         let test_cases = [
             ("Error: cooldown: 123s", Some(123)),
             ("Please wait 45 seconds before retrying", Some(45)),
@@ -479,7 +481,7 @@ mod tests {
 
         for (input, expected_seconds) in &test_cases {
             let result = detector.detect_cooldown(input);
-            
+
             match expected_seconds {
                 Some(expected) => {
                     assert!(result.is_some(), "Failed to detect cooldown in: {}", input);
@@ -496,7 +498,7 @@ mod tests {
     #[test]
     fn test_time_parsing() {
         let detector = CooldownDetector::new().unwrap();
-        
+
         let test_cases = [
             ("4:30 PM", true),
             ("11pm", true),
@@ -508,11 +510,15 @@ mod tests {
 
         for (time_str, should_parse) in &test_cases {
             let result = detector.parse_reset_time(time_str);
-            
+
             if *should_parse {
                 assert!(result.is_some(), "Failed to parse time: {}", time_str);
             } else {
-                assert!(result.is_none(), "Should not parse invalid time: {}", time_str);
+                assert!(
+                    result.is_none(),
+                    "Should not parse invalid time: {}",
+                    time_str
+                );
             }
         }
     }
@@ -520,7 +526,7 @@ mod tests {
     #[test]
     fn test_rate_limit_detection() {
         let detector = CooldownDetector::new().unwrap();
-        
+
         let test_cases = [
             "Rate limit exceeded. Try again in 30 seconds",
             "API rate limit: wait 5 minutes",
@@ -530,7 +536,7 @@ mod tests {
         for case in &test_cases {
             let result = detector.detect_cooldown(case);
             assert!(result.is_some(), "Failed to detect rate limit in: {}", case);
-            
+
             let cooldown = result.unwrap();
             assert!(matches!(
                 cooldown.cooldown_pattern,
@@ -542,7 +548,7 @@ mod tests {
     #[test]
     fn test_cooldown_formatting() {
         let detector = CooldownDetector::new().unwrap();
-        
+
         let cooldown_info = CooldownInfo {
             is_cooling: true,
             seconds_remaining: 3661, // 1h 1m 1s

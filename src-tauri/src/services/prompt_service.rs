@@ -1,9 +1,9 @@
 // Prompt服務 - GUI和CLI共享業務邏輯
+use crate::database_manager_impl::DatabaseManager as OldDatabaseManager;
+use crate::simple_db::SimplePrompt;
+use crate::state::AppStateManager;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use crate::simple_db::SimplePrompt;
-use crate::database_manager_impl::DatabaseManager as OldDatabaseManager;
-use crate::state::AppStateManager;
 use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -68,22 +68,27 @@ impl PromptService {
             .into_iter()
             .map(PromptServiceResponse::from)
             .collect();
-        
+
         // 觸發狀態同步
-        self.state_manager.notify_prompts_changed(&responses).await?;
-        
+        self.state_manager
+            .notify_prompts_changed(&responses)
+            .await?;
+
         Ok(responses)
     }
 
     /// 創建新Prompt
     pub async fn create_prompt(&self, request: CreatePromptRequest) -> Result<i64> {
-        let prompt_id = self.db_manager
+        let prompt_id = self
+            .db_manager
             .create_prompt_async(&request.title, &request.content)
             .await?;
 
         // 觸發狀態同步
-        self.state_manager.notify_prompt_created(prompt_id, &request).await?;
-        
+        self.state_manager
+            .notify_prompt_created(prompt_id, &request)
+            .await?;
+
         Ok(prompt_id)
     }
 
@@ -104,7 +109,7 @@ impl PromptService {
         // 更新邏輯（目前DatabaseManager不支持更新，暫時返回成功）
         // TODO: 實現更新功能
         self.state_manager.notify_prompt_updated(&request).await?;
-        
+
         Ok(())
     }
 
@@ -119,22 +124,29 @@ impl PromptService {
         // 執行刪除邏輯（目前DatabaseManager不支持刪除，暫時返回成功）
         // TODO: 實現刪除功能
         self.state_manager.notify_prompt_deleted(id).await?;
-        
+
         Ok(())
     }
 
     /// 執行Prompt
-    pub async fn execute_prompt(&self, id: i64, options: crate::unified_interface::UnifiedExecutionOptions) -> Result<crate::enhanced_executor::EnhancedClaudeResponse> {
+    pub async fn execute_prompt(
+        &self,
+        id: i64,
+        options: crate::unified_interface::UnifiedExecutionOptions,
+    ) -> Result<crate::enhanced_executor::EnhancedClaudeResponse> {
         let prompt = self.get_prompt(id).await?;
         if let Some(prompt_data) = prompt {
             let result = crate::unified_interface::UnifiedClaudeInterface::execute_claude(
                 prompt_data.content,
                 options,
-            ).await?;
-            
+            )
+            .await?;
+
             // 觸發狀態同步 - 記錄執行
-            self.state_manager.notify_prompt_executed(id, &result).await?;
-            
+            self.state_manager
+                .notify_prompt_executed(id, &result)
+                .await?;
+
             Ok(result)
         } else {
             Err(anyhow::anyhow!("Prompt {} 不存在", id))
@@ -156,8 +168,15 @@ pub async fn prompt_service_create_prompt(
     tags: Option<String>,
 ) -> Result<i64, String> {
     let service = PromptService::new().await.map_err(|e| e.to_string())?;
-    let request = CreatePromptRequest { title, content, tags };
-    service.create_prompt(request).await.map_err(|e| e.to_string())
+    let request = CreatePromptRequest {
+        title,
+        content,
+        tags,
+    };
+    service
+        .create_prompt(request)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

@@ -5,12 +5,11 @@
 //! 2. 正確的服務構造器調用
 //! 3. 正確的數據類型使用
 
+use claude_night_pilot_lib::core::database::DatabaseConfig;
 use claude_night_pilot_lib::interfaces::cli_adapter::CLIAdapter;
 use claude_night_pilot_lib::services::{
-    prompt_service::CreatePromptRequest,
-    health_service::HealthService,
+    health_service::HealthService, prompt_service::CreatePromptRequest,
 };
-use claude_night_pilot_lib::core::database::DatabaseConfig;
 
 /// 測試基本的結構體和類型是否能正確編譯
 #[tokio::test]
@@ -18,28 +17,28 @@ async fn test_types_compilation() {
     // 測試 DatabaseConfig 結構
     let config = DatabaseConfig::default();
     assert_eq!(config.path, "claude-pilot.db");
-    
+
     // 測試 CreatePromptRequest 結構
     let request = CreatePromptRequest {
         title: "測試 Prompt".to_string(),
         content: "測試內容".to_string(),
         tags: Some("test".to_string()),
     };
-    
+
     assert_eq!(request.title, "測試 Prompt");
     assert_eq!(request.content, "測試內容");
     assert_eq!(request.tags, Some("test".to_string()));
 }
 
 /// 測試服務能否正確初始化（不依賴數據庫）
-#[tokio::test] 
+#[tokio::test]
 async fn test_service_initialization() {
     // 測試 HealthService 初始化（不需要數據庫）
     let health_service = HealthService::new();
-    
+
     // 快速健康檢查應該能運行（即使沒有真實的數據庫連接）
     let health_result = health_service.quick_health_check().await;
-    
+
     // 這可能失敗，但不應該 panic
     match health_result {
         Ok(status) => println!("健康檢查成功: {:?}", status),
@@ -52,11 +51,11 @@ async fn test_service_initialization() {
 fn test_cli_adapter_compilation() {
     // 這個測試確保 CLIAdapter 類型存在且可以被引用
     // 由於 CLIAdapter::new() 是 async 的，我們不在這裡實際創建實例
-    
+
     // 檢查類型是否存在
     fn check_type<T>() {}
     check_type::<CLIAdapter>();
-    
+
     println!("CLIAdapter 類型編譯成功");
 }
 
@@ -68,11 +67,11 @@ fn test_serialization() {
         content: "測試序列化功能".to_string(),
         tags: Some("serialization,test".to_string()),
     };
-    
+
     // 測試序列化
     let json = serde_json::to_string(&request).expect("序列化失敗");
     println!("序列化結果: {}", json);
-    
+
     // 測試反序列化
     let deserialized: CreatePromptRequest = serde_json::from_str(&json).expect("反序列化失敗");
     assert_eq!(deserialized.title, request.title);
@@ -84,14 +83,12 @@ fn test_serialization() {
 #[test]
 fn test_module_imports() {
     use claude_night_pilot_lib::core::database::DatabaseConfig;
-    
-    
-    
+
     // 這個測試確保所有模組都能被正確匯入
     println!("所有核心模組匯入成功");
-    
+
     // 檢查一些基本類型
     let _config = DatabaseConfig::default();
-    
+
     println!("✅ 編譯驗證測試全部通過");
 }

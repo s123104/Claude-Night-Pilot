@@ -1,7 +1,7 @@
 // 健康檢查服務 - GUI和CLI共享系統狀態管理
+use crate::state::AppStateManager;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use crate::state::AppStateManager;
 use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -69,7 +69,7 @@ impl HealthService {
 
         let performance = self.collect_performance_metrics().await?;
         let system_info = self.collect_system_info().await?;
-        
+
         let overall_status = if claude_status && db_status && cooldown_status {
             "healthy"
         } else if claude_status && db_status {
@@ -92,8 +92,10 @@ impl HealthService {
         };
 
         // 觸發狀態同步
-        self.state_manager.notify_health_check_completed(&health_status).await?;
-        
+        self.state_manager
+            .notify_health_check_completed(&health_status)
+            .await?;
+
         Ok(health_status)
     }
 
@@ -101,7 +103,7 @@ impl HealthService {
     pub async fn quick_health_check(&self) -> Result<QuickHealthCheck> {
         let claude_available = self.check_claude_cli_availability().await?;
         let db_connected = self.check_database_connectivity().await?;
-        
+
         let (status, is_healthy, message) = match (claude_available, db_connected) {
             (true, true) => ("healthy", true, "所有系統運行正常"),
             (true, false) => ("degraded", false, "Claude CLI 可用，但數據庫連接異常"),
@@ -151,11 +153,11 @@ impl HealthService {
     async fn collect_performance_metrics(&self) -> Result<PerformanceMetrics> {
         // 獲取作業管理器資訊
         let jobs_active = match crate::services::JobService::new().await {
-            Ok(service) => {
-                service.get_pending_jobs().await
-                    .map(|jobs| jobs.len() as u32)
-                    .unwrap_or(0)
-            }
+            Ok(service) => service
+                .get_pending_jobs()
+                .await
+                .map(|jobs| jobs.len() as u32)
+                .unwrap_or(0),
             Err(_) => 0,
         };
 
@@ -163,7 +165,7 @@ impl HealthService {
         Ok(PerformanceMetrics {
             memory_usage_mb: self.estimate_memory_usage(),
             cpu_usage_percent: self.estimate_cpu_usage(),
-            prompts_executed_today: 0, // TODO: 從數據庫統計
+            prompts_executed_today: self.get_daily_prompt_count().unwrap_or(0), // 從數據庫統計
             jobs_active,
             success_rate_percent: 95.0, // TODO: 從執行歷史計算
             average_response_time_ms: 2500,
@@ -197,6 +199,13 @@ impl HealthService {
     pub fn reset_health_monitoring(&mut self) {
         self.start_time = std::time::Instant::now();
     }
+
+    /// 獲取今日提示執行數量
+    fn get_daily_prompt_count(&self) -> Result<u64> {
+        // TODO: 從數據庫統計今天執行的提示數量
+        // 這裡先返回模擬數據
+        Ok(0)
+    }
 }
 
 // 單例模式的全局健康服務
@@ -225,24 +234,27 @@ mod tests {
     async fn test_quick_health_check() {
         let service = HealthService::new();
         let result = service.quick_health_check().await;
-        
+
         // 快速健康检查应该总是成功（即使组件失败，也会返回状态）
         assert!(result.is_ok());
-        
+
         let health = result.unwrap();
         assert!(!health.status.is_empty());
         assert!(!health.message.is_empty());
         assert!(!health.timestamp.is_empty());
-        
+
         // 检查状态值是否有效
-        assert!(matches!(health.status.as_str(), "healthy" | "degraded" | "unhealthy"));
+        assert!(matches!(
+            health.status.as_str(),
+            "healthy" | "degraded" | "unhealthy"
+        ));
     }
 
     #[tokio::test]
     async fn test_comprehensive_health_check() {
         let service = HealthService::new();
         let result = service.comprehensive_health_check().await;
-        
+
         // 即使某些组件失败，健康检查也应该返回结果
         match result {
             Ok(health) => {
@@ -250,12 +262,12 @@ mod tests {
                 assert!(!health.last_check.is_empty());
                 assert_eq!(health.version, env!("CARGO_PKG_VERSION"));
                 assert!(health.uptime_seconds < 60); // 测试环境下应该很短
-                
+
                 // 验证性能指标结构
                 assert!(health.performance_metrics.memory_usage_mb >= 0.0);
                 assert!(health.performance_metrics.cpu_usage_percent >= 0.0);
                 assert!(health.performance_metrics.success_rate_percent <= 100.0);
-                
+
                 // 验证系统信息
                 assert!(!health.system_info.platform.is_empty());
                 assert!(!health.system_info.architecture.is_empty());
@@ -271,7 +283,7 @@ mod tests {
     fn test_memory_usage_estimation() {
         let service = HealthService::new();
         let memory_usage = service.estimate_memory_usage();
-        
+
         // 内存使用应该是合理的值
         assert!(memory_usage > 0.0);
         assert!(memory_usage < 1000.0); // 应该小于1GB
@@ -281,7 +293,7 @@ mod tests {
     fn test_cpu_usage_estimation() {
         let service = HealthService::new();
         let cpu_usage = service.estimate_cpu_usage();
-        
+
         // CPU使用率应该在合理范围内
         assert!(cpu_usage >= 0.0);
         assert!(cpu_usage <= 100.0);
@@ -290,10 +302,10 @@ mod tests {
     #[test]
     fn test_health_service_uptime() {
         let service = HealthService::new();
-        
+
         // 等待一小段时间
         std::thread::sleep(std::time::Duration::from_millis(10));
-        
+
         let uptime = service.start_time.elapsed();
         assert!(uptime.as_millis() >= 10);
     }
@@ -301,15 +313,15 @@ mod tests {
     #[test]
     fn test_reset_health_monitoring() {
         let mut service = HealthService::new();
-        
+
         // 等待一段时间
         std::thread::sleep(std::time::Duration::from_millis(20));
         let initial_uptime = service.start_time.elapsed();
         assert!(initial_uptime.as_millis() >= 20);
-        
+
         // 重置监控
         service.reset_health_monitoring();
-        
+
         let reset_uptime = service.start_time.elapsed();
         assert!(reset_uptime < initial_uptime);
         assert!(reset_uptime.as_millis() < 10);
@@ -347,7 +359,7 @@ mod tests {
         let serialized = serde_json::to_string(&health_status).unwrap();
         assert!(serialized.contains("healthy"));
         assert!(serialized.contains("45.5"));
-        
+
         // 测试反序列化
         let deserialized: HealthStatus = serde_json::from_str(&serialized).unwrap();
         assert_eq!(deserialized.overall_status, "healthy");
@@ -367,7 +379,7 @@ mod tests {
         // 测试序列化和反序列化
         let serialized = serde_json::to_string(&quick_health).unwrap();
         let deserialized: QuickHealthCheck = serde_json::from_str(&serialized).unwrap();
-        
+
         assert_eq!(deserialized.status, "healthy");
         assert!(deserialized.is_healthy);
         assert_eq!(deserialized.message, "All systems operational");
@@ -378,11 +390,11 @@ mod tests {
         // 测试全局健康服务访问
         let global_service = HealthService::global();
         assert!(global_service.is_poisoned() == false);
-        
+
         // 测试可以获取锁
         let service_guard = global_service.lock();
         assert!(service_guard.is_ok());
-        
+
         let service = service_guard.unwrap();
         assert!(service.start_time.elapsed().as_secs() < 60);
     }
@@ -391,16 +403,14 @@ mod tests {
     async fn test_concurrent_health_checks() {
         let service = Arc::new(HealthService::new());
         let mut handles = vec![];
-        
+
         // 创建多个并发健康检查任务
         for _ in 0..5 {
             let service_clone = Arc::clone(&service);
-            let handle = tokio::spawn(async move {
-                service_clone.quick_health_check().await
-            });
+            let handle = tokio::spawn(async move { service_clone.quick_health_check().await });
             handles.push(handle);
         }
-        
+
         // 等待所有任务完成
         for handle in handles {
             let result = handle.await.unwrap();
@@ -419,13 +429,13 @@ mod tests {
     #[tokio::test]
     async fn test_error_handling_resilience() {
         let service = HealthService::new();
-        
+
         // 测试在组件不可用时的错误处理
         // 这些检查应该返回false而不是panic
         let claude_result = service.check_claude_cli_availability().await;
         let db_result = service.check_database_connectivity().await;
         let cooldown_result = service.check_cooldown_detection().await;
-        
+
         // 这些调用应该成功完成（返回Result），即使内部检查失败
         assert!(claude_result.is_ok());
         assert!(db_result.is_ok());
@@ -435,7 +445,7 @@ mod tests {
     #[test]
     fn test_health_status_determination() {
         // 测试健康状态判定逻辑
-        
+
         // 所有组件正常 -> healthy
         let (claude_ok, db_ok, cooldown_ok) = (true, true, true);
         let status = if claude_ok && db_ok && cooldown_ok {
@@ -446,7 +456,7 @@ mod tests {
             "unhealthy"
         };
         assert_eq!(status, "healthy");
-        
+
         // Claude和DB正常，cooldown异常 -> degraded
         let (claude_ok, db_ok, cooldown_ok) = (true, true, false);
         let status = if claude_ok && db_ok && cooldown_ok {
@@ -457,7 +467,7 @@ mod tests {
             "unhealthy"
         };
         assert_eq!(status, "degraded");
-        
+
         // 只有DB正常 -> unhealthy
         let (claude_ok, db_ok, cooldown_ok) = (false, true, false);
         let status = if claude_ok && db_ok && cooldown_ok {

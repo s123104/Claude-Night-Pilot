@@ -3,11 +3,11 @@
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use claude_night_pilot_lib::unified_interface::{UnifiedClaudeInterface, UnifiedExecutionOptions};
-use claude_night_pilot_lib::interfaces::CLIAdapter;
 use claude_night_pilot_lib::claude_session_manager::{
-    ClaudeSessionManager, SessionExecutionOptions, ClaudeSession, SessionStats
+    ClaudeSessionManager, SessionExecutionOptions,
 };
+use claude_night_pilot_lib::interfaces::CLIAdapter;
+use claude_night_pilot_lib::unified_interface::{UnifiedClaudeInterface, UnifiedExecutionOptions};
 use serde_json::json;
 use std::io::{self, Read};
 use std::path::PathBuf;
@@ -29,43 +29,43 @@ enum Commands {
         #[command(subcommand)]
         action: SessionAction,
     },
-    
+
     /// Git Worktree 管理
     Worktree {
         #[command(subcommand)]
         action: WorktreeAction,
     },
-    
+
     /// 執行Claude命令
     Execute {
         /// 要執行的prompt內容
         #[arg(short, long, value_name = "TEXT")]
         prompt: Option<String>,
-        
+
         /// 從檔案讀取prompt
         #[arg(short, long, value_name = "FILE")]
         file: Option<String>,
-        
+
         /// 從stdin讀取prompt
         #[arg(long)]
         stdin: bool,
-        
+
         /// 執行模式 (sync, async, scheduled)
         #[arg(short, long, default_value = "sync")]
         mode: String,
-        
+
         /// 工作目錄
         #[arg(short, long)]
         work_dir: Option<String>,
-        
+
         /// 啟用重試機制
         #[arg(long, default_value = "true")]
         retry: bool,
-        
+
         /// 檢查冷卻狀態
         #[arg(long, default_value = "true")]
         cooldown_check: bool,
-        
+
         /// 輸出格式 (json, text, pretty)
         #[arg(long, default_value = "pretty")]
         format: String,
@@ -73,7 +73,7 @@ enum Commands {
         #[arg(long = "dangerously-skip-permissions", default_value_t = false)]
         dangerously_skip_permissions: bool,
     },
-    
+
     /// 執行（別名：與 Execute 等效）
     Run {
         /// 要執行的prompt內容
@@ -111,60 +111,60 @@ enum Commands {
         #[arg(long = "dangerously-skip-permissions", default_value_t = false)]
         dangerously_skip_permissions: bool,
     },
-    
+
     /// 檢查冷卻狀態
     Cooldown {
         /// 輸出格式 (json, text, pretty)
         #[arg(long, default_value = "pretty")]
         format: String,
     },
-    
+
     /// 系統健康檢查
     Health {
         /// 輸出格式 (json, text, pretty)
         #[arg(long, default_value = "pretty")]
         format: String,
     },
-    
+
     /// 顯示系統狀態摘要
     Status,
-    
+
     /// 顯示最近執行結果摘要
     Results {
         /// 輸出格式 (json, text, pretty)
         #[arg(long, default_value = "pretty")]
         format: String,
     },
-    
+
     /// Prompt 管理
     Prompt {
         #[command(subcommand)]
         action: PromptAction,
     },
-    
+
     /// 任務（排程）管理
     Job {
         #[command(subcommand)]
         action: JobAction,
     },
-    
+
     /// 初始化（示意）
     Init,
-    
+
     /// 批量執行prompts
     Batch {
         /// 包含prompts的JSON檔案
         #[arg(short, long, value_name = "FILE")]
         file: String,
-        
+
         /// 並發執行數量
         #[arg(short, long, default_value = "1")]
         concurrent: u32,
-        
+
         /// 執行模式
         #[arg(short, long, default_value = "sync")]
         mode: String,
-        
+
         /// 輸出格式
         #[arg(long, default_value = "pretty")]
         format: String,
@@ -204,13 +204,9 @@ enum JobAction {
         description: Option<String>,
     },
     /// 刪除任務
-    Delete {
-        job_id: u32,
-    },
+    Delete { job_id: u32 },
     /// 顯示任務詳情
-    Show {
-        job_id: u32,
-    },
+    Show { job_id: u32 },
 }
 
 #[derive(Subcommand)]
@@ -244,13 +240,9 @@ enum SessionAction {
     /// 列出所有會話
     List,
     /// 暫停會話
-    Pause {
-        session_id: String,
-    },
+    Pause { session_id: String },
     /// 完成會話
-    Complete {
-        session_id: String,
-    },
+    Complete { session_id: String },
     /// 顯示會話統計
     Stats,
 }
@@ -277,15 +269,11 @@ enum WorktreeAction {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    
+
     match cli.command {
-        Commands::Session { action } => {
-            handle_session_command(action).await
-        }
-        
-        Commands::Worktree { action } => {
-            handle_worktree_command(action).await
-        }
+        Commands::Session { action } => handle_session_command(action).await,
+
+        Commands::Worktree { action } => handle_worktree_command(action).await,
 
         Commands::Execute {
             prompt,
@@ -298,43 +286,70 @@ async fn main() -> Result<()> {
             format,
             dangerously_skip_permissions,
         } => {
-            execute_prompt(prompt, file, stdin, mode, work_dir, retry, cooldown_check, format, dangerously_skip_permissions).await
+            execute_prompt(
+                prompt,
+                file,
+                stdin,
+                mode,
+                work_dir,
+                retry,
+                cooldown_check,
+                format,
+                dangerously_skip_permissions,
+            )
+            .await
         }
-        
-        Commands::Run { prompt, file, stdin, mode, work_dir, retry, cooldown_check, format, dangerously_skip_permissions } => {
-            execute_prompt(prompt, file, stdin, mode, work_dir, retry, cooldown_check, format, dangerously_skip_permissions).await
+
+        Commands::Run {
+            prompt,
+            file,
+            stdin,
+            mode,
+            work_dir,
+            retry,
+            cooldown_check,
+            format,
+            dangerously_skip_permissions,
+        } => {
+            execute_prompt(
+                prompt,
+                file,
+                stdin,
+                mode,
+                work_dir,
+                retry,
+                cooldown_check,
+                format,
+                dangerously_skip_permissions,
+            )
+            .await
         }
-        
-        Commands::Cooldown { format } => {
-            check_cooldown(format).await
-        }
-        
-        Commands::Health { format } => {
-            health_check_unified(format).await
-        }
-        
-        Commands::Batch { file, concurrent, mode, format } => {
-            batch_execute(file, concurrent, mode, format).await
-        }
-        
+
+        Commands::Cooldown { format } => check_cooldown(format).await,
+
+        Commands::Health { format } => health_check_unified(format).await,
+
+        Commands::Batch {
+            file,
+            concurrent,
+            mode,
+            format,
+        } => batch_execute(file, concurrent, mode, format).await,
+
         Commands::Status => {
             print_status_summary();
             Ok(())
         }
-        
+
         Commands::Results { format } => {
             print_results_summary(format);
             Ok(())
         }
-        
-        Commands::Prompt { action } => {
-            handle_prompt_command(action).await
-        }
-        
-        Commands::Job { action } => {
-            handle_job_command(action).await
-        }
-        
+
+        Commands::Prompt { action } => handle_prompt_command(action).await,
+
+        Commands::Job { action } => handle_job_command(action).await,
+
         Commands::Init => {
             println!("Claude Night Pilot 初始化完成 ✔");
             Ok(())
@@ -361,7 +376,8 @@ async fn execute_prompt(
             .with_context(|| format!("無法讀取檔案: {}", file_path))?
     } else if stdin {
         let mut buffer = String::new();
-        io::stdin().read_to_string(&mut buffer)
+        io::stdin()
+            .read_to_string(&mut buffer)
             .context("無法從stdin讀取內容")?;
         buffer
     } else {
@@ -380,9 +396,11 @@ async fn execute_prompt(
     // 執行命令
     if format != "json" {
         println!("🚀 正在執行Claude命令...");
-        if dangerously_skip_permissions { println!("⚠️  dangerously-skip-permissions 已啟用（測試用途）"); }
+        if dangerously_skip_permissions {
+            println!("⚠️  dangerously-skip-permissions 已啟用（測試用途）");
+        }
     }
-    
+
     let result = UnifiedClaudeInterface::execute_claude(prompt_content, options)
         .await
         .context("執行Claude命令失敗")?;
@@ -408,7 +426,7 @@ async fn check_cooldown(format: String) -> Result<()> {
         println!("🕐 檢查 Claude CLI 冷卻狀態");
         println!("Claude CLI 版本: mock-0.0.0");
     }
-    
+
     let cooldown_info = UnifiedClaudeInterface::check_cooldown()
         .await
         .context("檢查冷卻狀態失敗")?;
@@ -432,21 +450,20 @@ async fn check_cooldown(format: String) -> Result<()> {
     Ok(())
 }
 
-
 async fn batch_execute(file: String, concurrent: u32, mode: String, format: String) -> Result<()> {
     if format != "json" {
         println!("📦 批量執行模式 (並發: {})", concurrent);
     }
-    
+
     // 讀取批量執行配置
-    let content = std::fs::read_to_string(&file)
-        .with_context(|| format!("無法讀取檔案: {}", file))?;
-    
-    let prompts: Vec<serde_json::Value> = serde_json::from_str(&content)
-        .context("檔案格式錯誤，期望JSON陣列")?;
+    let content =
+        std::fs::read_to_string(&file).with_context(|| format!("無法讀取檔案: {}", file))?;
+
+    let prompts: Vec<serde_json::Value> =
+        serde_json::from_str(&content).context("檔案格式錯誤，期望JSON陣列")?;
 
     let mut results = Vec::new();
-    
+
     for (index, prompt_value) in prompts.iter().enumerate() {
         let prompt_text = prompt_value
             .as_str()
@@ -501,14 +518,14 @@ fn print_pretty_result(result: &claude_night_pilot_lib::enhanced_executor::Enhan
     println!("\n🎯 執行結果");
     println!("═══════════════════════════════════════");
     println!("{}", result.completion);
-    
+
     if let Some(usage) = &result.usage {
         println!("\n📊 使用統計");
         println!("───────────────────────────");
         println!("輸入Token: {}", usage.input_tokens.unwrap_or(0));
         println!("輸出Token: {}", usage.output_tokens.unwrap_or(0));
     }
-    
+
     let metadata = &result.execution_metadata;
     println!("\n🔍 執行信息");
     println!("───────────────────────────");
@@ -522,7 +539,7 @@ fn print_pretty_result(result: &claude_night_pilot_lib::enhanced_executor::Enhan
 fn print_pretty_cooldown(cooldown: &claude_night_pilot_lib::core::CooldownInfo) {
     println!("\n🕐 冷卻狀態");
     println!("═══════════════════════════════════════");
-    
+
     if cooldown.is_cooling {
         println!("❌ 系統冷卻中");
         println!("剩餘時間: {} 秒", cooldown.seconds_remaining);
@@ -536,7 +553,7 @@ fn print_pretty_cooldown(cooldown: &claude_night_pilot_lib::core::CooldownInfo) 
         println!("✅ 系統可用");
         println!("狀態: 可立即執行");
     }
-    
+
     if !cooldown.original_message.is_empty() {
         println!("原始信息: {}", cooldown.original_message);
     }
@@ -546,19 +563,33 @@ fn print_pretty_cooldown(cooldown: &claude_night_pilot_lib::core::CooldownInfo) 
 fn print_pretty_health(health: &serde_json::Value) {
     println!("\n🏥 系統健康狀態");
     println!("═══════════════════════════════════════");
-    
+
     if let Some(claude_available) = health["claude_cli_available"].as_bool() {
-        println!("Claude CLI: {}", if claude_available { "✅ 可用" } else { "❌ 不可用" });
+        println!(
+            "Claude CLI: {}",
+            if claude_available {
+                "✅ 可用"
+            } else {
+                "❌ 不可用"
+            }
+        );
     }
-    
+
     if let Some(cooldown_working) = health["cooldown_detection_working"].as_bool() {
-        println!("冷卻檢測: {}", if cooldown_working { "✅ 正常" } else { "❌ 異常" });
+        println!(
+            "冷卻檢測: {}",
+            if cooldown_working {
+                "✅ 正常"
+            } else {
+                "❌ 異常"
+            }
+        );
     }
-    
+
     if let Some(processes) = health["active_processes"].as_u64() {
         println!("活躍進程: {}", processes);
     }
-    
+
     if let Some(last_check) = health["last_check"].as_str() {
         println!("最後檢查: {}", last_check);
     }
@@ -567,19 +598,19 @@ fn print_pretty_health(health: &serde_json::Value) {
 fn print_pretty_batch_results(results: &[serde_json::Value]) {
     println!("\n📦 批量執行結果");
     println!("═══════════════════════════════════════");
-    
+
     let success_count = results.iter().filter(|r| r["status"] == "success").count();
     let failed_count = results.len() - success_count;
-    
+
     println!("總計: {} 個任務", results.len());
     println!("成功: {} 個", success_count);
     println!("失敗: {} 個", failed_count);
-    
+
     println!("\n詳細結果:");
     for result in results {
         let index = result["index"].as_u64().unwrap_or(0);
         let status = result["status"].as_str().unwrap_or("unknown");
-        
+
         match status {
             "success" => println!("  ✅ Prompt {}: 執行成功", index),
             "failed" => {
@@ -602,69 +633,81 @@ fn print_status_summary() {
 // 新的統一化命令處理函數 - 使用CLI適配器
 async fn handle_prompt_command(action: PromptAction) -> Result<()> {
     let adapter = CLIAdapter::global().await?;
-    
+
     match action {
         PromptAction::List => {
             let output = adapter.cli_list_prompts("default").await?;
             println!("{}", output);
         }
-        PromptAction::Create { title, content, tags } => {
+        PromptAction::Create {
+            title,
+            content,
+            tags,
+        } => {
             let output = adapter.cli_create_prompt(title, content, tags).await?;
             println!("{}", output);
         }
     }
-    
+
     Ok(())
 }
 
 async fn handle_job_command(action: JobAction) -> Result<()> {
     let adapter = CLIAdapter::global().await?;
-    
+
     match action {
         JobAction::List => {
             let output = adapter.cli_list_jobs("default").await?;
             println!("{}", output);
         }
-        
-        JobAction::Create { prompt_id, cron_expr, description } => {
+
+        JobAction::Create {
+            prompt_id,
+            cron_expr,
+            description,
+        } => {
             println!("📅 創建新的排程任務");
             println!("Prompt ID: {}", prompt_id);
             println!("Cron 表達式: {}", cron_expr);
-            
+
             if let Some(desc) = &description {
                 println!("描述: {}", desc);
             }
-            
+
             // 這裡應該調用實際的創建邏輯
             println!("⚠️ 創建任務功能正在開發中");
             println!("✅ 任務創建請求已記錄");
         }
-        
-        JobAction::Update { job_id, cron_expr, description } => {
+
+        JobAction::Update {
+            job_id,
+            cron_expr,
+            description,
+        } => {
             println!("📝 更新排程任務 ID: {}", job_id);
-            
+
             if let Some(expr) = &cron_expr {
                 println!("新的 Cron 表達式: {}", expr);
             }
-            
+
             if let Some(desc) = &description {
                 println!("新的描述: {}", desc);
             }
-            
+
             println!("⚠️ 更新任務功能正在開發中");
         }
-        
+
         JobAction::Delete { job_id } => {
             println!("🗑️ 刪除排程任務 ID: {}", job_id);
             println!("⚠️ 刪除任務功能正在開發中");
         }
-        
+
         JobAction::Show { job_id } => {
             println!("🔍 顯示排程任務詳情 ID: {}", job_id);
             println!("⚠️ 顯示任務詳情功能正在開發中");
         }
     }
-    
+
     Ok(())
 }
 
@@ -672,7 +715,7 @@ async fn health_check_unified(format: String) -> Result<()> {
     if format != "json" {
         println!("🏥 執行系統健康檢查...");
     }
-    
+
     let adapter = CLIAdapter::global().await?;
     let output = adapter.cli_health_check(&format, false).await?;
     println!("{}", output);
@@ -681,29 +724,61 @@ async fn health_check_unified(format: String) -> Result<()> {
 }
 
 #[allow(dead_code)]
-fn print_comprehensive_health(health: &claude_night_pilot_lib::services::health_service::HealthStatus) {
+fn print_comprehensive_health(
+    health: &claude_night_pilot_lib::services::health_service::HealthStatus,
+) {
     println!("\n🏥 系統健康狀態");
     println!("═══════════════════════════════════════");
-    
+
     let status_icon = match health.overall_status.as_str() {
         "healthy" => "✅",
         "degraded" => "⚠️",
         "unhealthy" => "❌",
         _ => "❓",
     };
-    
+
     println!("{} 總體狀態: {}", status_icon, health.overall_status);
-    println!("🔧 Claude CLI: {}", if health.claude_cli_available { "可用" } else { "不可用" });
-    println!("📛 資料庫: {}", if health.database_connected { "連接正常" } else { "連接異常" });
-    println!("🌡️ 冷卻檢測: {}", if health.cooldown_detection_working { "正常" } else { "異常" });
-    
+    println!(
+        "🔧 Claude CLI: {}",
+        if health.claude_cli_available {
+            "可用"
+        } else {
+            "不可用"
+        }
+    );
+    println!(
+        "📛 資料庫: {}",
+        if health.database_connected {
+            "連接正常"
+        } else {
+            "連接異常"
+        }
+    );
+    println!(
+        "🌡️ 冷卻檢測: {}",
+        if health.cooldown_detection_working {
+            "正常"
+        } else {
+            "異常"
+        }
+    );
+
     println!("\n📈 效能指標");
     println!("───────────────");
-    println!("記憶體使用: {:.1} MB", health.performance_metrics.memory_usage_mb);
-    println!("CPU 使用率: {:.1}%", health.performance_metrics.cpu_usage_percent);
+    println!(
+        "記憶體使用: {:.1} MB",
+        health.performance_metrics.memory_usage_mb
+    );
+    println!(
+        "CPU 使用率: {:.1}%",
+        health.performance_metrics.cpu_usage_percent
+    );
     println!("活躍任務: {}", health.performance_metrics.jobs_active);
-    println!("成功率: {:.1}%", health.performance_metrics.success_rate_percent);
-    
+    println!(
+        "成功率: {:.1}%",
+        health.performance_metrics.success_rate_percent
+    );
+
     println!("\n📊 系統資訊");
     println!("───────────────");
     println!("版本: {}", health.version);
@@ -732,63 +807,71 @@ fn print_results_summary(format: String) {
 // Session 管理命令處理
 async fn handle_session_command(action: SessionAction) -> Result<()> {
     let project_root = std::env::current_dir()?;
-    let mut manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
-    
+    let mut manager =
+        ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
+
     match action {
-        SessionAction::Create { title, description, create_worktree, branch } => {
+        SessionAction::Create {
+            title,
+            description,
+            create_worktree,
+            branch,
+        } => {
             println!("🚀 創建新的 Claude 會話: {}", title);
-            
+
             let options = SessionExecutionOptions::default();
-            let session = manager.create_session(title, description, create_worktree, branch, options).await?;
-            
+            let session = manager
+                .create_session(title, description, create_worktree, branch, options)
+                .await?;
+
             println!("✅ 會話創建成功!");
             println!("會話 ID: {}", session.id);
             println!("Claude 會話 ID: {}", session.session_id);
-            
+
             if let Some(worktree_path) = &session.worktree_path {
                 println!("Worktree 路徑: {}", worktree_path);
             }
-            
+
             if let Some(branch_name) = &session.branch_name {
                 println!("Git 分支: {}", branch_name);
             }
         }
-        
+
         SessionAction::Resume { session_id } => {
             println!("🔄 恢復 Claude 會話: {}", session_id);
-            
-            let session_uuid = Uuid::parse_str(&session_id)
-                .context("無效的會話 ID 格式")?;
-                
+
+            let session_uuid = Uuid::parse_str(&session_id).context("無效的會話 ID 格式")?;
+
             let session = manager.resume_session(session_uuid, None).await?;
-            
+
             println!("✅ 會話恢復成功!");
             println!("會話標題: {}", session.metadata.title);
             println!("總消息數: {}", session.metadata.total_messages);
-            
+
             if let Some(worktree_path) = &session.worktree_path {
                 println!("Worktree 路徑: {}", worktree_path);
             }
         }
-        
+
         SessionAction::Execute { session_id, prompt } => {
             println!("⚡ 在會話中執行命令: {}", session_id);
-            
-            let session_uuid = Uuid::parse_str(&session_id)
-                .context("無效的會話 ID 格式")?;
-                
-            let result = manager.execute_in_session(session_uuid, prompt, None).await?;
-            
+
+            let session_uuid = Uuid::parse_str(&session_id).context("無效的會話 ID 格式")?;
+
+            let result = manager
+                .execute_in_session(session_uuid, prompt, None)
+                .await?;
+
             println!("✅ 執行完成!");
             println!("結果:\n{}", result);
         }
-        
+
         SessionAction::List => {
             println!("📋 Claude 會話列表");
             println!("═══════════════════════════════════════");
-            
+
             let sessions = manager.list_sessions().await?;
-            
+
             if sessions.is_empty() {
                 println!("目前沒有會話");
             } else {
@@ -800,36 +883,40 @@ async fn handle_session_command(action: SessionAction) -> Result<()> {
                         claude_night_pilot_lib::claude_session_manager::SessionStatus::Failed => "❌",
                         claude_night_pilot_lib::claude_session_manager::SessionStatus::Suspended => "⏸️",
                     };
-                    
-                    println!("{} {} ({})", status_icon, session.metadata.title, session.id);
-                    println!("   消息數: {}, Token: {}", 
-                        session.metadata.total_messages, 
-                        session.metadata.total_tokens);
-                        
+
+                    println!(
+                        "{} {} ({})",
+                        status_icon, session.metadata.title, session.id
+                    );
+                    println!(
+                        "   消息數: {}, Token: {}",
+                        session.metadata.total_messages, session.metadata.total_tokens
+                    );
+
                     if let Some(branch) = &session.branch_name {
                         println!("   分支: {}", branch);
                     }
-                    
+
                     println!();
                 }
             }
         }
-        
+
         SessionAction::Pause { session_id } => {
             let session_uuid = Uuid::parse_str(&session_id)?;
             manager.pause_session(session_uuid).await?;
             println!("⏸️ 會話已暫停: {}", session_id);
         }
-        
+
         SessionAction::Complete { session_id } => {
             let session_uuid = Uuid::parse_str(&session_id)?;
             manager.complete_session(session_uuid).await?;
             println!("✅ 會話已完成: {}", session_id);
         }
-        
+
         SessionAction::Stats => {
             let stats = manager.get_session_stats().await?;
-            
+
             println!("📊 會話統計");
             println!("═══════════════════════════════════════");
             println!("總會話數: {}", stats.total_sessions);
@@ -840,7 +927,7 @@ async fn handle_session_command(action: SessionAction) -> Result<()> {
             println!("總成本: ${:.2}", stats.total_cost);
         }
     }
-    
+
     Ok(())
 }
 
@@ -849,50 +936,53 @@ async fn handle_worktree_command(action: WorktreeAction) -> Result<()> {
     match action {
         WorktreeAction::Create { branch, path } => {
             println!("🌿 創建 Git Worktree");
-            
+
             let project_root = std::env::current_dir()?;
             let worktree_path = if let Some(custom_path) = path {
                 PathBuf::from(custom_path)
             } else {
                 project_root.join("worktrees").join(&branch)
             };
-            
+
             // 使用 vibe-kanban 的 WorktreeManager
             use claude_night_pilot_lib::worktree_manager::WorktreeManager;
-            
+
             WorktreeManager::ensure_worktree_exists(
                 project_root.to_string_lossy().to_string(),
                 branch.clone(),
                 worktree_path.clone(),
-            ).await.map_err(|e| anyhow::anyhow!("創建 worktree 失敗: {}", e))?;
-            
+            )
+            .await
+            .map_err(|e| anyhow::anyhow!("創建 worktree 失敗: {}", e))?;
+
             println!("✅ Worktree 創建成功!");
             println!("分支: {}", branch);
             println!("路徑: {}", worktree_path.display());
         }
-        
+
         WorktreeAction::Cleanup { path } => {
             println!("🧹 清理 Worktree: {}", path);
-            
+
             let worktree_path = PathBuf::from(path);
             use claude_night_pilot_lib::worktree_manager::WorktreeManager;
-            
-            WorktreeManager::cleanup_worktree(&worktree_path, None).await
+
+            WorktreeManager::cleanup_worktree(&worktree_path, None)
+                .await
                 .map_err(|e| anyhow::anyhow!("清理 worktree 失敗: {}", e))?;
-            
+
             println!("✅ Worktree 清理完成!");
         }
-        
+
         WorktreeAction::List => {
             println!("📋 Git Worktree 列表");
             println!("═══════════════════════════════════════");
-            
+
             // 執行 git worktree list
             let output = tokio::process::Command::new("git")
                 .args(&["worktree", "list"])
                 .output()
                 .await?;
-                
+
             if output.status.success() {
                 let list_output = String::from_utf8_lossy(&output.stdout);
                 if list_output.trim().is_empty() {
@@ -906,6 +996,6 @@ async fn handle_worktree_command(action: WorktreeAction) -> Result<()> {
             }
         }
     }
-    
+
     Ok(())
 }

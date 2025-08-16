@@ -1,8 +1,8 @@
 // 數據庫最佳實踐：DatabaseManager 實現
-use std::sync::Arc;
-use tokio::sync::Mutex;
 use crate::database_error::{DatabaseError, DatabaseResult};
 use crate::simple_db::{SimpleDatabase, SimplePrompt, SimpleSchedule, TokenUsageStats};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub struct DatabaseConfig {
@@ -32,12 +32,9 @@ pub struct DatabaseManager {
 impl DatabaseManager {
     pub async fn new(config: DatabaseConfig) -> DatabaseResult<Self> {
         let db_path = config.path.clone();
-        
-        let db = tokio::task::spawn_blocking(move || {
-            SimpleDatabase::new(&db_path)
-        })
-        .await??;
-        
+
+        let db = tokio::task::spawn_blocking(move || SimpleDatabase::new(&db_path)).await??;
+
         Ok(Self {
             db: Arc::new(Mutex::new(db)),
             config,
@@ -53,7 +50,7 @@ impl DatabaseManager {
         let db = self.db.clone();
         let title = title.to_string();
         let content = content.to_string();
-        
+
         tokio::task::spawn_blocking(move || {
             // 使用 try_lock 來獲取同步鎖，或者使用 futures::executor::block_on
             let rt = tokio::runtime::Handle::current();
@@ -66,7 +63,7 @@ impl DatabaseManager {
 
     pub async fn list_prompts_async(&self) -> DatabaseResult<Vec<SimplePrompt>> {
         let db = self.db.clone();
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
@@ -78,7 +75,7 @@ impl DatabaseManager {
 
     pub async fn get_prompt_async(&self, id: i64) -> DatabaseResult<Option<SimplePrompt>> {
         let db = self.db.clone();
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
@@ -90,7 +87,7 @@ impl DatabaseManager {
 
     pub async fn delete_prompt_async(&self, id: i64) -> DatabaseResult<bool> {
         let db = self.db.clone();
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
@@ -102,15 +99,15 @@ impl DatabaseManager {
 
     // Schedule 相關的異步方法
     pub async fn create_schedule_async(
-        &self, 
-        prompt_id: i64, 
-        schedule_time: &str, 
-        cron_expr: Option<&str>
+        &self,
+        prompt_id: i64,
+        schedule_time: &str,
+        cron_expr: Option<&str>,
     ) -> DatabaseResult<i64> {
         let db = self.db.clone();
         let schedule_time = schedule_time.to_string();
         let cron_expr = cron_expr.map(|s| s.to_string());
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
@@ -122,7 +119,7 @@ impl DatabaseManager {
 
     pub async fn get_all_schedules_async(&self) -> DatabaseResult<Vec<SimpleSchedule>> {
         let db = self.db.clone();
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
@@ -134,7 +131,7 @@ impl DatabaseManager {
 
     pub async fn get_schedule_async(&self, id: i64) -> DatabaseResult<Option<SimpleSchedule>> {
         let db = self.db.clone();
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
@@ -146,7 +143,7 @@ impl DatabaseManager {
 
     pub async fn get_pending_schedules_async(&self) -> DatabaseResult<Vec<SimpleSchedule>> {
         let db = self.db.clone();
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
@@ -167,7 +164,7 @@ impl DatabaseManager {
         let schedule_time = schedule_time.map(|s| s.to_string());
         let status = status.map(|s| s.to_string());
         let cron_expr = cron_expr.map(|s| s.to_string());
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
@@ -184,7 +181,7 @@ impl DatabaseManager {
 
     pub async fn delete_schedule_async(&self, id: i64) -> DatabaseResult<bool> {
         let db = self.db.clone();
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
@@ -202,7 +199,7 @@ impl DatabaseManager {
         cost_usd: f64,
     ) -> DatabaseResult<()> {
         let db = self.db.clone();
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
@@ -214,7 +211,7 @@ impl DatabaseManager {
 
     pub async fn get_token_usage_stats_async(&self) -> DatabaseResult<Option<TokenUsageStats>> {
         let db = self.db.clone();
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
@@ -237,7 +234,7 @@ impl DatabaseManager {
         let db = self.db.clone();
         let content = content.to_string();
         let status = status.to_string();
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
@@ -257,7 +254,7 @@ impl DatabaseManager {
     pub async fn update_schedule_status_async(&self, id: i64, status: &str) -> DatabaseResult<()> {
         let db = self.db.clone();
         let status = status.to_string();
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
@@ -271,11 +268,11 @@ impl DatabaseManager {
     pub async fn health_check_async(&self) -> DatabaseResult<serde_json::Value> {
         let db = self.db.clone();
         let config = self.config.clone();
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let _db = rt.block_on(async { db.lock().await });
-            
+
             Ok(serde_json::json!({
                 "database_status": "connected",
                 "config": {
@@ -296,18 +293,19 @@ impl DatabaseManager {
         prompts: Vec<(String, String)>,
     ) -> DatabaseResult<Vec<i64>> {
         let db = self.db.clone();
-        
+
         tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Handle::current();
             let db = rt.block_on(async { db.lock().await });
             let mut ids = Vec::new();
-            
+
             for (title, content) in prompts {
-                let id = db.create_prompt(&title, &content)
+                let id = db
+                    .create_prompt(&title, &content)
                     .map_err(DatabaseError::Connection)?;
                 ids.push(id);
             }
-            
+
             Ok(ids)
         })
         .await?

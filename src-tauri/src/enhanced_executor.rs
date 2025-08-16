@@ -1,14 +1,13 @@
 // 增強的 Claude 執行器 - 整合所有核心模組的統一執行介面
+use crate::core::{
+    CooldownDetector, CooldownInfo, CooldownPattern, ExecutionOptions, ProcessHandle,
+    ProcessMetadata, ProcessOrchestrator, ProcessType, RetryConfig, RetryOrchestrator, Scheduler,
+    SchedulerType, SchedulingConfig,
+};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 use uuid::Uuid;
-use crate::core::{
-    CooldownDetector, CooldownInfo, CooldownPattern,
-    RetryOrchestrator, RetryConfig,
-    ProcessOrchestrator, ProcessType, ProcessHandle, ProcessMetadata, ExecutionOptions,
-    Scheduler, SchedulingConfig, SchedulerType
-};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnhancedClaudeResponse {
@@ -90,7 +89,11 @@ impl EnhancedClaudeExecutor {
         let execution_id = Uuid::new_v4();
         let start_time = SystemTime::now();
 
-        tracing::info!("開始增強執行 {}: {}", execution_id, &prompt[..50.min(prompt.len())]);
+        tracing::info!(
+            "開始增強執行 {}: {}",
+            execution_id,
+            &prompt[..50.min(prompt.len())]
+        );
 
         // 1. 預檢查冷卻狀態
         if self.config.enable_cooldown_detection {
@@ -121,7 +124,8 @@ impl EnhancedClaudeExecutor {
         };
 
         let result = if self.config.enable_smart_retry {
-            self.execute_with_smart_retry(prompt, &options, &mut execution_metadata).await?
+            self.execute_with_smart_retry(prompt, &options, &mut execution_metadata)
+                .await?
         } else {
             self.execute_direct(prompt, &options).await?
         };
@@ -135,12 +139,16 @@ impl EnhancedClaudeExecutor {
             }
         }
 
-        tracing::info!("增強執行 {} 完成，總嘗試次數: {}", execution_id, execution_metadata.total_attempts);
+        tracing::info!(
+            "增強執行 {} 完成，總嘗試次數: {}",
+            execution_id,
+            execution_metadata.total_attempts
+        );
 
         Ok(EnhancedClaudeResponse {
             completion: result,
             model: Some("claude-3-sonnet".to_string()), // 預設模型
-            usage: None, // 需要從實際響應中提取
+            usage: None,                                // 需要從實際響應中提取
             execution_metadata,
         })
     }
@@ -148,8 +156,11 @@ impl EnhancedClaudeExecutor {
     /// 預執行冷卻檢查
     async fn pre_execution_cooldown_check(&self) -> Result<Option<CooldownInfo>> {
         // 檢查 claude doctor 狀態
-        let doctor_cooldown = self.cooldown_detector.check_claude_doctor_cooldown().await?;
-        
+        let doctor_cooldown = self
+            .cooldown_detector
+            .check_claude_doctor_cooldown()
+            .await?;
+
         if doctor_cooldown.is_cooling {
             return Ok(Some(doctor_cooldown));
         }
@@ -193,7 +204,7 @@ impl EnhancedClaudeExecutor {
 
         let _prompt_clone = prompt.to_string();
         let _options_clone = options.clone();
-        
+
         let main_operation = move || {
             Box::pin(async move {
                 // 在這裡使用簡單的執行邏輯
@@ -207,7 +218,10 @@ impl EnhancedClaudeExecutor {
     }
 
     /// 決定執行前置條件
-    async fn determine_prerequisites(&self, options: &ExecutionOptions) -> Result<Vec<ProcessType>> {
+    async fn determine_prerequisites(
+        &self,
+        options: &ExecutionOptions,
+    ) -> Result<Vec<ProcessType>> {
         let mut prerequisites = Vec::new();
 
         // 如果需要資料庫初始化
@@ -245,11 +259,11 @@ impl EnhancedClaudeExecutor {
         // 暫時使用簡單的重試邏輯
         let mut attempts = 0;
         let max_attempts = options.max_retries;
-        
+
         loop {
             attempts += 1;
             metadata.total_attempts = attempts;
-            
+
             match self.execute_claude_command(prompt, options).await {
                 Ok(result) => return Ok(result),
                 Err(e) if attempts < max_attempts => {
@@ -268,7 +282,11 @@ impl EnhancedClaudeExecutor {
     }
 
     /// 核心 Claude 命令執行
-    async fn execute_claude_command(&self, prompt: &str, options: &ExecutionOptions) -> Result<String> {
+    async fn execute_claude_command(
+        &self,
+        prompt: &str,
+        options: &ExecutionOptions,
+    ) -> Result<String> {
         let timeout = std::time::Duration::from_secs(options.timeout_seconds.unwrap_or(300));
 
         let execution_future = async {
@@ -292,7 +310,7 @@ impl EnhancedClaudeExecutor {
 
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                
+
                 // 檢測冷卻並提供詳細資訊
                 if let Some(cooldown) = self.cooldown_detector.detect_cooldown(&stderr) {
                     let formatted_status = self.cooldown_detector.format_cooldown_status(&cooldown);
@@ -360,14 +378,14 @@ impl EnhancedClaudeExecutor {
         options: ExecutionOptions,
         scheduling_config: SchedulingConfig,
     ) -> Result<Uuid> {
-        use crate::core::{CronScheduler, AdaptiveScheduler, SessionScheduler};
+        use crate::core::{AdaptiveScheduler, CronScheduler, SessionScheduler};
 
         match scheduling_config.scheduler_type {
             SchedulerType::Cron => {
                 if let Some(cron_config) = scheduling_config.cron {
                     let mut scheduler = CronScheduler::new().await?;
                     scheduler.start().await?;
-                    
+
                     let handle = scheduler.schedule(cron_config).await?;
                     tracing::info!("Cron 排程任務已創建: {}", handle);
                     Ok(handle)
@@ -415,16 +433,14 @@ impl EnhancedClaudeExecutor {
         let active_processes = self.list_active_processes();
         if !active_processes.is_empty() {
             tracing::info!("等待 {} 個活躍進程完成", active_processes.len());
-            
+
             // 給進程一些時間完成
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-            
+
             // 強制取消剩餘進程
-            let remaining_ids: Vec<Uuid> = self.list_active_processes()
-                .iter()
-                .map(|p| p.id)
-                .collect();
-            
+            let remaining_ids: Vec<Uuid> =
+                self.list_active_processes().iter().map(|p| p.id).collect();
+
             for process_id in remaining_ids {
                 if let Err(e) = self.cancel_process(process_id).await {
                     tracing::warn!("取消進程 {} 失敗: {}", process_id, e);
@@ -447,7 +463,11 @@ impl EnhancedClaudeExecutor {
         };
 
         // 檢查 Claude CLI 可用性
-        match tokio::process::Command::new("claude").arg("--version").output().await {
+        match tokio::process::Command::new("claude")
+            .arg("--version")
+            .output()
+            .await
+        {
             Ok(output) if output.status.success() => {
                 status.claude_cli_available = true;
             }
@@ -491,9 +511,8 @@ pub async fn execute_enhanced_claude(
     prompt: String,
     options: ExecutionOptions,
 ) -> Result<EnhancedClaudeResponse, String> {
-    let mut executor = EnhancedClaudeExecutor::with_smart_defaults()
-        .map_err(|e| e.to_string())?;
-    
+    let mut executor = EnhancedClaudeExecutor::with_smart_defaults().map_err(|e| e.to_string())?;
+
     executor
         .execute_with_full_enhancement(&prompt, options)
         .await
@@ -502,9 +521,8 @@ pub async fn execute_enhanced_claude(
 
 #[tauri::command]
 pub async fn check_enhanced_cooldown() -> Result<CooldownInfo, String> {
-    let executor = EnhancedClaudeExecutor::with_smart_defaults()
-        .map_err(|e| e.to_string())?;
-    
+    let executor = EnhancedClaudeExecutor::with_smart_defaults().map_err(|e| e.to_string())?;
+
     executor
         .check_cooldown_status()
         .await
@@ -513,13 +531,9 @@ pub async fn check_enhanced_cooldown() -> Result<CooldownInfo, String> {
 
 #[tauri::command]
 pub async fn health_check_enhanced() -> Result<HealthStatus, String> {
-    let executor = EnhancedClaudeExecutor::with_smart_defaults()
-        .map_err(|e| e.to_string())?;
-    
-    executor
-        .health_check()
-        .await
-        .map_err(|e| e.to_string())
+    let executor = EnhancedClaudeExecutor::with_smart_defaults().map_err(|e| e.to_string())?;
+
+    executor.health_check().await.map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

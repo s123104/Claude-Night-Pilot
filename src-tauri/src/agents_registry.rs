@@ -147,5 +147,3 @@ pub fn agents_catalog_json() -> Value {
 
     serde_json::from_str(data).expect("agents_catalog_json 解析失敗")
 }
-
-

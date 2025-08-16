@@ -1,10 +1,10 @@
 // 應用程式狀態管理器 - 集中管理GUI和CLI狀態
+use crate::services::{job_service::*, prompt_service::*};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{RwLock, broadcast};
-use crate::services::{prompt_service::*, job_service::*};
+use tokio::sync::{broadcast, RwLock};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppState {
@@ -36,13 +36,13 @@ pub enum StateChangeEvent {
     PromptUpdated(UpdatePromptRequest),
     PromptDeleted(i64),
     PromptExecuted(i64, crate::enhanced_executor::EnhancedClaudeResponse),
-    
+
     JobsChanged(Vec<JobServiceResponse>),
     JobCreated(i64, CreateJobRequest),
     JobUpdated(UpdateJobRequest),
     JobDeleted(i64),
     JobExecuted(i64, crate::enhanced_executor::EnhancedClaudeResponse),
-    
+
     HealthCheckCompleted(crate::services::health_service::HealthStatus),
     SyncEventRecorded(crate::services::sync_service::SyncEvent),
 }
@@ -56,7 +56,7 @@ pub struct AppStateManager {
 impl AppStateManager {
     pub fn new() -> Self {
         let (event_sender, event_receiver) = broadcast::channel(1000);
-        
+
         Self {
             state: Arc::new(RwLock::new(AppState::default())),
             event_sender,
@@ -93,18 +93,24 @@ impl AppStateManager {
             state.pending_changes += 1;
             state.last_sync = chrono::Utc::now().to_rfc3339();
         }
-        
-        self.broadcast_event(StateChangeEvent::PromptsChanged(prompts.to_vec())).await
+
+        self.broadcast_event(StateChangeEvent::PromptsChanged(prompts.to_vec()))
+            .await
     }
 
     /// 通知Prompt創建
-    pub async fn notify_prompt_created(&self, id: i64, request: &CreatePromptRequest) -> Result<()> {
+    pub async fn notify_prompt_created(
+        &self,
+        id: i64,
+        request: &CreatePromptRequest,
+    ) -> Result<()> {
         {
             let mut state = self.state.write().await;
             state.pending_changes += 1;
         }
-        
-        self.broadcast_event(StateChangeEvent::PromptCreated(id, request.clone())).await
+
+        self.broadcast_event(StateChangeEvent::PromptCreated(id, request.clone()))
+            .await
     }
 
     /// 通知Prompt更新
@@ -113,8 +119,9 @@ impl AppStateManager {
             let mut state = self.state.write().await;
             state.pending_changes += 1;
         }
-        
-        self.broadcast_event(StateChangeEvent::PromptUpdated(request.clone())).await
+
+        self.broadcast_event(StateChangeEvent::PromptUpdated(request.clone()))
+            .await
     }
 
     /// 通知Prompt刪除
@@ -124,18 +131,24 @@ impl AppStateManager {
             state.prompts.remove(&id);
             state.pending_changes += 1;
         }
-        
-        self.broadcast_event(StateChangeEvent::PromptDeleted(id)).await
+
+        self.broadcast_event(StateChangeEvent::PromptDeleted(id))
+            .await
     }
 
     /// 通知Prompt執行
-    pub async fn notify_prompt_executed(&self, id: i64, response: &crate::enhanced_executor::EnhancedClaudeResponse) -> Result<()> {
+    pub async fn notify_prompt_executed(
+        &self,
+        id: i64,
+        response: &crate::enhanced_executor::EnhancedClaudeResponse,
+    ) -> Result<()> {
         {
             let mut state = self.state.write().await;
             state.pending_changes += 1;
         }
-        
-        self.broadcast_event(StateChangeEvent::PromptExecuted(id, response.clone())).await
+
+        self.broadcast_event(StateChangeEvent::PromptExecuted(id, response.clone()))
+            .await
     }
 
     /// 通知Jobs變更
@@ -149,8 +162,9 @@ impl AppStateManager {
             state.pending_changes += 1;
             state.last_sync = chrono::Utc::now().to_rfc3339();
         }
-        
-        self.broadcast_event(StateChangeEvent::JobsChanged(jobs.to_vec())).await
+
+        self.broadcast_event(StateChangeEvent::JobsChanged(jobs.to_vec()))
+            .await
     }
 
     /// 通知Job創建
@@ -159,8 +173,9 @@ impl AppStateManager {
             let mut state = self.state.write().await;
             state.pending_changes += 1;
         }
-        
-        self.broadcast_event(StateChangeEvent::JobCreated(id, request.clone())).await
+
+        self.broadcast_event(StateChangeEvent::JobCreated(id, request.clone()))
+            .await
     }
 
     /// 通知Job更新
@@ -169,8 +184,9 @@ impl AppStateManager {
             let mut state = self.state.write().await;
             state.pending_changes += 1;
         }
-        
-        self.broadcast_event(StateChangeEvent::JobUpdated(request.clone())).await
+
+        self.broadcast_event(StateChangeEvent::JobUpdated(request.clone()))
+            .await
     }
 
     /// 通知Job刪除
@@ -180,45 +196,58 @@ impl AppStateManager {
             state.jobs.remove(&id);
             state.pending_changes += 1;
         }
-        
+
         self.broadcast_event(StateChangeEvent::JobDeleted(id)).await
     }
 
     /// 通知Job執行
-    pub async fn notify_job_executed(&self, id: i64, response: &crate::enhanced_executor::EnhancedClaudeResponse) -> Result<()> {
+    pub async fn notify_job_executed(
+        &self,
+        id: i64,
+        response: &crate::enhanced_executor::EnhancedClaudeResponse,
+    ) -> Result<()> {
         {
             let mut state = self.state.write().await;
             state.pending_changes += 1;
         }
-        
-        self.broadcast_event(StateChangeEvent::JobExecuted(id, response.clone())).await
+
+        self.broadcast_event(StateChangeEvent::JobExecuted(id, response.clone()))
+            .await
     }
 
     /// 通知健康檢查完成
-    pub async fn notify_health_check_completed(&self, health: &crate::services::health_service::HealthStatus) -> Result<()> {
+    pub async fn notify_health_check_completed(
+        &self,
+        health: &crate::services::health_service::HealthStatus,
+    ) -> Result<()> {
         {
             let mut state = self.state.write().await;
             state.health_status = Some(health.clone());
             state.last_sync = chrono::Utc::now().to_rfc3339();
         }
-        
-        self.broadcast_event(StateChangeEvent::HealthCheckCompleted(health.clone())).await
+
+        self.broadcast_event(StateChangeEvent::HealthCheckCompleted(health.clone()))
+            .await
     }
 
     /// 記錄同步事件
-    pub async fn record_sync_event(&self, event: crate::services::sync_service::SyncEvent) -> Result<()> {
+    pub async fn record_sync_event(
+        &self,
+        event: crate::services::sync_service::SyncEvent,
+    ) -> Result<()> {
         {
             let mut state = self.state.write().await;
             state.sync_events.push(event.clone());
-            
+
             // 保持最近100個事件
             let len = state.sync_events.len();
             if len > 100 {
                 state.sync_events.drain(0..len - 100);
             }
         }
-        
-        self.broadcast_event(StateChangeEvent::SyncEventRecorded(event)).await
+
+        self.broadcast_event(StateChangeEvent::SyncEventRecorded(event))
+            .await
     }
 
     /// 獲取待處理變更數量

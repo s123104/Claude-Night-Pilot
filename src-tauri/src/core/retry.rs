@@ -1,8 +1,8 @@
 // 重試策略系統 - 智慧指數退避與錯誤恢復
+use crate::core::cooldown::{CooldownDetector, CooldownInfo};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-use anyhow::Result;
-use crate::core::cooldown::{CooldownDetector, CooldownInfo};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RetryConfig {
@@ -83,7 +83,7 @@ impl RetryOrchestrator {
             cooldown_aware: true,
             strategy: RetryStrategy::SmartRetry,
         };
-        
+
         Self::new(config)
     }
 
@@ -95,10 +95,10 @@ impl RetryOrchestrator {
         T: Send,
     {
         let mut last_error: Option<anyhow::Error> = None;
-        
+
         for attempt in 1..=self.config.max_attempts {
             let start_time = chrono::Utc::now();
-            
+
             match operation().await {
                 Ok(result) => {
                     // 成功，清理重試歷史
@@ -108,10 +108,11 @@ impl RetryOrchestrator {
                 Err(error) => {
                     let error_anyhow = anyhow::anyhow!("{}", error);
                     let error_type = self.classify_error(&error_anyhow);
-                    
+
                     // 檢測冷卻
                     let cooldown_info = if self.config.cooldown_aware {
-                        self.cooldown_detector.detect_cooldown(&error_anyhow.to_string())
+                        self.cooldown_detector
+                            .detect_cooldown(&error_anyhow.to_string())
                     } else {
                         None
                     };
@@ -124,9 +125,9 @@ impl RetryOrchestrator {
                         delay_used: Duration::from_secs(0), // 將在下面更新
                         cooldown_detected: cooldown_info.clone(),
                     };
-                    
+
                     last_error = Some(error_anyhow);
-                    
+
                     // 如果是最後一次嘗試，不再重試
                     if attempt >= self.config.max_attempts {
                         self.attempt_history.push(retry_attempt);
@@ -134,8 +135,10 @@ impl RetryOrchestrator {
                     }
 
                     // 計算延遲
-                    let delay = self.calculate_retry_delay(attempt, &error_type, &cooldown_info).await;
-                    
+                    let delay = self
+                        .calculate_retry_delay(attempt, &error_type, &cooldown_info)
+                        .await;
+
                     // 更新記錄
                     let mut retry_attempt = retry_attempt;
                     retry_attempt.delay_used = delay;
@@ -177,8 +180,13 @@ impl RetryOrchestrator {
             RetryStrategy::ExponentialBackoff => self.exponential_backoff_delay(attempt),
             RetryStrategy::LinearBackoff => self.linear_backoff_delay(attempt),
             RetryStrategy::FixedDelay => self.config.base_delay,
-            RetryStrategy::AdaptiveCooldown => self.adaptive_cooldown_delay(attempt, cooldown_info).await,
-            RetryStrategy::SmartRetry => self.smart_retry_delay(attempt, error_type, cooldown_info).await,
+            RetryStrategy::AdaptiveCooldown => {
+                self.adaptive_cooldown_delay(attempt, cooldown_info).await
+            }
+            RetryStrategy::SmartRetry => {
+                self.smart_retry_delay(attempt, error_type, cooldown_info)
+                    .await
+            }
         }
     }
 
@@ -186,9 +194,9 @@ impl RetryOrchestrator {
     fn exponential_backoff_delay(&self, attempt: u32) -> Duration {
         let base_ms = self.config.base_delay.as_millis() as f64;
         let delay_ms = base_ms * self.config.multiplier.powi(attempt as i32 - 1);
-        
+
         let mut final_delay = Duration::from_millis(delay_ms as u64);
-        
+
         // 限制最大延遲
         if final_delay > self.config.max_delay {
             final_delay = self.config.max_delay;
@@ -206,9 +214,9 @@ impl RetryOrchestrator {
     fn linear_backoff_delay(&self, attempt: u32) -> Duration {
         let base_ms = self.config.base_delay.as_millis() as u64;
         let delay_ms = base_ms * attempt as u64;
-        
+
         let mut final_delay = Duration::from_millis(delay_ms);
-        
+
         if final_delay > self.config.max_delay {
             final_delay = self.config.max_delay;
         }
@@ -221,7 +229,11 @@ impl RetryOrchestrator {
     }
 
     /// 適應性冷卻延遲 - 基於 ccusage 整合
-    async fn adaptive_cooldown_delay(&self, _attempt: u32, _cooldown_info: &Option<CooldownInfo>) -> Duration {
+    async fn adaptive_cooldown_delay(
+        &self,
+        _attempt: u32,
+        _cooldown_info: &Option<CooldownInfo>,
+    ) -> Duration {
         // 嘗試從 ccusage 獲取更精確的時間
         if let Ok(remaining_minutes) = self.get_ccusage_remaining_time().await {
             if remaining_minutes > 0 {
@@ -287,12 +299,12 @@ impl RetryOrchestrator {
     /// 添加抖動以避免雷群效應
     fn add_jitter(&self, delay: Duration) -> Duration {
         use rand::Rng;
-        
+
         let base_ms = delay.as_millis() as f64;
         let jitter_range = base_ms * 0.1; // ±10% 抖動
         let mut rng = rand::thread_rng();
         let jitter = rng.gen_range(-jitter_range..=jitter_range);
-        
+
         let final_ms = (base_ms + jitter).max(100.0) as u64; // 最少100ms
         Duration::from_millis(final_ms)
     }
@@ -321,7 +333,10 @@ impl RetryOrchestrator {
             ErrorType::RateLimitError
         } else if error_str.contains("network") || error_str.contains("connection") {
             ErrorType::NetworkError
-        } else if error_str.contains("auth") || error_str.contains("401") || error_str.contains("403") {
+        } else if error_str.contains("auth")
+            || error_str.contains("401")
+            || error_str.contains("403")
+        {
             ErrorType::AuthenticationError
         } else if error_str.contains("timeout") || error_str.contains("timed out") {
             ErrorType::TimeoutError
@@ -336,7 +351,7 @@ impl RetryOrchestrator {
     async fn get_ccusage_remaining_time(&self) -> Result<u32> {
         // 嘗試多種 ccusage 命令
         let commands = ["ccusage", "claude-usage", "ccu"];
-        
+
         for cmd in &commands {
             match tokio::process::Command::new(cmd)
                 .arg("blocks")
@@ -359,7 +374,7 @@ impl RetryOrchestrator {
     /// 解析 ccusage 輸出
     fn parse_ccusage_output(&self, output: &str) -> Option<u32> {
         use regex::Regex;
-        
+
         // 解析 "3h 45m" 格式
         if let Ok(re) = Regex::new(r"(\d+)h\s*(\d+)m") {
             if let Some(caps) = re.captures(output) {
@@ -490,10 +505,19 @@ mod tests {
 
         let orchestrator = RetryOrchestrator::new(config).unwrap();
 
-        assert_eq!(orchestrator.exponential_backoff_delay(1), Duration::from_millis(1000));
-        assert_eq!(orchestrator.exponential_backoff_delay(2), Duration::from_millis(2000));
-        assert_eq!(orchestrator.exponential_backoff_delay(3), Duration::from_millis(4000));
-        
+        assert_eq!(
+            orchestrator.exponential_backoff_delay(1),
+            Duration::from_millis(1000)
+        );
+        assert_eq!(
+            orchestrator.exponential_backoff_delay(2),
+            Duration::from_millis(2000)
+        );
+        assert_eq!(
+            orchestrator.exponential_backoff_delay(3),
+            Duration::from_millis(4000)
+        );
+
         // 測試最大延遲限制
         let long_delay = orchestrator.exponential_backoff_delay(10);
         assert!(long_delay <= Duration::from_secs(60));
@@ -540,20 +564,25 @@ mod tests {
     #[tokio::test]
     async fn test_retry_orchestrator_success() {
         let mut orchestrator = RetryOrchestrator::with_smart_defaults().unwrap();
-        
+
         let call_count = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
         let call_count_clone = call_count.clone();
-        
-        let result = orchestrator.execute_with_retry(move || {
-            let count = call_count_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
-            Box::pin(async move {
-                if count < 3 {
-                    Err(std::io::Error::new(std::io::ErrorKind::Other, "Temporary failure"))
-                } else {
-                    Ok("Success!")
-                }
+
+        let result = orchestrator
+            .execute_with_retry(move || {
+                let count = call_count_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+                Box::pin(async move {
+                    if count < 3 {
+                        Err(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            "Temporary failure",
+                        ))
+                    } else {
+                        Ok("Success!")
+                    }
+                })
             })
-        }).await;
+            .await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Success!");
@@ -563,7 +592,7 @@ mod tests {
     #[test]
     fn test_retry_config_defaults() {
         let config = RetryConfig::default();
-        
+
         assert_eq!(config.max_attempts, 3);
         assert_eq!(config.base_delay, Duration::from_millis(1000));
         assert_eq!(config.max_delay, Duration::from_secs(60));

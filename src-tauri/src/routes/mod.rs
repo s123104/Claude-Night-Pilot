@@ -1,14 +1,14 @@
 // Routes 模組 - API 路由定義和處理器
 // 採用 vibe-kanban 架構模式
 
-pub mod prompt_routes;
-pub mod job_routes;
 pub mod health_routes;
+pub mod job_routes;
+pub mod prompt_routes;
 
 // 重新導出主要路由處理器
-pub use prompt_routes::*;
-pub use job_routes::*;
 pub use health_routes::*;
+pub use job_routes::*;
+pub use prompt_routes::*;
 
 use crate::models::ApiResponse;
 

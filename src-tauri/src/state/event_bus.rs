@@ -9,7 +9,7 @@ use tokio::sync::{broadcast, RwLock};
 pub struct SystemEvent {
     pub id: String,
     pub event_type: String,
-    pub source: String, // "gui", "cli", "system"
+    pub source: String,         // "gui", "cli", "system"
     pub target: Option<String>, // 目標接收者
     pub payload: serde_json::Value,
     pub timestamp: String,
@@ -60,7 +60,7 @@ pub struct EventBus {
 impl EventBus {
     pub fn new() -> Self {
         let (event_sender, _) = broadcast::channel(10000);
-        
+
         Self {
             event_sender,
             handlers: Arc::new(RwLock::new(HashMap::new())),
@@ -73,15 +73,15 @@ impl EventBus {
     pub async fn publish(&self, event: SystemEvent) -> Result<()> {
         // 記錄到歷史
         self.add_to_history(event.clone()).await?;
-        
+
         // 廣播事件
         if let Err(_) = self.event_sender.send(event.clone()) {
             tracing::warn!("發布事件失敗: 沒有訂閱者 - {}", event.id);
         }
-        
+
         // 處理特定處理器
         self.handle_event(event).await?;
-        
+
         Ok(())
     }
 
@@ -107,17 +107,22 @@ impl EventBus {
     /// 處理事件（調用相關處理器）
     async fn handle_event(&self, event: SystemEvent) -> Result<()> {
         let handlers = self.handlers.read().await;
-        
+
         for handler in handlers.values() {
-            if handler.event_types.contains(&event.event_type) || 
-               handler.event_types.contains(&"*".to_string()) {
+            if handler.event_types.contains(&event.event_type)
+                || handler.event_types.contains(&"*".to_string())
+            {
                 if let Err(e) = (handler.handler_func)(event.clone()) {
-                    tracing::error!("事件處理器 {} 處理事件 {} 失敗: {}", 
-                                  handler.id, event.id, e);
+                    tracing::error!(
+                        "事件處理器 {} 處理事件 {} 失敗: {}",
+                        handler.id,
+                        event.id,
+                        e
+                    );
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -125,13 +130,13 @@ impl EventBus {
     async fn add_to_history(&self, event: SystemEvent) -> Result<()> {
         let mut history = self.event_history.write().await;
         history.push(event);
-        
+
         // 保持歷史大小限制
         let len = history.len();
         if len > self.max_history_size {
             history.drain(0..len - self.max_history_size);
         }
-        
+
         Ok(())
     }
 
@@ -139,12 +144,8 @@ impl EventBus {
     pub async fn get_event_history(&self, limit: Option<usize>) -> Result<Vec<SystemEvent>> {
         let history = self.event_history.read().await;
         let limit = limit.unwrap_or(100);
-        
-        Ok(history.iter()
-            .rev()
-            .take(limit)
-            .cloned()
-            .collect())
+
+        Ok(history.iter().rev().take(limit).cloned().collect())
     }
 
     /// 清理歷史記錄
@@ -173,20 +174,14 @@ impl EventBus {
     }
 
     /// 創建GUI到CLI的事件
-    pub fn create_gui_to_cli_event(
-        event_type: &str,
-        payload: serde_json::Value,
-    ) -> SystemEvent {
+    pub fn create_gui_to_cli_event(event_type: &str, payload: serde_json::Value) -> SystemEvent {
         let mut event = Self::create_event(event_type, "gui", payload, EventPriority::Normal);
         event.target = Some("cli".to_string());
         event
     }
 
     /// 創建CLI到GUI的事件
-    pub fn create_cli_to_gui_event(
-        event_type: &str,
-        payload: serde_json::Value,
-    ) -> SystemEvent {
+    pub fn create_cli_to_gui_event(event_type: &str, payload: serde_json::Value) -> SystemEvent {
         let mut event = Self::create_event(event_type, "cli", payload, EventPriority::Normal);
         event.target = Some("gui".to_string());
         event
@@ -210,7 +205,7 @@ impl EventBus {
             }),
             EventPriority::Normal,
         );
-        
+
         self.publish(event).await
     }
 
@@ -232,7 +227,7 @@ impl EventBus {
             }),
             EventPriority::Normal,
         );
-        
+
         self.publish(event).await
     }
 
@@ -242,13 +237,8 @@ impl EventBus {
         source: &str,
         status: serde_json::Value,
     ) -> Result<()> {
-        let event = Self::create_event(
-            "system_status_update",
-            source,
-            status,
-            EventPriority::High,
-        );
-        
+        let event = Self::create_event("system_status_update", source, status, EventPriority::High);
+
         self.publish(event).await
     }
 
@@ -268,7 +258,7 @@ impl EventBus {
             }),
             EventPriority::High,
         );
-        
+
         self.publish(event).await
     }
 
@@ -276,15 +266,17 @@ impl EventBus {
     pub async fn get_event_statistics(&self) -> Result<serde_json::Value> {
         let history = self.event_history.read().await;
         let handlers = self.handlers.read().await;
-        
+
         let mut event_type_counts = HashMap::new();
         let mut source_counts = HashMap::new();
-        
+
         for event in history.iter() {
-            *event_type_counts.entry(event.event_type.clone()).or_insert(0) += 1;
+            *event_type_counts
+                .entry(event.event_type.clone())
+                .or_insert(0) += 1;
             *source_counts.entry(event.source.clone()).or_insert(0) += 1;
         }
-        
+
         Ok(serde_json::json!({
             "total_events": history.len(),
             "registered_handlers": handlers.len(),
@@ -343,10 +335,18 @@ impl StandardEventHandlers {
             event_types: vec!["*".to_string()], // 監聽所有事件
             handler_func: Arc::new(|event: SystemEvent| {
                 match event.priority {
-                    EventPriority::Critical => tracing::error!("關鍵事件: {} from {}", event.event_type, event.source),
-                    EventPriority::High => tracing::warn!("高優先級事件: {} from {}", event.event_type, event.source),
-                    EventPriority::Normal => tracing::info!("事件: {} from {}", event.event_type, event.source),
-                    EventPriority::Low => tracing::debug!("低優先級事件: {} from {}", event.event_type, event.source),
+                    EventPriority::Critical => {
+                        tracing::error!("關鍵事件: {} from {}", event.event_type, event.source)
+                    }
+                    EventPriority::High => {
+                        tracing::warn!("高優先級事件: {} from {}", event.event_type, event.source)
+                    }
+                    EventPriority::Normal => {
+                        tracing::info!("事件: {} from {}", event.event_type, event.source)
+                    }
+                    EventPriority::Low => {
+                        tracing::debug!("低優先級事件: {} from {}", event.event_type, event.source)
+                    }
                 }
                 Ok(())
             }),

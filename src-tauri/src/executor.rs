@@ -26,20 +26,20 @@ pub struct CooldownInfo {
 // 新增：執行選項配置 [最佳實踐:2025-07-24T00:55:47+08:00]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionOptions {
-    pub skip_permissions: bool,           // 是否跳過許可權確認
-    pub output_format: String,           // 輸出格式 ("json", "text")
-    pub timeout_seconds: Option<u64>,    // 執行超時（秒）
-    pub dry_run: bool,                   // 試運行模式
+    pub skip_permissions: bool,            // 是否跳過許可權確認
+    pub output_format: String,             // 輸出格式 ("json", "text")
+    pub timeout_seconds: Option<u64>,      // 執行超時（秒）
+    pub dry_run: bool,                     // 試運行模式
     pub working_directory: Option<String>, // 工作目錄限制
-    pub allowed_operations: Vec<String>, // 允許的操作類型
-    pub safety_check: bool,              // 是否執行安全檢查
-    pub max_retries: u32,                // 最大重試次數
+    pub allowed_operations: Vec<String>,   // 允許的操作類型
+    pub safety_check: bool,                // 是否執行安全檢查
+    pub max_retries: u32,                  // 最大重試次數
 }
 
 impl Default for ExecutionOptions {
     fn default() -> Self {
         Self {
-            skip_permissions: false,  // 預設安全模式
+            skip_permissions: false, // 預設安全模式
             output_format: "json".to_string(),
             timeout_seconds: Some(300), // 5分鐘預設超時
             dry_run: false,
@@ -49,7 +49,7 @@ impl Default for ExecutionOptions {
                 "write".to_string(),
                 "compile".to_string(),
             ],
-            safety_check: true,       // 預設啟用安全檢查
+            safety_check: true, // 預設啟用安全檢查
             max_retries: 3,
         }
     }
@@ -77,7 +77,7 @@ pub enum RiskLevel {
 pub struct ExecutionAudit {
     pub id: Option<i64>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
-    pub prompt_hash: String,              // prompt的SHA256雜湊
+    pub prompt_hash: String, // prompt的SHA256雜湊
     pub options: ExecutionOptions,
     pub security_check: SecurityCheckResult,
     pub execution_start: Option<chrono::DateTime<chrono::Utc>>,
@@ -104,10 +104,10 @@ impl ClaudeExecutor {
     pub async fn run_with_options(prompt: &str, options: ExecutionOptions) -> Result<String> {
         let start_time = chrono::Utc::now();
         let prompt_hash = Self::calculate_prompt_hash(prompt);
-        
+
         // 1. 安全檢查
         let security_check = Self::perform_security_check(prompt, &options).await?;
-        
+
         if !security_check.passed {
             let audit = ExecutionAudit {
                 id: None,
@@ -121,20 +121,25 @@ impl ClaudeExecutor {
                 output_length: None,
                 error_message: Some("安全檢查失敗".to_string()),
             };
-            
+
             // 記錄安全阻擋事件
             Self::log_execution_audit(&audit).await?;
-            
+
             bail!("安全檢查失敗: {:?}", security_check.errors);
         }
 
         // 2. 試運行模式
         if options.dry_run {
-            println!("🧪 試運行模式：將執行 claude -p \"{}\" {}", 
+            println!(
+                "🧪 試運行模式：將執行 claude -p \"{}\" {}",
                 prompt.chars().take(50).collect::<String>(),
-                if options.skip_permissions { "--dangerously-skip-permissions" } else { "" }
+                if options.skip_permissions {
+                    "--dangerously-skip-permissions"
+                } else {
+                    ""
+                }
             );
-            
+
             let audit = ExecutionAudit {
                 id: None,
                 timestamp: start_time,
@@ -147,9 +152,9 @@ impl ClaudeExecutor {
                 output_length: Some(0),
                 error_message: None,
             };
-            
+
             Self::log_execution_audit(&audit).await?;
-            
+
             return Ok("試運行模式：命令檢查通過".to_string());
         }
 
@@ -173,16 +178,19 @@ impl ClaudeExecutor {
                         output_length: Some(output.len()),
                         error_message: None,
                     };
-                    
+
                     Self::log_execution_audit(&audit).await?;
                     return Ok(output);
                 }
                 Err(e) => {
                     last_error = Some(e);
                     retry_count += 1;
-                    
+
                     if retry_count <= options.max_retries {
-                        println!("執行失敗，將進行重試 {}/{}", retry_count, options.max_retries);
+                        println!(
+                            "執行失敗，將進行重試 {}/{}",
+                            retry_count, options.max_retries
+                        );
                         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
                     }
                 }
@@ -203,15 +211,18 @@ impl ClaudeExecutor {
             output_length: None,
             error_message: Some(error.to_string()),
         };
-        
+
         Self::log_execution_audit(&audit).await?;
         Err(error)
     }
 
     /// 帶超時的命令執行
-    async fn execute_command_with_timeout(prompt: &str, options: &ExecutionOptions) -> Result<String> {
+    async fn execute_command_with_timeout(
+        prompt: &str,
+        options: &ExecutionOptions,
+    ) -> Result<String> {
         let timeout = std::time::Duration::from_secs(options.timeout_seconds.unwrap_or(300));
-        
+
         let execution_future = async {
             let mut cmd = AsyncCommand::new("claude");
             cmd.arg("-p").arg(prompt);
@@ -267,7 +278,10 @@ impl ClaudeExecutor {
     }
 
     /// 安全檢查機制 [最佳實踐:安全驗證:2025-07-24T00:55:47+08:00]
-    async fn perform_security_check(prompt: &str, options: &ExecutionOptions) -> Result<SecurityCheckResult> {
+    async fn perform_security_check(
+        prompt: &str,
+        options: &ExecutionOptions,
+    ) -> Result<SecurityCheckResult> {
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
         let mut risk_level = RiskLevel::Low;
@@ -293,14 +307,7 @@ impl ClaudeExecutor {
         }
 
         // 3. 檢查prompt內容是否包含危險模式
-        let dangerous_patterns = vec![
-            "rm -rf",
-            "sudo",
-            "chmod 777",
-            "delete",
-            "format",
-            "mkfs",
-        ];
+        let dangerous_patterns = vec!["rm -rf", "sudo", "chmod 777", "delete", "format", "mkfs"];
 
         for pattern in dangerous_patterns {
             if prompt.to_lowercase().contains(pattern) {
@@ -340,14 +347,7 @@ impl ClaudeExecutor {
 
     /// 檢查工作目錄是否安全
     fn is_safe_working_directory(work_dir: &str) -> bool {
-        let dangerous_paths = vec![
-            "/bin",
-            "/usr/bin",
-            "/etc",
-            "/var",
-            "/sys",
-            "/proc",
-        ];
+        let dangerous_paths = vec!["/bin", "/usr/bin", "/etc", "/var", "/sys", "/proc"];
 
         // 檢查是否是根目錄
         if work_dir == "/" {
@@ -379,19 +379,20 @@ impl ClaudeExecutor {
     /// 記錄執行審計日誌
     async fn log_execution_audit(audit: &ExecutionAudit) -> Result<()> {
         // 這裡應該保存到資料庫，暫時輸出到日誌
-        println!("🔒 執行審計: {} | 結果: {:?} | 風險: {:?}", 
+        println!(
+            "🔒 執行審計: {} | 結果: {:?} | 風險: {:?}",
             audit.timestamp.format("%Y-%m-%d %H:%M:%S"),
             audit.result,
             audit.security_check.risk_level
         );
-        
+
         if !audit.security_check.warnings.is_empty() {
             println!("⚠️  安全警告: {:?}", audit.security_check.warnings);
         }
 
         // TODO: 實際保存到資料庫
         // self.db.save_execution_audit(audit).await?;
-        
+
         Ok(())
     }
 
@@ -514,7 +515,9 @@ pub async fn execute_claude_safe(prompt: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn validate_execution_options(options: ExecutionOptions) -> Result<SecurityCheckResult, String> {
+pub async fn validate_execution_options(
+    options: ExecutionOptions,
+) -> Result<SecurityCheckResult, String> {
     ClaudeExecutor::perform_security_check("", &options)
         .await
         .map_err(|e| e.to_string())
@@ -567,7 +570,9 @@ mod tests {
 
     #[test]
     fn test_safe_working_directory() {
-        assert!(ClaudeExecutor::is_safe_working_directory("/home/user/project"));
+        assert!(ClaudeExecutor::is_safe_working_directory(
+            "/home/user/project"
+        ));
         assert!(!ClaudeExecutor::is_safe_working_directory("/etc"));
         assert!(!ClaudeExecutor::is_safe_working_directory("../../../"));
         assert!(!ClaudeExecutor::is_safe_working_directory("/bin"));

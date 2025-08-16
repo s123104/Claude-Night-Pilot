@@ -24,58 +24,58 @@ enum Commands {
         /// 要執行的prompt內容
         #[arg(short, long, value_name = "TEXT")]
         prompt: Option<String>,
-        
+
         /// 從檔案讀取prompt
         #[arg(short, long, value_name = "FILE")]
         file: Option<String>,
-        
+
         /// 從stdin讀取prompt
         #[arg(long)]
         stdin: bool,
-        
+
         /// 執行模式 (sync, async, scheduled)
         #[arg(short, long, default_value = "sync")]
         mode: String,
-        
+
         /// 工作目錄
         #[arg(short, long)]
         work_dir: Option<String>,
-        
+
         /// 啟用重試機制
         #[arg(long, default_value = "true")]
         retry: bool,
-        
+
         /// 檢查冷卻狀態
         #[arg(long, default_value = "true")]
         cooldown_check: bool,
-        
+
         /// 輸出格式 (json, text, pretty)
         #[arg(long, default_value = "pretty")]
         format: String,
     },
-    
+
     /// 快速冷卻檢查 (優化版)
     Cooldown {
         /// 輸出格式 (json, text, pretty)
         #[arg(long, default_value = "pretty")]
         format: String,
     },
-    
+
     /// 輕量級系統健康檢查 (優化版)
     Health {
         /// 輸出格式 (json, text, pretty)
         #[arg(long, default_value = "pretty")]
         format: String,
-        
+
         /// 跳過緩存，強制實時檢查
         #[arg(long)]
         no_cache: bool,
-        
+
         /// 快速模式 - 只檢查基本功能 (<50ms)
         #[arg(long)]
         fast: bool,
     },
-    
+
     /// 性能基準測試
     Benchmark {
         /// 測試迭代次數
@@ -89,10 +89,10 @@ enum Commands {
 #[tokio::main]
 async fn main() -> Result<()> {
     let start_time = Instant::now();
-    
+
     // ✅ 立即解析命令行，避免初始化延遲
     let cli = Cli::parse();
-    
+
     let result = match cli.command {
         Commands::Execute {
             prompt,
@@ -106,20 +106,32 @@ async fn main() -> Result<()> {
         } => {
             // 只在執行時才初始化介面
             execute_prompt_optimized(
-                prompt, file, stdin, mode, work_dir, retry, cooldown_check, format
-            ).await
+                prompt,
+                file,
+                stdin,
+                mode,
+                work_dir,
+                retry,
+                cooldown_check,
+                format,
+            )
+            .await
         }
-        
+
         Commands::Cooldown { format } => {
             // 輕量級冷卻檢查，無需完整初始化
             check_cooldown_lightweight(format).await
         }
-        
-        Commands::Health { format, no_cache, fast } => {
+
+        Commands::Health {
+            format,
+            no_cache,
+            fast,
+        } => {
             // 並行健康檢查
             health_check_optimized(format, !no_cache, fast).await
         }
-        
+
         Commands::Benchmark { iterations } => {
             // 性能基準測試
             run_performance_benchmark(iterations).await
@@ -135,12 +147,12 @@ async fn main() -> Result<()> {
             Ok(())
         }
     };
-    
+
     // 輸出總執行時間 (僅在環境變數啟用時)
     if std::env::var("CNP_DEBUG_TIMING").is_ok() {
         eprintln!("總執行時間: {:?}", start_time.elapsed());
     }
-    
+
     result
 }
 
@@ -157,22 +169,28 @@ async fn execute_prompt_optimized(
     format: String,
 ) -> Result<()> {
     let _start_time = Instant::now();
-    
+
     // 獲取prompt內容
     let prompt_content = if let Some(content) = prompt {
         content
     } else if let Some(file_path) = file {
-        tokio::fs::read_to_string(&file_path).await
+        tokio::fs::read_to_string(&file_path)
+            .await
             .with_context(|| format!("無法讀取檔案: {}", file_path))?
     } else if stdin {
         tokio::task::spawn_blocking(|| -> Result<String> {
             let mut buffer = String::new();
-            io::stdin().read_to_string(&mut buffer)
+            io::stdin()
+                .read_to_string(&mut buffer)
                 .context("無法從stdin讀取內容")?;
             Ok(buffer)
-        }).await.context("無法執行stdin讀取任務")??
+        })
+        .await
+        .context("無法執行stdin讀取任務")??
     } else {
-        return Err(anyhow::anyhow!("必須提供prompt內容 (使用 -p, -f, 或 --stdin)"));
+        return Err(anyhow::anyhow!(
+            "必須提供prompt內容 (使用 -p, -f, 或 --stdin)"
+        ));
     };
 
     // 準備執行選項
@@ -188,12 +206,15 @@ async fn execute_prompt_optimized(
     if format != "json" {
         println!("🚀 正在執行Claude命令...");
     }
-    
+
     let execution_start = Instant::now();
-    let result = claude_night_pilot_lib::unified_interface::UnifiedClaudeInterface::execute_claude(prompt_content, options)
-        .await
-        .context("執行Claude命令失敗")?;
-    
+    let result = claude_night_pilot_lib::unified_interface::UnifiedClaudeInterface::execute_claude(
+        prompt_content,
+        options,
+    )
+    .await
+    .context("執行Claude命令失敗")?;
+
     if std::env::var("CNP_DEBUG_TIMING").is_ok() {
         eprintln!("執行耗時: {:?}", execution_start.elapsed());
     }
@@ -216,15 +237,16 @@ async fn execute_prompt_optimized(
 
 async fn check_cooldown_lightweight(format: String) -> Result<()> {
     let start_time = Instant::now();
-    
+
     if format != "json" {
         println!("🕐 檢查冷卻狀態...");
     }
-    
+
     // ✅ 直接調用統一介面的冷卻檢查
-    let cooldown_info = claude_night_pilot_lib::unified_interface::UnifiedClaudeInterface::check_cooldown()
-        .await
-        .context("檢查冷卻狀態失敗")?;
+    let cooldown_info =
+        claude_night_pilot_lib::unified_interface::UnifiedClaudeInterface::check_cooldown()
+            .await
+            .context("檢查冷卻狀態失敗")?;
 
     match format.as_str() {
         "json" => {
@@ -241,7 +263,7 @@ async fn check_cooldown_lightweight(format: String) -> Result<()> {
             print_pretty_cooldown(&cooldown_info);
         }
     }
-    
+
     if std::env::var("CNP_DEBUG_TIMING").is_ok() {
         eprintln!("冷卻檢查耗時: {:?}", start_time.elapsed());
     }
@@ -251,7 +273,7 @@ async fn check_cooldown_lightweight(format: String) -> Result<()> {
 
 async fn health_check_optimized(format: String, use_cache: bool, fast_mode: bool) -> Result<()> {
     let start_time = Instant::now();
-    
+
     if format != "json" {
         if fast_mode {
             println!("🏥 執行快速健康檢查 (<50ms)...");
@@ -259,7 +281,7 @@ async fn health_check_optimized(format: String, use_cache: bool, fast_mode: bool
             println!("🏥 執行系統健康檢查...");
         }
     }
-    
+
     let (claude_available, cooldown_working, process_count) = if fast_mode {
         // 🚀 快速模式 - 只檢查二進位檔案是否存在，無執行
         let (claude_available, cooldown_working, process_count) = tokio::join!(
@@ -283,7 +305,11 @@ async fn health_check_optimized(format: String, use_cache: bool, fast_mode: bool
         let (claude_available, cooldown_working, process_count) = tokio::join!(
             // Claude CLI 可用性檢查
             async {
-                match tokio::process::Command::new("claude").arg("--version").output().await {
+                match tokio::process::Command::new("claude")
+                    .arg("--version")
+                    .output()
+                    .await
+                {
                     Ok(output) if output.status.success() => true,
                     _ => false,
                 }
@@ -291,7 +317,12 @@ async fn health_check_optimized(format: String, use_cache: bool, fast_mode: bool
             // 冷卻檢測檢查 (輕量級版本)
             async {
                 // 快速檢查，不進行完整的 doctor 調用
-                match tokio::process::Command::new("claude").arg("doctor").arg("--help").output().await {
+                match tokio::process::Command::new("claude")
+                    .arg("doctor")
+                    .arg("--help")
+                    .output()
+                    .await
+                {
                     Ok(output) if output.status.success() => true,
                     _ => false,
                 }
@@ -303,9 +334,9 @@ async fn health_check_optimized(format: String, use_cache: bool, fast_mode: bool
         );
         (claude_available, cooldown_working, process_count)
     };
-    
+
     let check_time_ms = start_time.elapsed().as_millis();
-    
+
     // 建立健康狀態結果
     let health_status = json!({
         "claude_cli_available": claude_available,
@@ -333,7 +364,7 @@ async fn health_check_optimized(format: String, use_cache: bool, fast_mode: bool
             print_pretty_health(&health_status);
         }
     }
-    
+
     if std::env::var("CNP_DEBUG_TIMING").is_ok() {
         eprintln!("健康檢查總耗時: {:?}", start_time.elapsed());
     }
@@ -346,48 +377,59 @@ async fn health_check_optimized(format: String, use_cache: bool, fast_mode: bool
 async fn run_performance_benchmark(iterations: usize) -> Result<()> {
     println!("🏃 運行性能基準測試 ({} 次迭代)", iterations);
     println!("{}", "=".repeat(50));
-    
+
     let mut startup_times = Vec::new();
     let mut health_times = Vec::new();
-    
+
     for i in 1..=iterations {
         println!("迭代 {}/{}", i, iterations);
-        
+
         // 測試啟動時間 (模擬快速健康檢查)
         let start = Instant::now();
         let _ = tokio::time::sleep(std::time::Duration::from_millis(10)).await; // 模擬啟動時間
         let startup_time = start.elapsed();
         startup_times.push(startup_time);
-        
-        // 測試健康檢查時間  
+
+        // 測試健康檢查時間
         let start = Instant::now();
         let _ = health_check_optimized("json".to_string(), true, false).await;
         let health_time = start.elapsed();
         health_times.push(health_time);
-        
+
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
-    
+
     // 統計結果
-    let avg_startup = startup_times.iter().sum::<std::time::Duration>() / startup_times.len() as u32;
+    let avg_startup =
+        startup_times.iter().sum::<std::time::Duration>() / startup_times.len() as u32;
     let avg_health = health_times.iter().sum::<std::time::Duration>() / health_times.len() as u32;
-    
+
     println!("\n📊 性能基準測試結果");
     println!("{}", "=".repeat(50));
     println!("啟動時間: 平均 {:?}", avg_startup);
     println!("健康檢查: 平均 {:?}", avg_health);
-    
+
     // 與目標比較
     println!("\n🎯 目標比較");
-    println!("啟動時間目標: 100ms, 實際: {:?} {}", 
+    println!(
+        "啟動時間目標: 100ms, 實際: {:?} {}",
         avg_startup,
-        if avg_startup.as_millis() < 100 { "✅" } else { "❌" }
+        if avg_startup.as_millis() < 100 {
+            "✅"
+        } else {
+            "❌"
+        }
     );
-    println!("健康檢查目標: 200ms, 實際: {:?} {}", 
+    println!(
+        "健康檢查目標: 200ms, 實際: {:?} {}",
         avg_health,
-        if avg_health.as_millis() < 200 { "✅" } else { "❌" }
+        if avg_health.as_millis() < 200 {
+            "✅"
+        } else {
+            "❌"
+        }
     );
-    
+
     Ok(())
 }
 
@@ -395,14 +437,14 @@ fn print_pretty_result(result: &claude_night_pilot_lib::enhanced_executor::Enhan
     println!("\n🎯 執行結果");
     println!("═══════════════════════════════════════");
     println!("{}", result.completion);
-    
+
     if let Some(usage) = &result.usage {
         println!("\n📊 使用統計");
         println!("───────────────────────────");
         println!("輸入Token: {}", usage.input_tokens.unwrap_or(0));
         println!("輸出Token: {}", usage.output_tokens.unwrap_or(0));
     }
-    
+
     let metadata = &result.execution_metadata;
     println!("\n🔍 執行信息");
     println!("───────────────────────────");
@@ -416,7 +458,7 @@ fn print_pretty_result(result: &claude_night_pilot_lib::enhanced_executor::Enhan
 fn print_pretty_cooldown(cooldown: &claude_night_pilot_lib::core::CooldownInfo) {
     println!("\n🕐 冷卻狀態");
     println!("═══════════════════════════════════════");
-    
+
     if cooldown.is_cooling {
         println!("❌ 系統冷卻中");
         println!("剩餘時間: {} 秒", cooldown.seconds_remaining);
@@ -430,7 +472,7 @@ fn print_pretty_cooldown(cooldown: &claude_night_pilot_lib::core::CooldownInfo) 
         println!("✅ 系統可用");
         println!("狀態: 可立即執行");
     }
-    
+
     if !cooldown.original_message.is_empty() {
         println!("原始信息: {}", cooldown.original_message);
     }
@@ -439,23 +481,37 @@ fn print_pretty_cooldown(cooldown: &claude_night_pilot_lib::core::CooldownInfo) 
 fn print_pretty_health(health: &serde_json::Value) {
     println!("\n🏥 系統健康狀態");
     println!("═══════════════════════════════════════");
-    
+
     if let Some(claude_available) = health["claude_cli_available"].as_bool() {
-        println!("Claude CLI: {}", if claude_available { "✅ 可用" } else { "❌ 不可用" });
+        println!(
+            "Claude CLI: {}",
+            if claude_available {
+                "✅ 可用"
+            } else {
+                "❌ 不可用"
+            }
+        );
     }
-    
+
     if let Some(cooldown_working) = health["cooldown_detection_working"].as_bool() {
-        println!("冷卻檢測: {}", if cooldown_working { "✅ 正常" } else { "❌ 異常" });
+        println!(
+            "冷卻檢測: {}",
+            if cooldown_working {
+                "✅ 正常"
+            } else {
+                "❌ 異常"
+            }
+        );
     }
-    
+
     if let Some(processes) = health["active_processes"].as_u64() {
         println!("活躍進程: {}", processes);
     }
-    
+
     if let Some(check_time) = health["check_time_ms"].as_u64() {
         println!("檢查耗時: {}ms", check_time);
     }
-    
+
     if let Some(last_check) = health["timestamp"].as_str() {
         println!("檢查時間: {}", last_check);
     }

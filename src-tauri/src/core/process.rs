@@ -1,10 +1,10 @@
 // 進程編排系統 - 基於 Vibe-Kanban 最佳實踐的進程管理
+use crate::core::retry::{RetryConfig, RetryOrchestrator};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use uuid::Uuid;
-use anyhow::Result;
 use tokio::process::Command as AsyncCommand;
-use crate::core::retry::{RetryOrchestrator, RetryConfig};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessHandle {
@@ -95,7 +95,11 @@ impl Default for ExecutionOptions {
             timeout_seconds: Some(300),
             dry_run: false,
             working_directory: None,
-            allowed_operations: vec!["read".to_string(), "write".to_string(), "compile".to_string()],
+            allowed_operations: vec![
+                "read".to_string(),
+                "write".to_string(),
+                "compile".to_string(),
+            ],
             safety_check: true,
             max_retries: 3,
         }
@@ -132,7 +136,7 @@ impl ProcessOrchestrator {
         Fut: std::future::Future<Output = Result<String>> + Send,
     {
         let process_id = Uuid::new_v4();
-        
+
         // 創建進程句柄
         let mut process_handle = ProcessHandle {
             id: process_id,
@@ -147,11 +151,12 @@ impl ProcessOrchestrator {
         // 檢查並執行前置條件
         let prerequisite_ids = self.execute_prerequisites(prerequisites).await?;
         process_handle.metadata.dependencies = prerequisite_ids.clone();
-        
+
         if !prerequisite_ids.is_empty() {
             process_handle.status = ProcessStatus::WaitingForPrerequisites;
-            self.active_processes.insert(process_id, process_handle.clone());
-            
+            self.active_processes
+                .insert(process_id, process_handle.clone());
+
             // 等待前置條件完成
             self.wait_for_prerequisites(&prerequisite_ids).await?;
         }
@@ -159,7 +164,8 @@ impl ProcessOrchestrator {
         // 更新狀態並執行主操作
         process_handle.status = ProcessStatus::Running;
         process_handle.started_at = Some(chrono::Utc::now());
-        self.active_processes.insert(process_id, process_handle.clone());
+        self.active_processes
+            .insert(process_id, process_handle.clone());
 
         // 執行主操作
         let execution_result = main_operation().await;
@@ -169,7 +175,7 @@ impl ProcessOrchestrator {
             Ok(_) => {
                 process_handle.status = ProcessStatus::Completed;
                 process_handle.completed_at = Some(chrono::Utc::now());
-                
+
                 tracing::info!("進程 {} 執行成功: {:?}", process_id, process_type);
             }
             Err(e) => {
@@ -177,12 +183,13 @@ impl ProcessOrchestrator {
                     error: e.to_string(),
                 };
                 process_handle.completed_at = Some(chrono::Utc::now());
-                
+
                 tracing::error!("進程 {} 執行失敗: {:?} - {}", process_id, process_type, e);
             }
         }
 
-        self.active_processes.insert(process_id, process_handle.clone());
+        self.active_processes
+            .insert(process_id, process_handle.clone());
 
         // 觸發完成回調
         if let Some(callback) = self.completion_callbacks.get(&process_id) {
@@ -193,7 +200,10 @@ impl ProcessOrchestrator {
     }
 
     /// 執行前置條件進程
-    async fn execute_prerequisites(&mut self, prerequisites: Vec<ProcessType>) -> Result<Vec<Uuid>> {
+    async fn execute_prerequisites(
+        &mut self,
+        prerequisites: Vec<ProcessType>,
+    ) -> Result<Vec<Uuid>> {
         let mut prerequisite_ids = Vec::new();
 
         for prereq in prerequisites {
@@ -206,8 +216,13 @@ impl ProcessOrchestrator {
                     let prereq_id = self.execute_database_migration(&migration_type).await?;
                     prerequisite_ids.push(prereq_id);
                 }
-                ProcessType::CleanupScript { script_path, cleanup_type } => {
-                    let prereq_id = self.execute_cleanup_script(&script_path, &cleanup_type).await?;
+                ProcessType::CleanupScript {
+                    script_path,
+                    cleanup_type,
+                } => {
+                    let prereq_id = self
+                        .execute_cleanup_script(&script_path, &cleanup_type)
+                        .await?;
                     prerequisite_ids.push(prereq_id);
                 }
                 _ => {
@@ -222,7 +237,7 @@ impl ProcessOrchestrator {
     /// 執行設置腳本
     async fn execute_setup_script(&mut self, script_path: &str, args: &[String]) -> Result<Uuid> {
         let process_id = Uuid::new_v4();
-        
+
         let mut process_handle = ProcessHandle {
             id: process_id,
             process_type: ProcessType::SetupScript {
@@ -244,10 +259,13 @@ impl ProcessOrchestrator {
             },
         };
 
-        self.active_processes.insert(process_id, process_handle.clone());
+        self.active_processes
+            .insert(process_id, process_handle.clone());
 
         // 執行腳本
-        let result = self.run_script_with_timeout(script_path, args, process_handle.metadata.timeout).await;
+        let result = self
+            .run_script_with_timeout(script_path, args, process_handle.metadata.timeout)
+            .await;
 
         match result {
             Ok(_) => {
@@ -271,7 +289,7 @@ impl ProcessOrchestrator {
     /// 執行資料庫遷移
     async fn execute_database_migration(&mut self, migration_type: &str) -> Result<Uuid> {
         let process_id = Uuid::new_v4();
-        
+
         let mut process_handle = ProcessHandle {
             id: process_id,
             process_type: ProcessType::DatabaseMigration {
@@ -292,7 +310,8 @@ impl ProcessOrchestrator {
             },
         };
 
-        self.active_processes.insert(process_id, process_handle.clone());
+        self.active_processes
+            .insert(process_id, process_handle.clone());
 
         // 執行資料庫遷移邏輯
         let result = self.run_database_migration(migration_type).await;
@@ -317,9 +336,13 @@ impl ProcessOrchestrator {
     }
 
     /// 執行清理腳本
-    async fn execute_cleanup_script(&mut self, script_path: &str, cleanup_type: &CleanupType) -> Result<Uuid> {
+    async fn execute_cleanup_script(
+        &mut self,
+        script_path: &str,
+        cleanup_type: &CleanupType,
+    ) -> Result<Uuid> {
         let process_id = Uuid::new_v4();
-        
+
         let mut process_handle = ProcessHandle {
             id: process_id,
             process_type: ProcessType::CleanupScript {
@@ -341,7 +364,8 @@ impl ProcessOrchestrator {
             },
         };
 
-        self.active_processes.insert(process_id, process_handle.clone());
+        self.active_processes
+            .insert(process_id, process_handle.clone());
 
         // 執行清理腳本
         let result = self.run_cleanup_script(script_path, cleanup_type).await;
@@ -355,7 +379,12 @@ impl ProcessOrchestrator {
                 process_handle.status = ProcessStatus::Failed {
                     error: e.to_string(),
                 };
-                tracing::error!("清理腳本執行失敗: {} ({:?}) - {}", script_path, cleanup_type, e);
+                tracing::error!(
+                    "清理腳本執行失敗: {} ({:?}) - {}",
+                    script_path,
+                    cleanup_type,
+                    e
+                );
             }
         }
 
@@ -458,7 +487,11 @@ impl ProcessOrchestrator {
     }
 
     /// 執行清理腳本
-    async fn run_cleanup_script(&self, script_path: &str, cleanup_type: &CleanupType) -> Result<()> {
+    async fn run_cleanup_script(
+        &self,
+        script_path: &str,
+        cleanup_type: &CleanupType,
+    ) -> Result<()> {
         tracing::info!("執行清理腳本: {} ({:?})", script_path, cleanup_type);
 
         match cleanup_type {
@@ -524,11 +557,15 @@ impl ProcessOrchestrator {
                 ProcessStatus::Running | ProcessStatus::WaitingForPrerequisites => {
                     process.status = ProcessStatus::Cancelled;
                     process.completed_at = Some(chrono::Utc::now());
-                    
+
                     tracing::info!("進程 {} 已取消", process_id);
                     Ok(())
                 }
-                _ => Err(anyhow::anyhow!("進程 {} 無法取消，當前狀態: {:?}", process_id, process.status)),
+                _ => Err(anyhow::anyhow!(
+                    "進程 {} 無法取消，當前狀態: {:?}",
+                    process_id,
+                    process.status
+                )),
             }
         } else {
             Err(anyhow::anyhow!("進程 {} 不存在", process_id))
@@ -544,10 +581,12 @@ impl ProcessOrchestrator {
     pub fn list_active_processes(&self) -> Vec<&ProcessHandle> {
         self.active_processes
             .values()
-            .filter(|process| matches!(
-                process.status,
-                ProcessStatus::Running | ProcessStatus::WaitingForPrerequisites
-            ))
+            .filter(|process| {
+                matches!(
+                    process.status,
+                    ProcessStatus::Running | ProcessStatus::WaitingForPrerequisites
+                )
+            })
             .collect()
     }
 
@@ -556,10 +595,14 @@ impl ProcessOrchestrator {
         let completed_ids: Vec<Uuid> = self
             .active_processes
             .iter()
-            .filter(|(_, process)| matches!(
-                process.status,
-                ProcessStatus::Completed | ProcessStatus::Failed { .. } | ProcessStatus::Cancelled
-            ))
+            .filter(|(_, process)| {
+                matches!(
+                    process.status,
+                    ProcessStatus::Completed
+                        | ProcessStatus::Failed { .. }
+                        | ProcessStatus::Cancelled
+                )
+            })
             .map(|(id, _)| *id)
             .collect();
 
@@ -577,7 +620,8 @@ impl ProcessOrchestrator {
     where
         F: Fn(&ProcessHandle) + Send + Sync + 'static,
     {
-        self.completion_callbacks.insert(process_id, Box::new(callback));
+        self.completion_callbacks
+            .insert(process_id, Box::new(callback));
     }
 
     /// 獲取進程統計信息

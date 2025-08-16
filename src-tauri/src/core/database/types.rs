@@ -1,6 +1,6 @@
 // 统一的数据库类型定义
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// 通用实体 ID 类型
 pub type EntityId = i64;
@@ -35,15 +35,15 @@ impl Entity for Prompt {
     fn id(&self) -> Option<EntityId> {
         self.id
     }
-    
+
     fn set_id(&mut self, id: EntityId) {
         self.id = Some(id);
     }
-    
+
     fn table_name() -> &'static str {
         "prompts"
     }
-    
+
     fn validate(&self) -> Result<(), String> {
         if self.title.trim().is_empty() {
             return Err("标题不能为空".to_string());
@@ -65,11 +65,11 @@ impl Timestamped for Prompt {
     fn created_at(&self) -> &DateTime<Utc> {
         &self.created_at
     }
-    
+
     fn updated_at(&self) -> Option<&DateTime<Utc>> {
         self.updated_at.as_ref()
     }
-    
+
     fn set_updated_at(&mut self, timestamp: DateTime<Utc>) {
         self.updated_at = Some(timestamp);
     }
@@ -97,15 +97,15 @@ impl Entity for Job {
     fn id(&self) -> Option<EntityId> {
         self.id
     }
-    
+
     fn set_id(&mut self, id: EntityId) {
         self.id = Some(id);
     }
-    
+
     fn table_name() -> &'static str {
         "jobs"
     }
-    
+
     fn validate(&self) -> Result<(), String> {
         if self.max_retries > 10 {
             return Err("最大重试次数不能超过10".to_string());
@@ -113,11 +113,11 @@ impl Entity for Job {
         if self.retry_count > self.max_retries {
             return Err("重试次数不能超过最大重试次数".to_string());
         }
-        
+
         // 验证 schedule_config 是否为有效 JSON
         serde_json::from_str::<serde_json::Value>(&self.schedule_config)
             .map_err(|_| "调度配置不是有效的JSON格式".to_string())?;
-        
+
         Ok(())
     }
 }
@@ -126,11 +126,11 @@ impl Timestamped for Job {
     fn created_at(&self) -> &DateTime<Utc> {
         &self.created_at
     }
-    
+
     fn updated_at(&self) -> Option<&DateTime<Utc>> {
         self.updated_at.as_ref()
     }
-    
+
     fn set_updated_at(&mut self, timestamp: DateTime<Utc>) {
         self.updated_at = Some(timestamp);
     }
@@ -221,15 +221,15 @@ impl Entity for ExecutionResult {
     fn id(&self) -> Option<EntityId> {
         self.id
     }
-    
+
     fn set_id(&mut self, id: EntityId) {
         self.id = Some(id);
     }
-    
+
     fn table_name() -> &'static str {
         "execution_results"
     }
-    
+
     fn validate(&self) -> Result<(), String> {
         if self.execution_time_ms < 0 {
             return Err("执行时间不能为负数".to_string());
@@ -290,15 +290,15 @@ impl Entity for UsageStats {
     fn id(&self) -> Option<EntityId> {
         self.id
     }
-    
+
     fn set_id(&mut self, id: EntityId) {
         self.id = Some(id);
     }
-    
+
     fn table_name() -> &'static str {
         "usage_stats"
     }
-    
+
     fn validate(&self) -> Result<(), String> {
         if self.period_end <= self.period_start {
             return Err("结束时间必须晚于开始时间".to_string());
@@ -365,7 +365,7 @@ impl<T> PagedResult<T> {
         } else {
             ((total_count as f64) / (page_size as f64)).ceil() as u32
         };
-        
+
         Self {
             items,
             total_count,
@@ -374,11 +374,11 @@ impl<T> PagedResult<T> {
             total_pages,
         }
     }
-    
+
     pub fn has_next_page(&self) -> bool {
         self.current_page < self.total_pages
     }
-    
+
     pub fn has_previous_page(&self) -> bool {
         self.current_page > 1
     }

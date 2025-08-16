@@ -37,7 +37,7 @@ mod tests {
         // 模拟 Tauri AppHandle
         // 注意: 这个测试不能直接调用 Tauri 命令，因为需要 Tauri 运行时
         // 但我们可以测试健康检查的逻辑结构
-        
+
         let expected_status = serde_json::json!({
             "status": "healthy",
             "database": "connected",
@@ -70,7 +70,13 @@ mod tests {
         assert_eq!(mock_system_status["is_cooling"], false);
         assert_eq!(mock_system_status["cli_available"], true);
         assert_eq!(mock_system_status["scheduler_active"], true);
-        assert_eq!(mock_system_status["supported_modes"].as_array().unwrap().len(), 4);
+        assert_eq!(
+            mock_system_status["supported_modes"]
+                .as_array()
+                .unwrap()
+                .len(),
+            4
+        );
     }
 
     // 测试冷却检测响应结构
@@ -94,7 +100,7 @@ mod tests {
         assert_eq!(mock_cooldown_response["is_cooling"], false);
         assert_eq!(mock_cooldown_response["status"], "ready");
         assert!(mock_cooldown_response["usage_info"].is_object());
-        
+
         let usage_info = &mock_cooldown_response["usage_info"];
         assert_eq!(usage_info["tokens_used_today"], 0);
         assert_eq!(usage_info["requests_today"], 0);
@@ -104,7 +110,7 @@ mod tests {
     #[test]
     fn test_scheduler_modes() {
         let supported_modes = vec!["sync", "cron", "adaptive", "session"];
-        
+
         assert!(supported_modes.contains(&"sync"));
         assert!(supported_modes.contains(&"cron"));
         assert!(supported_modes.contains(&"adaptive"));
@@ -118,7 +124,7 @@ mod tests {
         // 测试可以访问代理清单功能
         let catalog = crate::agents_registry::agents_catalog_json();
         assert!(catalog.is_object() || catalog.is_array());
-        
+
         // 验证 catalog 不为空
         match catalog {
             serde_json::Value::Object(obj) => assert!(!obj.is_empty()),
@@ -131,7 +137,7 @@ mod tests {
     #[test]
     fn test_error_response_format() {
         let error_response = "創建 Prompt 失敗: Database connection error";
-        
+
         // 验证错误消息格式
         assert!(error_response.contains("失敗"));
         assert!(error_response.contains(":"));
@@ -161,7 +167,7 @@ mod tests {
         assert_eq!(mock_system_info["app_version"], "0.1.0");
         assert_eq!(mock_system_info["tauri_version"], "2.0");
         assert_eq!(mock_system_info["cli_integrated"], true);
-        
+
         let features = &mock_system_info["features"];
         assert_eq!(features["scheduler"], true);
         assert_eq!(features["notifications"], true);
@@ -188,22 +194,28 @@ mod tests {
                 "status": "failed",
                 "execution_time": 0.1,
                 "created_at": "2025-07-22T20:41:13+08:00"
-            })
+            }),
         ];
 
         assert_eq!(mock_job_results.len(), 2);
-        
+
         // 验证成功结果
         let success_result = &mock_job_results[0];
         assert_eq!(success_result["status"], "success");
         assert_eq!(success_result["execution_time"], 1.25);
-        assert!(success_result["content"].as_str().unwrap().contains("執行成功"));
-        
+        assert!(success_result["content"]
+            .as_str()
+            .unwrap()
+            .contains("執行成功"));
+
         // 验证失败结果
         let failed_result = &mock_job_results[1];
         assert_eq!(failed_result["status"], "failed");
         assert_eq!(failed_result["execution_time"], 0.1);
-        assert!(failed_result["content"].as_str().unwrap().contains("執行失敗"));
+        assert!(failed_result["content"]
+            .as_str()
+            .unwrap()
+            .contains("執行失敗"));
     }
 
     // 测试任务列表结构
@@ -229,18 +241,18 @@ mod tests {
                 "last_run_at": null,
                 "next_run_at": "2025-07-25T18:00:00+08:00",
                 "created_at": "2025-07-22T20:41:13+08:00"
-            })
+            }),
         ];
 
         assert_eq!(mock_jobs.len(), 2);
-        
+
         // 验证活跃任务
         let active_job = &mock_jobs[0];
         assert_eq!(active_job["status"], "active");
         assert_eq!(active_job["job_name"], "每日自動分析");
         assert_eq!(active_job["cron_expr"], "0 9 * * *");
         assert!(active_job["last_run_at"].is_string());
-        
+
         // 验证待执行任务
         let pending_job = &mock_jobs[1];
         assert_eq!(pending_job["status"], "pending");
@@ -252,7 +264,7 @@ mod tests {
     #[test]
     fn test_unified_execution_options() {
         use crate::unified_interface::UnifiedExecutionOptions;
-        
+
         let options = UnifiedExecutionOptions {
             mode: "sync".to_string(),
             cron_expr: Some("0 9 * * *".to_string()),
@@ -272,7 +284,7 @@ mod tests {
     #[test]
     fn test_cooldown_info_structure() {
         use crate::core::CooldownInfo;
-        
+
         let cooldown_info = CooldownInfo {
             is_cooling: false,
             seconds_remaining: 0,
@@ -295,14 +307,19 @@ mod tests {
     fn test_version_consistency() {
         let version = env!("CARGO_PKG_VERSION");
         assert!(!version.is_empty());
-        
+
         // 版本号应该符合语义版本格式
         let version_parts: Vec<&str> = version.split('.').collect();
         assert!(version_parts.len() >= 2); // 至少有主版本和次版本
-        
+
         // 确保版本号的每一部分都是数字
-        for part in &version_parts[..2] { // 至少检查前两个部分
-            assert!(part.parse::<u32>().is_ok(), "Version part '{}' should be numeric", part);
+        for part in &version_parts[..2] {
+            // 至少检查前两个部分
+            assert!(
+                part.parse::<u32>().is_ok(),
+                "Version part '{}' should be numeric",
+                part
+            );
         }
     }
 
@@ -315,7 +332,7 @@ mod tests {
             "刪除排程失敗",
             "Claude Night Pilot 啟動中",
             "系統準備就緒",
-            "核心引擎運行正常"
+            "核心引擎運行正常",
         ];
 
         for message in chinese_messages {
@@ -331,16 +348,16 @@ mod tests {
     fn test_timestamp_formats() {
         let timestamp = chrono::Utc::now().to_rfc3339();
         let local_timestamp = chrono::Local::now().to_rfc3339();
-        
+
         // RFC3339 格式验证
         assert!(timestamp.contains('T'));
         assert!(timestamp.contains('Z') || timestamp.contains('+') || timestamp.contains('-'));
         assert!(local_timestamp.contains('T'));
-        
+
         // 确保可以解析回来
         let parsed_utc = chrono::DateTime::parse_from_rfc3339(&timestamp);
         let parsed_local = chrono::DateTime::parse_from_rfc3339(&local_timestamp);
-        
+
         assert!(parsed_utc.is_ok());
         assert!(parsed_local.is_ok());
     }

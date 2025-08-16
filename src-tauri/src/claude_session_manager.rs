@@ -11,7 +11,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClaudeSession {
     pub id: Uuid,
-    pub session_id: String,           // Claude CLI session ID
+    pub session_id: String, // Claude CLI session ID
     pub worktree_path: Option<String>,
     pub branch_name: Option<String>,
     pub project_path: String,
@@ -44,7 +44,7 @@ pub enum SessionStatus {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionExecutionOptions {
-    pub output_format: String,      // json, stream-json, text
+    pub output_format: String, // json, stream-json, text
     pub allowed_tools: Vec<String>,
     pub skip_permissions: bool,
     pub max_turns: Option<u32>,
@@ -97,11 +97,14 @@ impl ClaudeSessionManager {
     ) -> Result<ClaudeSession> {
         let session_uuid = Uuid::new_v4();
         let now = SystemTime::now();
-        
+
         let (worktree_path, actual_branch) = if create_worktree {
             let branch = branch_name.unwrap_or_else(|| format!("session-{}", session_uuid));
             let worktree_path = self.create_worktree(&branch).await?;
-            (Some(worktree_path.to_string_lossy().to_string()), Some(branch))
+            (
+                Some(worktree_path.to_string_lossy().to_string()),
+                Some(branch),
+            )
         } else {
             (None, branch_name)
         };
@@ -113,11 +116,13 @@ impl ClaudeSessionManager {
             description.as_deref().unwrap_or("No description provided")
         );
 
-        let claude_session_id = self.execute_claude_command(
-            &initial_prompt,
-            &options,
-            worktree_path.as_ref().map(|p| Path::new(p)),
-        ).await?;
+        let claude_session_id = self
+            .execute_claude_command(
+                &initial_prompt,
+                &options,
+                worktree_path.as_ref().map(|p| Path::new(p)),
+            )
+            .await?;
 
         let session = ClaudeSession {
             id: session_uuid,
@@ -142,11 +147,15 @@ impl ClaudeSessionManager {
 
         // 保存到資料庫
         self.save_session_to_db(&session).await?;
-        
+
         // 添加到活躍會話
         self.active_sessions.insert(session_uuid, session.clone());
 
-        tracing::info!("Created new Claude session: {} ({})", session_uuid, session.session_id);
+        tracing::info!(
+            "Created new Claude session: {} ({})",
+            session_uuid,
+            session.session_id
+        );
         Ok(session)
     }
 
@@ -156,7 +165,9 @@ impl ClaudeSessionManager {
         session_uuid: Uuid,
         options: Option<SessionExecutionOptions>,
     ) -> Result<ClaudeSession> {
-        let mut session = self.get_session_from_db(session_uuid).await?
+        let mut session = self
+            .get_session_from_db(session_uuid)
+            .await?
             .ok_or_else(|| anyhow::anyhow!("Session {} not found", session_uuid))?;
 
         // 更新狀態
@@ -187,7 +198,11 @@ impl ClaudeSessionManager {
         self.save_session_to_db(&session).await?;
         self.active_sessions.insert(session_uuid, session.clone());
 
-        tracing::info!("Resumed Claude session: {} ({})", session_uuid, session.session_id);
+        tracing::info!(
+            "Resumed Claude session: {} ({})",
+            session_uuid,
+            session.session_id
+        );
         Ok(session)
     }
 
@@ -198,7 +213,9 @@ impl ClaudeSessionManager {
         prompt: String,
         options: Option<SessionExecutionOptions>,
     ) -> Result<String> {
-        let mut session = self.active_sessions.get(&session_uuid)
+        let mut session = self
+            .active_sessions
+            .get(&session_uuid)
             .ok_or_else(|| anyhow::anyhow!("Session {} not active", session_uuid))?
             .clone();
 
@@ -209,7 +226,9 @@ impl ClaudeSessionManager {
         });
 
         let working_dir = session.worktree_path.as_ref().map(|p| Path::new(p));
-        let result = self.execute_claude_command(&prompt, &execution_options, working_dir).await?;
+        let result = self
+            .execute_claude_command(&prompt, &execution_options, working_dir)
+            .await?;
 
         // 更新會話統計
         session.last_active = SystemTime::now();
@@ -238,14 +257,27 @@ impl ClaudeSessionManager {
     /// 創建 Git worktree
     async fn create_worktree(&self, branch_name: &str) -> Result<PathBuf> {
         let worktree_dir = self.project_root.join("worktrees");
-        fs::create_dir_all(&worktree_dir).await.context("Failed to create worktrees directory")?;
+        fs::create_dir_all(&worktree_dir)
+            .await
+            .context("Failed to create worktrees directory")?;
 
-        let worktree_path = worktree_dir.join(format!("{}-{}", branch_name, 
-            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()));
+        let worktree_path = worktree_dir.join(format!(
+            "{}-{}",
+            branch_name,
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs()
+        ));
 
         // 檢查分支是否存在，如不存在則創建
         let branch_exists = Command::new("git")
-            .args(&["show-ref", "--verify", "--quiet", &format!("refs/heads/{}", branch_name)])
+            .args(&[
+                "show-ref",
+                "--verify",
+                "--quiet",
+                &format!("refs/heads/{}", branch_name),
+            ])
             .current_dir(&self.project_root)
             .status()
             .context("Failed to check branch existence")?
@@ -273,16 +305,28 @@ impl ClaudeSessionManager {
 
         // 創建 worktree
         let status = Command::new("git")
-            .args(&["worktree", "add", worktree_path.to_str().unwrap(), branch_name])
+            .args(&[
+                "worktree",
+                "add",
+                worktree_path.to_str().unwrap(),
+                branch_name,
+            ])
             .current_dir(&self.project_root)
             .status()
             .context("Failed to create worktree")?;
 
         if !status.success() {
-            return Err(anyhow::anyhow!("Failed to create worktree for branch {}", branch_name));
+            return Err(anyhow::anyhow!(
+                "Failed to create worktree for branch {}",
+                branch_name
+            ));
         }
 
-        tracing::info!("Created worktree: {} for branch: {}", worktree_path.display(), branch_name);
+        tracing::info!(
+            "Created worktree: {} for branch: {}",
+            worktree_path.display(),
+            branch_name
+        );
         Ok(worktree_path)
     }
 
@@ -294,10 +338,10 @@ impl ClaudeSessionManager {
         working_dir: Option<&Path>,
     ) -> Result<String> {
         let mut cmd = Command::new("claude");
-        
+
         // 基本參數
         cmd.arg("-p").arg(prompt);
-        
+
         // 輸出格式
         cmd.args(&["--output-format", &options.output_format]);
 
@@ -345,7 +389,7 @@ impl ClaudeSessionManager {
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
-        
+
         // 如果是 JSON 格式，嘗試提取 session_id
         if options.output_format.contains("json") {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
@@ -381,12 +425,12 @@ impl ClaudeSessionManager {
             session.status = SessionStatus::Completed;
             session.last_active = SystemTime::now();
             self.save_session_to_db(&session).await?;
-            
+
             // 清理 worktree（可選）
             if let Some(ref worktree_path) = session.worktree_path {
                 self.cleanup_worktree(Path::new(worktree_path)).await.ok();
             }
-            
+
             tracing::info!("Completed session: {}", session_uuid);
         }
         Ok(())
@@ -410,21 +454,27 @@ impl ClaudeSessionManager {
 
     /// 保存會話到資料庫（簡化版本，實際應該使用真實資料庫）
     async fn save_session_to_db(&self, session: &ClaudeSession) -> Result<()> {
-        let sessions_dir = Path::new(&self.database_path).parent().unwrap().join("sessions");
+        let sessions_dir = Path::new(&self.database_path)
+            .parent()
+            .unwrap()
+            .join("sessions");
         fs::create_dir_all(&sessions_dir).await?;
-        
+
         let session_file = sessions_dir.join(format!("{}.json", session.id));
         let json = serde_json::to_string_pretty(session)?;
         fs::write(session_file, json).await?;
-        
+
         Ok(())
     }
 
     /// 從資料庫載入會話
     async fn get_session_from_db(&self, session_uuid: Uuid) -> Result<Option<ClaudeSession>> {
-        let sessions_dir = Path::new(&self.database_path).parent().unwrap().join("sessions");
+        let sessions_dir = Path::new(&self.database_path)
+            .parent()
+            .unwrap()
+            .join("sessions");
         let session_file = sessions_dir.join(format!("{}.json", session_uuid));
-        
+
         if session_file.exists() {
             let content = fs::read_to_string(session_file).await?;
             let session: ClaudeSession = serde_json::from_str(&content)?;
@@ -436,15 +486,18 @@ impl ClaudeSessionManager {
 
     /// 從資料庫載入所有會話
     async fn load_sessions_from_db(&self) -> Result<Vec<ClaudeSession>> {
-        let sessions_dir = Path::new(&self.database_path).parent().unwrap().join("sessions");
-        
+        let sessions_dir = Path::new(&self.database_path)
+            .parent()
+            .unwrap()
+            .join("sessions");
+
         if !sessions_dir.exists() {
             return Ok(Vec::new());
         }
 
         let mut sessions = Vec::new();
         let mut entries = fs::read_dir(sessions_dir).await?;
-        
+
         while let Some(entry) = entries.next_entry().await? {
             if let Some(extension) = entry.path().extension() {
                 if extension == "json" {
@@ -463,10 +516,19 @@ impl ClaudeSessionManager {
     /// 獲取會話統計
     pub async fn get_session_stats(&self) -> Result<SessionStats> {
         let sessions = self.list_sessions().await?;
-        
-        let active_count = sessions.iter().filter(|s| matches!(s.status, SessionStatus::Active)).count();
-        let paused_count = sessions.iter().filter(|s| matches!(s.status, SessionStatus::Paused)).count();
-        let completed_count = sessions.iter().filter(|s| matches!(s.status, SessionStatus::Completed)).count();
+
+        let active_count = sessions
+            .iter()
+            .filter(|s| matches!(s.status, SessionStatus::Active))
+            .count();
+        let paused_count = sessions
+            .iter()
+            .filter(|s| matches!(s.status, SessionStatus::Paused))
+            .count();
+        let completed_count = sessions
+            .iter()
+            .filter(|s| matches!(s.status, SessionStatus::Completed))
+            .count();
         let total_tokens: u32 = sessions.iter().map(|s| s.metadata.total_tokens).sum();
         let total_cost: f64 = sessions.iter().map(|s| s.metadata.total_cost).sum();
 
@@ -499,27 +561,31 @@ pub async fn create_claude_session(
     create_worktree: bool,
     branch_name: Option<String>,
 ) -> Result<ClaudeSession, String> {
-    let project_root = std::env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
-    
-    let mut manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
+    let project_root =
+        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
+
+    let mut manager =
+        ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
     let options = SessionExecutionOptions::default();
-    
-    manager.create_session(title, description, create_worktree, branch_name, options)
+
+    manager
+        .create_session(title, description, create_worktree, branch_name, options)
         .await
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn resume_claude_session(session_id: String) -> Result<ClaudeSession, String> {
-    let project_root = std::env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
-    
-    let mut manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
-    let session_uuid = Uuid::parse_str(&session_id)
-        .map_err(|e| format!("Invalid session ID: {}", e))?;
-    
-    manager.resume_session(session_uuid, None)
+    let project_root =
+        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
+
+    let mut manager =
+        ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
+    let session_uuid =
+        Uuid::parse_str(&session_id).map_err(|e| format!("Invalid session ID: {}", e))?;
+
+    manager
+        .resume_session(session_uuid, None)
         .await
         .map_err(|e| e.to_string())
 }
@@ -529,40 +595,38 @@ pub async fn execute_in_claude_session(
     session_id: String,
     prompt: String,
 ) -> Result<String, String> {
-    let project_root = std::env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
-    
-    let mut manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
-    let session_uuid = Uuid::parse_str(&session_id)
-        .map_err(|e| format!("Invalid session ID: {}", e))?;
-    
-    manager.execute_in_session(session_uuid, prompt, None)
+    let project_root =
+        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
+
+    let mut manager =
+        ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
+    let session_uuid =
+        Uuid::parse_str(&session_id).map_err(|e| format!("Invalid session ID: {}", e))?;
+
+    manager
+        .execute_in_session(session_uuid, prompt, None)
         .await
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn list_claude_sessions() -> Result<Vec<ClaudeSession>, String> {
-    let project_root = std::env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
-    
+    let project_root =
+        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
+
     let manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
-    
-    manager.list_sessions()
-        .await
-        .map_err(|e| e.to_string())
+
+    manager.list_sessions().await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn get_session_stats() -> Result<SessionStats, String> {
-    let project_root = std::env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
-    
+    let project_root =
+        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
+
     let manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
-    
-    manager.get_session_stats()
-        .await
-        .map_err(|e| e.to_string())
+
+    manager.get_session_stats().await.map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
@@ -591,7 +655,11 @@ mod tests {
     async fn test_session_manager_creation() {
         let temp_dir = TempDir::new().unwrap();
         let manager = ClaudeSessionManager::new(
-            temp_dir.path().join("test.db").to_string_lossy().to_string(),
+            temp_dir
+                .path()
+                .join("test.db")
+                .to_string_lossy()
+                .to_string(),
             temp_dir.path().to_path_buf(),
         );
 

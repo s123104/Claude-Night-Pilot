@@ -6,41 +6,41 @@ use thiserror::Error;
 pub enum DatabaseError {
     #[error("连接失败: {0}")]
     Connection(#[from] rusqlite::Error),
-    
+
     #[error("数据不存在: {table} id={id}")]
     NotFound { table: String, id: i64 },
-    
+
     #[error("验证失败: {message}")]
     Validation { message: String },
-    
+
     #[error("并发冲突: {operation}")]
     Concurrency { operation: String },
-    
+
     #[error("迁移失败: {version} -> {target_version}: {reason}")]
     Migration {
         version: u32,
         target_version: u32,
         reason: String,
     },
-    
+
     #[error("事务失败: {reason}")]
     Transaction { reason: String },
-    
+
     #[error("序列化错误: {0}")]
     Serialization(#[from] serde_json::Error),
-    
+
     #[error("异步任务失败: {0}")]
     AsyncTask(#[from] tokio::task::JoinError),
-    
+
     #[error("配置错误: {parameter} = {value}")]
     Configuration { parameter: String, value: String },
-    
+
     #[error("资源不足: {resource}")]
     ResourceExhaustion { resource: String },
-    
+
     #[error("权限不足: {operation}")]
     Permission { operation: String },
-    
+
     #[error("内部错误: {message}")]
     Internal { message: String },
 }
@@ -56,48 +56,48 @@ impl DatabaseError {
             id,
         }
     }
-    
+
     /// 创建验证错误
     pub fn validation<S: Into<String>>(message: S) -> Self {
         Self::Validation {
             message: message.into(),
         }
     }
-    
+
     /// 创建并发错误
     pub fn concurrency<S: Into<String>>(operation: S) -> Self {
         Self::Concurrency {
             operation: operation.into(),
         }
     }
-    
+
     /// 创建事务错误
     pub fn transaction<S: Into<String>>(reason: S) -> Self {
         Self::Transaction {
             reason: reason.into(),
         }
     }
-    
+
     /// 创建内部错误
     pub fn internal<S: Into<String>>(message: S) -> Self {
         Self::Internal {
             message: message.into(),
         }
     }
-    
+
     /// 检查是否为连接错误
     pub fn is_connection_error(&self) -> bool {
         matches!(self, Self::Connection(_))
     }
-    
+
     /// 检查是否为致命错误（需要重新连接）
     pub fn is_fatal(&self) -> bool {
         match self {
             Self::Connection(e) => {
                 matches!(
                     e,
-                    rusqlite::Error::SqliteFailure(_, _) 
-                    | rusqlite::Error::SqliteSingleThreadedMode
+                    rusqlite::Error::SqliteFailure(_, _)
+                        | rusqlite::Error::SqliteSingleThreadedMode
                 )
             }
             Self::ResourceExhaustion { .. } => true,
@@ -105,7 +105,7 @@ impl DatabaseError {
             _ => false,
         }
     }
-    
+
     /// 获取错误的严重性等级
     pub fn severity(&self) -> ErrorSeverity {
         match self {
@@ -154,17 +154,17 @@ impl ErrorContext {
             additional_info: std::collections::HashMap::new(),
         }
     }
-    
+
     pub fn with_table<S: Into<String>>(mut self, table: S) -> Self {
         self.table = Some(table.into());
         self
     }
-    
+
     pub fn with_record_id(mut self, id: i64) -> Self {
         self.record_id = Some(id);
         self
     }
-    
+
     pub fn with_info<K: Into<String>, V: Into<String>>(mut self, key: K, value: V) -> Self {
         self.additional_info.insert(key.into(), value.into());
         self
@@ -191,7 +191,7 @@ impl<T> DatabaseErrorExt<T> for DatabaseResult<T> {
             e
         })
     }
-    
+
     fn map_not_found(self, table: &str, id: i64) -> DatabaseResult<T> {
         self.map_err(|e| match e {
             DatabaseError::Connection(rusqlite::Error::QueryReturnedNoRows) => {
@@ -200,7 +200,7 @@ impl<T> DatabaseErrorExt<T> for DatabaseResult<T> {
             _ => e,
         })
     }
-    
+
     fn map_validation<S: Into<String>>(self, message: S) -> DatabaseResult<T> {
         self.map_err(|_| DatabaseError::validation(message))
     }

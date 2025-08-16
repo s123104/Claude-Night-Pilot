@@ -1,9 +1,9 @@
 // 数据库连接管理器
+use crate::core::database::{DatabaseConfig, DatabaseError, DatabaseResult};
 use rusqlite::{Connection, OpenFlags, Result as SqliteResult};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use crate::core::database::{DatabaseConfig, DatabaseError, DatabaseResult};
 
 /// 连接管理器 - 负责数据库连接的创建、配置和维护
 pub struct ConnectionManager {
@@ -17,39 +17,38 @@ impl ConnectionManager {
     pub fn new(config: DatabaseConfig) -> DatabaseResult<Self> {
         let connection = Self::create_connection(&config)?;
         Self::configure_connection(&connection, &config)?;
-        
+
         let manager = Self {
             config,
             connection: Arc::new(Mutex::new(connection)),
             last_health_check: Arc::new(Mutex::new(Instant::now())),
         };
-        
+
         // 初始化数据库结构
         manager.initialize_database()?;
-        
+
         Ok(manager)
     }
-    
+
     /// 创建数据库连接
     fn create_connection(config: &DatabaseConfig) -> DatabaseResult<Connection> {
         // 确保数据库目录存在
         if let Some(parent) = Path::new(&config.path).parent() {
-            std::fs::create_dir_all(parent).map_err(|e| {
-                DatabaseError::internal(format!("无法创建数据库目录: {}", e))
-            })?;
+            std::fs::create_dir_all(parent)
+                .map_err(|e| DatabaseError::internal(format!("无法创建数据库目录: {}", e)))?;
         }
-        
+
         // 设置连接标志
         let flags = OpenFlags::SQLITE_OPEN_READ_WRITE
             | OpenFlags::SQLITE_OPEN_CREATE
             | OpenFlags::SQLITE_OPEN_NO_MUTEX; // 单线程模式，由 Mutex 控制并发
-            
-        let connection = Connection::open_with_flags(&config.path, flags)
-            .map_err(DatabaseError::Connection)?;
-        
+
+        let connection =
+            Connection::open_with_flags(&config.path, flags).map_err(DatabaseError::Connection)?;
+
         Ok(connection)
     }
-    
+
     /// 配置数据库连接
     fn configure_connection(conn: &Connection, config: &DatabaseConfig) -> DatabaseResult<()> {
         // 启用外键约束（使用 pragma_update 以避免返回结果集導致的錯誤）
@@ -57,46 +56,48 @@ impl ConnectionManager {
             conn.pragma_update(None, "foreign_keys", true)
                 .map_err(DatabaseError::Connection)?;
         }
-        
+
         // 设置同步模式（"OFF"/"NORMAL"/"FULL"）
         conn.pragma_update(None, "synchronous", format!("{}", config.synchronous_mode))
             .map_err(DatabaseError::Connection)?;
-        
+
         // 设置日志模式（journal_mode 會返回結果，使用 pragma_update）
         if config.enable_wal_mode {
             conn.pragma_update(None, "journal_mode", format!("{}", config.journal_mode))
                 .map_err(DatabaseError::Connection)?;
         }
-        
+
         // 设置缓存大小
         conn.pragma_update(None, "cache_size", config.cache_size)
             .map_err(DatabaseError::Connection)?;
-        
+
         // 设置临时存储模式（DEFAULT/FILE/MEMORY）
         conn.pragma_update(None, "temp_store", format!("{}", config.temp_store))
             .map_err(DatabaseError::Connection)?;
-        
+
         // 设置忙等超时
         conn.busy_timeout(Duration::from_millis(config.busy_timeout_ms as u64))
             .map_err(DatabaseError::Connection)?;
-        
+
         Ok(())
     }
-    
+
     /// 初始化数据库结构
     fn initialize_database(&self) -> DatabaseResult<()> {
-        let conn = self.connection.lock()
+        let conn = self
+            .connection
+            .lock()
             .map_err(|_| DatabaseError::internal("无法获取数据库连接锁"))?;
-        
+
         // 创建核心表结构
         self.create_core_tables(&conn)?;
-        
+
         // 设置数据库版本
         self.set_database_version(&conn, crate::core::database::DATABASE_VERSION)?;
-        
+
         Ok(())
     }
-    
+
     /// 创建核心表结构
     fn create_core_tables(&self, conn: &Connection) -> DatabaseResult<()> {
         // 创建 prompts 表
@@ -112,8 +113,9 @@ impl ConnectionManager {
             )
             "#,
             [],
-        ).map_err(DatabaseError::Connection)?;
-        
+        )
+        .map_err(DatabaseError::Connection)?;
+
         // 创建 jobs 表 (统一的调度表)
         conn.execute(
             r#"
@@ -135,8 +137,9 @@ impl ConnectionManager {
             )
             "#,
             [],
-        ).map_err(DatabaseError::Connection)?;
-        
+        )
+        .map_err(DatabaseError::Connection)?;
+
         // 创建执行结果表
         conn.execute(
             r#"
@@ -156,8 +159,9 @@ impl ConnectionManager {
             )
             "#,
             [],
-        ).map_err(DatabaseError::Connection)?;
-        
+        )
+        .map_err(DatabaseError::Connection)?;
+
         // 创建使用统计表
         conn.execute(
             r#"
@@ -177,8 +181,9 @@ impl ConnectionManager {
             )
             "#,
             [],
-        ).map_err(DatabaseError::Connection)?;
-        
+        )
+        .map_err(DatabaseError::Connection)?;
+
         // 创建系统元数据表
         conn.execute(
             r#"
@@ -190,14 +195,15 @@ impl ConnectionManager {
             )
             "#,
             [],
-        ).map_err(DatabaseError::Connection)?;
-        
+        )
+        .map_err(DatabaseError::Connection)?;
+
         // 创建索引
         self.create_indexes(conn)?;
-        
+
         Ok(())
     }
-    
+
     /// 创建数据库索引
     fn create_indexes(&self, conn: &Connection) -> DatabaseResult<()> {
         let indexes = [
@@ -208,67 +214,74 @@ impl ConnectionManager {
             "CREATE INDEX IF NOT EXISTS idx_execution_results_created_at ON execution_results(created_at)",
             "CREATE INDEX IF NOT EXISTS idx_prompts_created_at ON prompts(created_at)",
         ];
-        
+
         for index_sql in &indexes {
             conn.execute(index_sql, [])
                 .map_err(DatabaseError::Connection)?;
         }
-        
+
         Ok(())
     }
-    
+
     /// 设置数据库版本
     fn set_database_version(&self, conn: &Connection, version: u32) -> DatabaseResult<()> {
         let now = chrono::Utc::now().to_rfc3339();
-        
+
         conn.execute(
             r#"
             INSERT OR REPLACE INTO system_metadata (key, value, created_at, updated_at)
             VALUES ('db_version', ?, ?, ?)
             "#,
             [&version.to_string(), &now, &now],
-        ).map_err(DatabaseError::Connection)?;
-        
+        )
+        .map_err(DatabaseError::Connection)?;
+
         conn.execute(
             r#"
             INSERT OR REPLACE INTO system_metadata (key, value, created_at, updated_at)
             VALUES ('schema_version', ?, ?, ?)
             "#,
             [crate::core::database::SCHEMA_VERSION, &now, &now],
-        ).map_err(DatabaseError::Connection)?;
-        
+        )
+        .map_err(DatabaseError::Connection)?;
+
         Ok(())
     }
-    
+
     /// 获取数据库连接
-    pub fn get_connection(&self) -> DatabaseResult<std::sync::MutexGuard<Connection>> {
-        self.connection.lock()
+    pub fn get_connection(&self) -> DatabaseResult<std::sync::MutexGuard<'_, Connection>> {
+        self.connection
+            .lock()
             .map_err(|_| DatabaseError::internal("无法获取数据库连接锁"))
     }
-    
+
     /// 执行健康检查
     pub fn health_check(&self) -> DatabaseResult<HealthCheckResult> {
-        let mut last_check = self.last_health_check.lock()
+        let mut last_check = self
+            .last_health_check
+            .lock()
             .map_err(|_| DatabaseError::internal("无法获取健康检查锁"))?;
-        
+
         let now = Instant::now();
         let check_result = {
             let conn = self.get_connection()?;
-            
+
             // 执行简单查询测试连接
-            let version: String = conn.query_row(
-                "SELECT value FROM system_metadata WHERE key = 'db_version'",
-                [],
-                |row| row.get(0)
-            ).unwrap_or_else(|_| "unknown".to_string());
-            
+            let version: String = conn
+                .query_row(
+                    "SELECT value FROM system_metadata WHERE key = 'db_version'",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap_or_else(|_| "unknown".to_string());
+
             // 检查表完整性
             let table_count: i32 = conn.query_row(
                 "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('prompts', 'jobs', 'execution_results', 'usage_stats')",
                 [],
                 |row| row.get(0)
             ).map_err(DatabaseError::Connection)?;
-            
+
             HealthCheckResult {
                 is_healthy: table_count >= 4,
                 database_version: version,
@@ -277,20 +290,21 @@ impl ConnectionManager {
                 connection_path: self.config.path.clone(),
             }
         };
-        
+
         *last_check = now;
         Ok(check_result)
     }
-    
+
     /// 执行事务
     pub fn execute_transaction<F, R>(&self, f: F) -> DatabaseResult<R>
     where
         F: FnOnce(&rusqlite::Transaction) -> SqliteResult<R>,
     {
         let conn = self.get_connection()?;
-        let transaction = conn.unchecked_transaction()
+        let transaction = conn
+            .unchecked_transaction()
             .map_err(DatabaseError::Connection)?;
-        
+
         match f(&transaction) {
             Ok(result) => {
                 transaction.commit().map_err(DatabaseError::Connection)?;
@@ -304,45 +318,54 @@ impl ConnectionManager {
             }
         }
     }
-    
+
     /// 备份数据库
     pub fn backup_to_file<P: AsRef<Path>>(&self, backup_path: P) -> DatabaseResult<()> {
         let conn = self.get_connection()?;
-        
+
         // 使用 SQLite VACUUM INTO 命令进行备份
         let backup_path_str = backup_path.as_ref().to_string_lossy();
         conn.execute(&format!("VACUUM INTO '{}'", backup_path_str), [])
             .map_err(DatabaseError::Connection)?;
-        
+
         Ok(())
     }
-    
+
     /// 获取数据库统计信息
     pub fn get_database_stats(&self) -> DatabaseResult<DatabaseStats> {
         let conn = self.get_connection()?;
-        
-        let prompt_count: i64 = conn.query_row("SELECT COUNT(*) FROM prompts", [], |row| row.get(0))
+
+        let prompt_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM prompts", [], |row| row.get(0))
             .map_err(DatabaseError::Connection)?;
-            
-        let job_count: i64 = conn.query_row("SELECT COUNT(*) FROM jobs", [], |row| row.get(0))
+
+        let job_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM jobs", [], |row| row.get(0))
             .map_err(DatabaseError::Connection)?;
-            
-        let result_count: i64 = conn.query_row("SELECT COUNT(*) FROM execution_results", [], |row| row.get(0))
+
+        let result_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM execution_results", [], |row| {
+                row.get(0)
+            })
             .map_err(DatabaseError::Connection)?;
-        
+
         // 获取数据库文件大小；若檔案大小為 0 或無法讀取，回退以 PRAGMA 計算
         let mut db_size = std::fs::metadata(&self.config.path)
             .map(|m| m.len())
             .unwrap_or(0);
         if db_size == 0 {
-            let page_count: i64 = conn.query_row("PRAGMA page_count", [], |row| row.get(0))
+            let page_count: i64 = conn
+                .query_row("PRAGMA page_count", [], |row| row.get(0))
                 .unwrap_or(0);
-            let page_size: i64 = conn.query_row("PRAGMA page_size", [], |row| row.get(0))
+            let page_size: i64 = conn
+                .query_row("PRAGMA page_size", [], |row| row.get(0))
                 .unwrap_or(0);
             let calc = page_count.saturating_mul(page_size);
-            if calc > 0 { db_size = calc as u64; }
+            if calc > 0 {
+                db_size = calc as u64;
+            }
         }
-        
+
         Ok(DatabaseStats {
             prompt_count: prompt_count as u64,
             job_count: job_count as u64,

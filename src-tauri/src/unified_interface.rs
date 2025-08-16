@@ -1,15 +1,15 @@
 // 統一的CLI-GUI介面橋接器
+use crate::core::{CooldownInfo, ExecutionOptions};
+use crate::enhanced_executor::{EnhancedClaudeExecutor, EnhancedClaudeResponse};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use crate::enhanced_executor::{EnhancedClaudeExecutor, EnhancedClaudeResponse};
-use crate::core::{CooldownInfo, ExecutionOptions};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UnifiedExecutionOptions {
-    pub mode: String,                    // "sync", "async", "scheduled"
-    pub cron_expr: Option<String>,       // 排程表達式
-    pub retry_enabled: Option<bool>,     // 是否啟用重試
-    pub cooldown_check: Option<bool>,    // 是否檢查冷卻
+    pub mode: String,                      // "sync", "async", "scheduled"
+    pub cron_expr: Option<String>,         // 排程表達式
+    pub retry_enabled: Option<bool>,       // 是否啟用重試
+    pub cooldown_check: Option<bool>,      // 是否檢查冷卻
     pub working_directory: Option<String>, // 工作目錄
 }
 
@@ -23,7 +23,11 @@ impl From<UnifiedExecutionOptions> for ExecutionOptions {
             dry_run: false,
             allowed_operations: vec!["claude_execute".to_string()],
             safety_check: options.cooldown_check.unwrap_or(true),
-            max_retries: if options.retry_enabled.unwrap_or(true) { 3 } else { 0 },
+            max_retries: if options.retry_enabled.unwrap_or(true) {
+                3
+            } else {
+                0
+            },
         }
     }
 }
@@ -39,11 +43,10 @@ impl UnifiedClaudeInterface {
     ) -> Result<EnhancedClaudeResponse> {
         let mut executor = EnhancedClaudeExecutor::with_smart_defaults()?;
         let execution_options = ExecutionOptions::from(options);
-        
-        executor.execute_with_full_enhancement(
-            &prompt,
-            execution_options,
-        ).await
+
+        executor
+            .execute_with_full_enhancement(&prompt, execution_options)
+            .await
     }
 
     /// 檢查冷卻狀態 - GUI和CLI統一入口 (帶重試機制)
@@ -65,7 +68,12 @@ impl UnifiedClaudeInterface {
                     last_error = Some(e);
                     if attempt < max_retries {
                         let delay = std::time::Duration::from_millis(500 * attempt as u64);
-                        tracing::warn!("冷卻檢查失敗 (嘗試 {}/{}), {}ms 後重試", attempt, max_retries, delay.as_millis());
+                        tracing::warn!(
+                            "冷卻檢查失敗 (嘗試 {}/{}), {}ms 後重試",
+                            attempt,
+                            max_retries,
+                            delay.as_millis()
+                        );
                         tokio::time::sleep(delay).await;
                     }
                 }
@@ -85,7 +93,7 @@ impl UnifiedClaudeInterface {
     pub async fn health_check() -> Result<serde_json::Value> {
         let executor = EnhancedClaudeExecutor::with_smart_defaults()?;
         let health = executor.health_check().await?;
-        
+
         Ok(serde_json::json!({
             "claude_cli_available": health.claude_cli_available,
             "cooldown_detection_working": health.cooldown_detection_working,
@@ -124,7 +132,10 @@ mod tests {
         };
 
         let execution_options = ExecutionOptions::from(unified_options);
-        assert_eq!(execution_options.working_directory, Some("/tmp".to_string()));
+        assert_eq!(
+            execution_options.working_directory,
+            Some("/tmp".to_string())
+        );
         assert_eq!(execution_options.timeout_seconds, Some(300));
         assert!(execution_options.safety_check);
         assert_eq!(execution_options.max_retries, 3);

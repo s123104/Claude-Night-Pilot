@@ -1,7 +1,7 @@
 // 測試增強執行器的範例程式
-use claude_night_pilot_lib::enhanced_executor::EnhancedClaudeExecutor;
-use claude_night_pilot_lib::core::ExecutionOptions;
 use anyhow::Result;
+use claude_night_pilot_lib::core::ExecutionOptions;
+use claude_night_pilot_lib::enhanced_executor::EnhancedClaudeExecutor;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -39,12 +39,21 @@ async fn main() -> Result<()> {
     };
 
     println!("🔄 執行測試 prompt...");
-    match executor.execute_with_full_enhancement(test_prompt, options).await {
+    match executor
+        .execute_with_full_enhancement(test_prompt, options)
+        .await
+    {
         Ok(response) => {
             println!("✅ 執行成功!");
             println!("   執行 ID: {}", response.execution_metadata.execution_id);
-            println!("   嘗試次數: {}", response.execution_metadata.total_attempts);
-            println!("   回應: {}", &response.completion[..50.min(response.completion.len())]);
+            println!(
+                "   嘗試次數: {}",
+                response.execution_metadata.total_attempts
+            );
+            println!(
+                "   回應: {}",
+                &response.completion[..50.min(response.completion.len())]
+            );
         }
         Err(e) => {
             println!("❌ 執行失敗: {}", e);

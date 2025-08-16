@@ -5,12 +5,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use rusqlite::{Connection, OpenFlags, Result as SqliteResult, Row, Transaction};
-use parking_lot::RwLock;
-use serde::{Serialize, Deserialize};
-use chrono::{DateTime, Utc};
-use uuid::Uuid;
 use anyhow::Result;
+use chrono::{DateTime, Utc};
+use parking_lot::RwLock;
+use rusqlite::{Connection, OpenFlags, Result as SqliteResult, Row, Transaction};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 /// 最佳實踐Rusqlite配置
 #[derive(Debug, Clone)]
@@ -75,10 +75,10 @@ impl RusqliteBestPracticesManager {
             | OpenFlags::SQLITE_OPEN_FULL_MUTEX;
 
         let connection = Connection::open_with_flags(&config.database_path, flags)?;
-        
+
         // 配置數據庫最佳實踐設定
         Self::configure_connection(&connection, &config)?;
-        
+
         Ok(Self {
             connection: Arc::new(RwLock::new(connection)),
             config,
@@ -86,7 +86,10 @@ impl RusqliteBestPracticesManager {
     }
 
     /// 配置連接的最佳實踐設定
-    fn configure_connection(conn: &Connection, config: &RusqliteBestPracticesConfig) -> SqliteResult<()> {
+    fn configure_connection(
+        conn: &Connection,
+        config: &RusqliteBestPracticesConfig,
+    ) -> SqliteResult<()> {
         // Context7推薦：啟用外鍵約束
         if config.enable_foreign_keys {
             conn.pragma_update(None, "foreign_keys", true)?;
@@ -133,14 +136,12 @@ impl RusqliteBestPracticesManager {
     pub fn health_check(&self) -> Result<DatabaseHealthMetrics> {
         let start_time = std::time::Instant::now();
         let connection = self.connection.read();
-        
+
         // 測試基本查詢
-        let health_result: i32 = connection.query_row("SELECT 1", [], |row| {
-            row.get(0)
-        })?;
-        
+        let health_result: i32 = connection.query_row("SELECT 1", [], |row| row.get(0))?;
+
         let response_time = start_time.elapsed();
-        
+
         // 獲取數據庫統計信息
         let page_count: i64 = connection.query_row("PRAGMA page_count", [], |row| row.get(0))?;
         let page_size: i64 = connection.query_row("PRAGMA page_size", [], |row| row.get(0))?;
@@ -177,18 +178,21 @@ impl RusqliteBestPracticesManager {
     }
 
     /// 備份數據庫
-    pub fn backup_database<P: AsRef<std::path::Path>>(&self, backup_path: P) -> Result<BackupMetrics> {
+    pub fn backup_database<P: AsRef<std::path::Path>>(
+        &self,
+        backup_path: P,
+    ) -> Result<BackupMetrics> {
         let start_time = std::time::Instant::now();
         let connection = self.connection.read();
-        
+
         // 使用SQLite的備份API
         let mut backup_conn = Connection::open(&backup_path)?;
         let backup = rusqlite::backup::Backup::new(&connection, &mut backup_conn)?;
         backup.run_to_completion(5, Duration::from_millis(250), None)?;
-        
+
         let duration = start_time.elapsed();
         let file_size = std::fs::metadata(&backup_path)?.len();
-        
+
         Ok(BackupMetrics {
             backup_path: backup_path.as_ref().to_path_buf(),
             file_size_bytes: file_size,
@@ -212,9 +216,8 @@ impl RusqliteBestPracticesManager {
         operations.push("統計信息分析完成".to_string());
 
         // 完整性檢查
-        let integrity_check: String = connection.query_row("PRAGMA integrity_check", [], |row| {
-            row.get(0)
-        })?;
+        let integrity_check: String =
+            connection.query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
         operations.push(format!("完整性檢查: {}", integrity_check));
 
         let duration = start_time.elapsed();
@@ -231,7 +234,7 @@ impl RusqliteBestPracticesManager {
 /// 最佳實踐Model基礎trait
 pub trait RusqliteModel: Sized {
     type Id;
-    
+
     fn find_by_id(conn: &Connection, id: Self::Id) -> Result<Option<Self>>;
     fn find_all(conn: &Connection, limit: Option<u32>) -> Result<Vec<Self>>;
     fn save(&self, conn: &Connection) -> Result<Self>;
@@ -259,30 +262,44 @@ impl RusqlitePrompt {
 
         Ok(Self {
             id: Uuid::parse_str(&id_str).map_err(|_e| {
-                rusqlite::Error::InvalidColumnType(
-                    0,
-                    "id".to_string(),
-                    rusqlite::types::Type::Text
-                )
+                rusqlite::Error::InvalidColumnType(0, "id".to_string(), rusqlite::types::Type::Text)
             })?,
             title: row.get("title")?,
             content: row.get("content")?,
             tags: row.get("tags")?,
             is_favorite: row.get("is_favorite")?,
             created_at: DateTime::parse_from_rfc3339(&created_at_str)
-                .map_err(|_| rusqlite::Error::InvalidColumnType(0, "created_at".to_string(), rusqlite::types::Type::Text))?
+                .map_err(|_| {
+                    rusqlite::Error::InvalidColumnType(
+                        0,
+                        "created_at".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?
                 .with_timezone(&Utc),
             updated_at: DateTime::parse_from_rfc3339(&updated_at_str)
-                .map_err(|_| rusqlite::Error::InvalidColumnType(0, "updated_at".to_string(), rusqlite::types::Type::Text))?
+                .map_err(|_| {
+                    rusqlite::Error::InvalidColumnType(
+                        0,
+                        "updated_at".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?
                 .with_timezone(&Utc),
         })
     }
 
     /// 創建新Prompt
-    pub fn create(conn: &Connection, title: String, content: String, tags: Option<String>, is_favorite: bool) -> Result<Self> {
+    pub fn create(
+        conn: &Connection,
+        title: String,
+        content: String,
+        tags: Option<String>,
+        is_favorite: bool,
+    ) -> Result<Self> {
         let id = Uuid::new_v4();
         let now = Utc::now();
-        
+
         conn.execute(
             r#"
             INSERT INTO prompts (id, title, content, tags, is_favorite, created_at, updated_at)
@@ -338,7 +355,11 @@ impl RusqlitePrompt {
         }
 
         if let Some(term) = search_term {
-            sql.push_str(&format!(" AND (title LIKE ?{} OR content LIKE ?{})", param_index, param_index + 1));
+            sql.push_str(&format!(
+                " AND (title LIKE ?{} OR content LIKE ?{})",
+                param_index,
+                param_index + 1
+            ));
             let search_pattern = format!("%{}%", term);
             params.push(Box::new(search_pattern.clone()));
             params.push(Box::new(search_pattern));
@@ -360,14 +381,14 @@ impl RusqlitePrompt {
 
         let mut stmt = conn.prepare(&sql)?;
         let param_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
-        
+
         let rows = stmt.query_map(&param_refs[..], Self::from_row)?;
         let mut results = Vec::new();
-        
+
         for row_result in rows {
             results.push(row_result?);
         }
-        
+
         Ok(results)
     }
 
@@ -388,9 +409,11 @@ impl RusqlitePrompt {
                     total_count: row.get::<_, i64>("total_count")? as u64,
                     favorite_count: row.get::<_, i64>("favorite_count")? as u64,
                     tagged_count: row.get::<_, i64>("tagged_count")? as u64,
-                    average_content_length: row.get::<_, Option<f64>>("avg_content_length")?.unwrap_or(0.0),
+                    average_content_length: row
+                        .get::<_, Option<f64>>("avg_content_length")?
+                        .unwrap_or(0.0),
                 })
-            }
+            },
         )?;
 
         Ok(stats)
@@ -402,8 +425,9 @@ impl RusqlitePrompt {
         let mut affected_rows = 0;
 
         {
-            let mut stmt = tx.prepare("UPDATE prompts SET is_favorite = ?1, updated_at = ?2 WHERE id = ?3")?;
-            
+            let mut stmt =
+                tx.prepare("UPDATE prompts SET is_favorite = ?1, updated_at = ?2 WHERE id = ?3")?;
+
             for id in ids {
                 let rows_changed = stmt.execute(rusqlite::params![
                     is_favorite,
@@ -413,7 +437,7 @@ impl RusqlitePrompt {
                 affected_rows += rows_changed;
             }
         } // stmt is dropped here
-        
+
         tx.commit()?;
         Ok(affected_rows as u64)
     }
@@ -448,17 +472,17 @@ impl RusqliteModel for RusqlitePrompt {
         let mut stmt = conn.prepare(&sql)?;
         let rows = stmt.query_map([], Self::from_row)?;
         let mut results = Vec::new();
-        
+
         for row_result in rows {
             results.push(row_result?);
         }
-        
+
         Ok(results)
     }
 
     fn save(&self, conn: &Connection) -> Result<Self> {
         let now = Utc::now();
-        
+
         conn.execute(
             r#"
             INSERT OR REPLACE INTO prompts (id, title, content, tags, is_favorite, created_at, updated_at)
@@ -481,11 +505,8 @@ impl RusqliteModel for RusqlitePrompt {
     }
 
     fn delete(conn: &Connection, id: Self::Id) -> Result<bool> {
-        let rows_affected = conn.execute(
-            "DELETE FROM prompts WHERE id = ?1",
-            [id.to_string()],
-        )?;
-        
+        let rows_affected = conn.execute("DELETE FROM prompts WHERE id = ?1", [id.to_string()])?;
+
         Ok(rows_affected > 0)
     }
 }
@@ -535,18 +556,19 @@ mod tests {
     fn create_test_manager() -> RusqliteBestPracticesManager {
         let temp_dir = tempdir().unwrap();
         let db_path = temp_dir.path().join("test.db");
-        
+
         let config = RusqliteBestPracticesConfig {
             database_path: db_path,
             ..Default::default()
         };
-        
+
         let manager = RusqliteBestPracticesManager::new(config).unwrap();
-        
+
         // 創建測試表
-        manager.with_connection(|conn| {
-            conn.execute(
-                r#"
+        manager
+            .with_connection(|conn| {
+                conn.execute(
+                    r#"
                 CREATE TABLE IF NOT EXISTS prompts (
                     id TEXT PRIMARY KEY,
                     title TEXT NOT NULL,
@@ -557,11 +579,12 @@ mod tests {
                     updated_at TEXT NOT NULL
                 )
                 "#,
-                [],
-            )?;
-            Ok(())
-        }).unwrap();
-        
+                    [],
+                )?;
+                Ok(())
+            })
+            .unwrap();
+
         manager
     }
 
@@ -569,130 +592,161 @@ mod tests {
     fn test_manager_creation_and_health() {
         let manager = create_test_manager();
         let health = manager.health_check().unwrap();
-        
+
         assert!(health.is_healthy);
         assert!(health.response_time_ms < 1000);
         assert!(health.database_size_bytes > 0);
-        
+
         println!("✅ 管理器創建和健康檢查測試通過");
     }
 
     #[test]
     fn test_prompt_crud_operations() {
         let manager = create_test_manager();
-        
-        manager.with_connection(|conn| {
-            // 創建測試
-            let prompt = RusqlitePrompt::create(
-                conn,
-                "測試標題".to_string(),
-                "測試內容".to_string(),
-                Some("測試,標籤".to_string()),
-                true,
-            )?;
-            
-            assert_eq!(prompt.title, "測試標題");
-            assert!(prompt.is_favorite);
-            
-            // 查找測試
-            let found = RusqlitePrompt::find_by_id(conn, prompt.id)?;
-            assert!(found.is_some());
-            assert_eq!(found.unwrap().title, "測試標題");
-            
-            // 查找全部測試
-            let all_prompts = RusqlitePrompt::find_all(conn, Some(10))?;
-            assert_eq!(all_prompts.len(), 1);
-            
-            // 刪除測試
-            let deleted = RusqlitePrompt::delete(conn, prompt.id)?;
-            assert!(deleted);
-            
-            let not_found = RusqlitePrompt::find_by_id(conn, prompt.id)?;
-            assert!(not_found.is_none());
-            
-            Ok::<(), anyhow::Error>(())
-        }).unwrap();
-        
+
+        manager
+            .with_connection(|conn| {
+                // 創建測試
+                let prompt = RusqlitePrompt::create(
+                    conn,
+                    "測試標題".to_string(),
+                    "測試內容".to_string(),
+                    Some("測試,標籤".to_string()),
+                    true,
+                )?;
+
+                assert_eq!(prompt.title, "測試標題");
+                assert!(prompt.is_favorite);
+
+                // 查找測試
+                let found = RusqlitePrompt::find_by_id(conn, prompt.id)?;
+                assert!(found.is_some());
+                assert_eq!(found.unwrap().title, "測試標題");
+
+                // 查找全部測試
+                let all_prompts = RusqlitePrompt::find_all(conn, Some(10))?;
+                assert_eq!(all_prompts.len(), 1);
+
+                // 刪除測試
+                let deleted = RusqlitePrompt::delete(conn, prompt.id)?;
+                assert!(deleted);
+
+                let not_found = RusqlitePrompt::find_by_id(conn, prompt.id)?;
+                assert!(not_found.is_none());
+
+                Ok::<(), anyhow::Error>(())
+            })
+            .unwrap();
+
         println!("✅ Prompt CRUD操作測試通過");
     }
 
     #[test]
     fn test_search_functionality() {
         let manager = create_test_manager();
-        
-        manager.with_connection(|conn| {
-            // 創建測試數據
-            RusqlitePrompt::create(conn, "React組件".to_string(), "React組件開發".to_string(), Some("react,前端".to_string()), true)?;
-            RusqlitePrompt::create(conn, "Rust編程".to_string(), "Rust系統編程".to_string(), Some("rust,後端".to_string()), false)?;
-            RusqlitePrompt::create(conn, "無標籤".to_string(), "沒有標籤的內容".to_string(), None, true)?;
-            
-            // 測試標籤搜索
-            let react_results = RusqlitePrompt::search(conn, Some("react"), None, None, None, None)?;
-            assert_eq!(react_results.len(), 1);
-            assert_eq!(react_results[0].title, "React組件");
-            
-            // 測試收藏搜索
-            let favorite_results = RusqlitePrompt::search(conn, None, Some(true), None, None, None)?;
-            assert_eq!(favorite_results.len(), 2);
-            
-            // 測試內容搜索
-            let content_results = RusqlitePrompt::search(conn, None, None, Some("系統"), None, None)?;
-            assert_eq!(content_results.len(), 1);
-            assert_eq!(content_results[0].title, "Rust編程");
-            
-            // 測試分頁
-            let paginated = RusqlitePrompt::search(conn, None, None, None, Some(2), Some(1))?;
-            assert_eq!(paginated.len(), 2);
-            
-            Ok::<(), anyhow::Error>(())
-        }).unwrap();
-        
+
+        manager
+            .with_connection(|conn| {
+                // 創建測試數據
+                RusqlitePrompt::create(
+                    conn,
+                    "React組件".to_string(),
+                    "React組件開發".to_string(),
+                    Some("react,前端".to_string()),
+                    true,
+                )?;
+                RusqlitePrompt::create(
+                    conn,
+                    "Rust編程".to_string(),
+                    "Rust系統編程".to_string(),
+                    Some("rust,後端".to_string()),
+                    false,
+                )?;
+                RusqlitePrompt::create(
+                    conn,
+                    "無標籤".to_string(),
+                    "沒有標籤的內容".to_string(),
+                    None,
+                    true,
+                )?;
+
+                // 測試標籤搜索
+                let react_results =
+                    RusqlitePrompt::search(conn, Some("react"), None, None, None, None)?;
+                assert_eq!(react_results.len(), 1);
+                assert_eq!(react_results[0].title, "React組件");
+
+                // 測試收藏搜索
+                let favorite_results =
+                    RusqlitePrompt::search(conn, None, Some(true), None, None, None)?;
+                assert_eq!(favorite_results.len(), 2);
+
+                // 測試內容搜索
+                let content_results =
+                    RusqlitePrompt::search(conn, None, None, Some("系統"), None, None)?;
+                assert_eq!(content_results.len(), 1);
+                assert_eq!(content_results[0].title, "Rust編程");
+
+                // 測試分頁
+                let paginated = RusqlitePrompt::search(conn, None, None, None, Some(2), Some(1))?;
+                assert_eq!(paginated.len(), 2);
+
+                Ok::<(), anyhow::Error>(())
+            })
+            .unwrap();
+
         println!("✅ 搜索功能測試通過");
     }
 
     #[test]
     fn test_statistics_and_bulk_operations() {
         let manager = create_test_manager();
-        
-        manager.with_connection(|conn| {
-            // 創建測試數據
-            let mut ids = Vec::new();
-            for i in 0..5 {
-                let prompt = RusqlitePrompt::create(
-                    conn,
-                    format!("測試 {}", i),
-                    "a".repeat((i + 1) * 10), // 不同長度的內容
-                    if i % 2 == 0 { Some("標籤".to_string()) } else { None },
-                    i < 2,
-                )?;
-                ids.push(prompt.id);
-            }
-            
-            // 測試統計功能
-            let stats = RusqlitePrompt::get_statistics(conn)?;
-            assert_eq!(stats.total_count, 5);
-            assert_eq!(stats.favorite_count, 2);
-            assert_eq!(stats.tagged_count, 3);
-            assert!(stats.average_content_length > 0.0);
-            
-            // 測試批量操作
-            let updated_count = RusqlitePrompt::bulk_update_favorite(conn, &ids[2..], true)?;
-            assert_eq!(updated_count, 3);
-            
-            // 驗證批量更新結果
-            let new_stats = RusqlitePrompt::get_statistics(conn)?;
-            assert_eq!(new_stats.favorite_count, 5); // 所有都應該是收藏了
-            
-            Ok::<(), anyhow::Error>(())
-        }).unwrap();
-        
+
+        manager
+            .with_connection(|conn| {
+                // 創建測試數據
+                let mut ids = Vec::new();
+                for i in 0..5 {
+                    let prompt = RusqlitePrompt::create(
+                        conn,
+                        format!("測試 {}", i),
+                        "a".repeat((i + 1) * 10), // 不同長度的內容
+                        if i % 2 == 0 {
+                            Some("標籤".to_string())
+                        } else {
+                            None
+                        },
+                        i < 2,
+                    )?;
+                    ids.push(prompt.id);
+                }
+
+                // 測試統計功能
+                let stats = RusqlitePrompt::get_statistics(conn)?;
+                assert_eq!(stats.total_count, 5);
+                assert_eq!(stats.favorite_count, 2);
+                assert_eq!(stats.tagged_count, 3);
+                assert!(stats.average_content_length > 0.0);
+
+                // 測試批量操作
+                let updated_count = RusqlitePrompt::bulk_update_favorite(conn, &ids[2..], true)?;
+                assert_eq!(updated_count, 3);
+
+                // 驗證批量更新結果
+                let new_stats = RusqlitePrompt::get_statistics(conn)?;
+                assert_eq!(new_stats.favorite_count, 5); // 所有都應該是收藏了
+
+                Ok::<(), anyhow::Error>(())
+            })
+            .unwrap();
+
         println!("✅ 統計和批量操作測試通過");
     }
 
     #[test]
     fn test_transaction_handling() {
         let manager = create_test_manager();
-        
+
         // 測試成功的事務
         let result = manager.execute_transaction(|tx| {
             for i in 0..3 {
@@ -714,56 +768,60 @@ mod tests {
             }
             Ok(3)
         }).unwrap();
-        
+
         assert_eq!(result, 3);
-        
+
         // 驗證事務提交成功
-        manager.with_connection(|conn| {
-            let count: i64 = conn.query_row(
-                "SELECT COUNT(*) FROM prompts WHERE title LIKE '事務測試%'",
-                [],
-                |row| row.get(0),
-            )?;
-            assert_eq!(count, 3);
-            Ok::<(), anyhow::Error>(())
-        }).unwrap();
-        
+        manager
+            .with_connection(|conn| {
+                let count: i64 = conn.query_row(
+                    "SELECT COUNT(*) FROM prompts WHERE title LIKE '事務測試%'",
+                    [],
+                    |row| row.get(0),
+                )?;
+                assert_eq!(count, 3);
+                Ok::<(), anyhow::Error>(())
+            })
+            .unwrap();
+
         println!("✅ 事務處理測試通過");
     }
 
     #[test]
     fn test_backup_and_maintenance() {
         let manager = create_test_manager();
-        
+
         // 創建一些測試數據
-        manager.with_connection(|conn| {
-            for i in 0..3 {
-                RusqlitePrompt::create(
-                    conn,
-                    format!("備份測試 {}", i),
-                    format!("備份內容 {}", i),
-                    Some("備份,測試".to_string()),
-                    i % 2 == 0,
-                )?;
-            }
-            Ok::<(), anyhow::Error>(())
-        }).unwrap();
-        
+        manager
+            .with_connection(|conn| {
+                for i in 0..3 {
+                    RusqlitePrompt::create(
+                        conn,
+                        format!("備份測試 {}", i),
+                        format!("備份內容 {}", i),
+                        Some("備份,測試".to_string()),
+                        i % 2 == 0,
+                    )?;
+                }
+                Ok::<(), anyhow::Error>(())
+            })
+            .unwrap();
+
         // 測試備份功能
         let temp_dir = tempdir().unwrap();
         let backup_path = temp_dir.path().join("backup.db");
         let backup_metrics = manager.backup_database(&backup_path).unwrap();
-        
+
         assert!(backup_path.exists());
         assert!(backup_metrics.file_size_bytes > 0);
         assert!(backup_metrics.duration.as_millis() < 5000);
-        
+
         // 測試維護功能
         let maintenance_result = manager.maintenance().unwrap();
         assert!(maintenance_result.is_successful);
         assert!(!maintenance_result.operations.is_empty());
         assert!(maintenance_result.duration.as_millis() < 5000);
-        
+
         println!("✅ 備份和維護功能測試通過");
     }
 }

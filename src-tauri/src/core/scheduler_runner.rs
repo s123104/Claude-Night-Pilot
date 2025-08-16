@@ -1,7 +1,7 @@
 use anyhow::Result;
 use chrono::Utc;
-use tracing::{info, warn, error, debug};
 use std::sync::Arc;
+use tracing::{debug, error, info, warn};
 
 use crate::database_manager_impl::DatabaseManager as OldDatabaseManager;
 use crate::enhanced_executor::EnhancedClaudeExecutor;
@@ -16,7 +16,11 @@ pub struct SchedulerRunnerConfig {
 
 impl Default for SchedulerRunnerConfig {
     fn default() -> Self {
-        Self { enabled: true, poll_interval_seconds: 15, max_batch: 3 }
+        Self {
+            enabled: true,
+            poll_interval_seconds: 15,
+            max_batch: 3,
+        }
     }
 }
 
@@ -26,7 +30,10 @@ pub async fn scheduler_runner_loop(db: Arc<OldDatabaseManager>, cfg: SchedulerRu
         return;
     }
 
-    info!("SchedulerRunner started: interval={}s batch={}", cfg.poll_interval_seconds, cfg.max_batch);
+    info!(
+        "SchedulerRunner started: interval={}s batch={}",
+        cfg.poll_interval_seconds, cfg.max_batch
+    );
 
     loop {
         if let Err(e) = tick_once(db.as_ref(), cfg.max_batch).await {
@@ -53,13 +60,19 @@ async fn tick_once(db: &OldDatabaseManager, max_batch: usize) -> Result<()> {
         let schedule_id = sch.id;
         let prompt_id = sch.prompt_id;
         let scheduled_at = sch.schedule_time.clone();
-        debug!("Executing schedule id={} prompt_id={} at {}", schedule_id, prompt_id, scheduled_at);
+        debug!(
+            "Executing schedule id={} prompt_id={} at {}",
+            schedule_id, prompt_id, scheduled_at
+        );
 
         // 讀取 prompt 內容
         let prompt = match db.get_prompt_async(prompt_id).await? {
             Some(p) => p.content,
             None => {
-                warn!("Prompt {} not found for schedule {}", prompt_id, schedule_id);
+                warn!(
+                    "Prompt {} not found for schedule {}",
+                    prompt_id, schedule_id
+                );
                 continue;
             }
         };
@@ -75,35 +88,46 @@ async fn tick_once(db: &OldDatabaseManager, max_batch: usize) -> Result<()> {
         };
 
         let started = std::time::Instant::now();
-        match exec.execute_with_full_enhancement(&prompt, options.into()).await {
+        match exec
+            .execute_with_full_enhancement(&prompt, options.into())
+            .await
+        {
             Ok(resp) => {
                 let elapsed_ms = started.elapsed().as_millis() as i64;
                 // 記錄執行結果（最小化）
-                let _ = db.record_execution_result_async(
-                    schedule_id,
-                    &resp.completion,
-                    "success",
-                    None,
-                    None,
-                    elapsed_ms,
-                ).await;
+                let _ = db
+                    .record_execution_result_async(
+                        schedule_id,
+                        &resp.completion,
+                        "success",
+                        None,
+                        None,
+                        elapsed_ms,
+                    )
+                    .await;
                 // 單次任務：標記完成；週期任務：此處先標記完成（之後擴充 cron 計算）
                 let now_str = Utc::now().to_rfc3339();
-                let _ = db.update_schedule_async(schedule_id, None, Some("completed"), None).await;
+                let _ = db
+                    .update_schedule_async(schedule_id, None, Some("completed"), None)
+                    .await;
                 debug!("Schedule {} completed at {}", schedule_id, now_str);
             }
             Err(e) => {
                 let elapsed_ms = started.elapsed().as_millis() as i64;
-                let _ = db.record_execution_result_async(
-                    schedule_id,
-                    &format!("error: {}", e),
-                    "failed",
-                    None,
-                    None,
-                    elapsed_ms,
-                ).await;
+                let _ = db
+                    .record_execution_result_async(
+                        schedule_id,
+                        &format!("error: {}", e),
+                        "failed",
+                        None,
+                        None,
+                        elapsed_ms,
+                    )
+                    .await;
                 // 簡單標記為 pending（由 retry 策略與下一輪再嘗試，後續可回寫 next_run_at）
-                let _ = db.update_schedule_async(schedule_id, None, Some("pending"), None).await;
+                let _ = db
+                    .update_schedule_async(schedule_id, None, Some("pending"), None)
+                    .await;
                 warn!("Schedule {} failed: {}", schedule_id, e);
             }
         }
@@ -111,5 +135,3 @@ async fn tick_once(db: &OldDatabaseManager, max_batch: usize) -> Result<()> {
 
     Ok(())
 }
-
-

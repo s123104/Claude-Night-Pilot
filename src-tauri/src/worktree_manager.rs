@@ -10,9 +10,16 @@ use std::{
 use anyhow::{Context, Result};
 use tracing::{debug, info};
 
-// Global synchronization for worktree creation to prevent race conditions - Updated to use std::sync::LazyLock
-static WORKTREE_CREATION_LOCKS: std::sync::LazyLock<Arc<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>>> =
-    std::sync::LazyLock::new(|| Arc::new(Mutex::new(HashMap::new())));
+// Type alias for complex type to reduce type complexity
+type WorktreeLockMap = Arc<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>>;
+
+// Global synchronization for worktree creation to prevent race conditions
+use std::sync::OnceLock;
+static WORKTREE_CREATION_LOCKS: OnceLock<WorktreeLockMap> = OnceLock::new();
+
+fn get_worktree_locks() -> &'static WorktreeLockMap {
+    WORKTREE_CREATION_LOCKS.get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
+}
 
 pub struct WorktreeManager;
 
@@ -28,7 +35,7 @@ impl WorktreeManager {
 
         // Get or create a lock for this specific worktree path
         let lock = {
-            let mut locks = WORKTREE_CREATION_LOCKS.lock().unwrap();
+            let mut locks = get_worktree_locks().lock().unwrap();
             locks
                 .entry(path_str.clone())
                 .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
@@ -103,10 +110,7 @@ impl WorktreeManager {
     }
 
     /// Check if a worktree is properly set up (filesystem + git metadata)
-    async fn is_worktree_properly_set_up(
-        repo_path: &str,
-        worktree_path: &Path,
-    ) -> Result<bool> {
+    async fn is_worktree_properly_set_up(repo_path: &str, worktree_path: &Path) -> Result<bool> {
         let repo_path = repo_path.to_string();
         let worktree_path = worktree_path.to_path_buf();
 
@@ -118,7 +122,7 @@ impl WorktreeManager {
 
             // Check 2: Use git command to check if worktree is valid
             let output = std::process::Command::new("git")
-                .args(&["worktree", "list"])
+                .args(["worktree", "list"])
                 .current_dir(&repo_path)
                 .output()
                 .context("Failed to list worktrees")?;
@@ -129,7 +133,7 @@ impl WorktreeManager {
 
             let worktree_list = String::from_utf8_lossy(&output.stdout);
             let worktree_path_str = worktree_path.to_string_lossy();
-            
+
             // Check if our worktree path is in the list
             let found = worktree_list
                 .lines()
@@ -156,7 +160,12 @@ impl WorktreeManager {
 
             // Step 1: Try to remove worktree using git command
             let _ = std::process::Command::new("git")
-                .args(&["worktree", "remove", "--force", worktree_path_owned.to_str().unwrap_or("")])
+                .args([
+                    "worktree",
+                    "remove",
+                    "--force",
+                    worktree_path_owned.to_str().unwrap_or(""),
+                ])
                 .current_dir(&git_repo_path_owned)
                 .output(); // Ignore errors as worktree might not exist
 
@@ -180,7 +189,7 @@ impl WorktreeManager {
                 "Comprehensive cleanup completed for worktree: {}",
                 worktree_name_owned
             );
-            
+
             Ok::<(), anyhow::Error>(())
         })
         .await
@@ -204,7 +213,12 @@ impl WorktreeManager {
         tokio::task::spawn_blocking(move || {
             // Check if branch exists, create if not
             let branch_exists = std::process::Command::new("git")
-                .args(&["show-ref", "--verify", "--quiet", &format!("refs/heads/{}", branch_name)])
+                .args([
+                    "show-ref",
+                    "--verify",
+                    "--quiet",
+                    &format!("refs/heads/{}", branch_name),
+                ])
                 .current_dir(&git_repo_path)
                 .status()
                 .map(|s| s.success())
@@ -213,7 +227,7 @@ impl WorktreeManager {
             if !branch_exists {
                 // Create new branch
                 let status = std::process::Command::new("git")
-                    .args(&["checkout", "-b", &branch_name])
+                    .args(["checkout", "-b", &branch_name])
                     .current_dir(&git_repo_path)
                     .status()
                     .context("Failed to create new branch")?;
@@ -224,21 +238,26 @@ impl WorktreeManager {
 
                 // Switch back to main branch
                 let _ = std::process::Command::new("git")
-                    .args(&["checkout", "main"])
+                    .args(["checkout", "main"])
                     .current_dir(&git_repo_path)
                     .status();
             }
 
             // Create worktree
             let output = std::process::Command::new("git")
-                .args(&["worktree", "add", worktree_path.to_str().unwrap(), &branch_name])
+                .args([
+                    "worktree",
+                    "add",
+                    worktree_path.to_str().unwrap(),
+                    &branch_name,
+                ])
                 .current_dir(&git_repo_path)
                 .output()
                 .context("Failed to execute git worktree add")?;
 
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                
+
                 // If metadata directory exists, try cleanup and retry
                 if stderr.contains("already exists") {
                     debug!(
@@ -252,7 +271,12 @@ impl WorktreeManager {
 
                     // Try again after cleanup
                     let retry_output = std::process::Command::new("git")
-                        .args(&["worktree", "add", worktree_path.to_str().unwrap(), &branch_name])
+                        .args([
+                            "worktree",
+                            "add",
+                            worktree_path.to_str().unwrap(),
+                            &branch_name,
+                        ])
                         .current_dir(&git_repo_path)
                         .output()
                         .context("Failed to retry git worktree add")?;
@@ -310,15 +334,12 @@ impl WorktreeManager {
     }
 
     /// Clean up a worktree path and its git metadata (non-blocking)
-    pub async fn cleanup_worktree(
-        worktree_path: &Path,
-        git_repo_path: Option<&str>,
-    ) -> Result<()> {
+    pub async fn cleanup_worktree(worktree_path: &Path, git_repo_path: Option<&str>) -> Result<()> {
         let path_str = worktree_path.to_string_lossy().to_string();
 
         // Get the same lock to ensure we don't interfere with creation
         let lock = {
-            let mut locks = WORKTREE_CREATION_LOCKS.lock().unwrap();
+            let mut locks = get_worktree_locks().lock().unwrap();
             locks
                 .entry(path_str.clone())
                 .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
@@ -365,7 +386,7 @@ impl WorktreeManager {
 
         tokio::task::spawn_blocking(move || {
             let output = std::process::Command::new("git")
-                .args(&["rev-parse", "--git-common-dir"])
+                .args(["rev-parse", "--git-common-dir"])
                 .current_dir(&worktree_path_owned)
                 .output()
                 .ok()?;

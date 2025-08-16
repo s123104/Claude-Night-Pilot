@@ -3,14 +3,14 @@
  * 基於對 research-projects 的分析和網路研究實現
  * 支援多種檢測方法：API 回應解析、時間窗口管理、使用量追蹤
  */
-use chrono::{DateTime, Local, Duration, Timelike};
+use anyhow::{Context, Result};
+use chrono::{DateTime, Duration, Local, Timelike};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
-use anyhow::{Result, Context};
 
 /// Claude API 限制類型
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,7 +67,7 @@ impl ClaudeCooldownDetector {
     pub fn new() -> Self {
         let error_patterns = Self::build_error_patterns();
         let ccusage_cmd = Self::detect_ccusage_command();
-        
+
         Self {
             error_patterns,
             ccusage_cmd,
@@ -83,23 +83,19 @@ impl ClaudeCooldownDetector {
             r"Rate\s*limit\s*exceeded",
             r"Number\s*of\s*request\s*tokens\s*has\s*exceeded",
             r"Number\s*of\s*requests\s*has\s*exceeded",
-            
             // Claude 特定錯誤
             r"Your\s*API\s*usage\s*has\s*exceeded",
             r"You\s*have\s*reached\s*your\s*(?:daily|monthly|hourly)\s*limit",
             r"Please\s*wait\s*(\d+)\s*seconds?\s*before\s*retrying",
             r"Retry-After:\s*(\d+)",
-            
             // 冷卻時間指示
             r"Try\s*again\s*in\s*(\d+)\s*minutes?",
             r"Available\s*again\s*at\s*(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})",
             r"Reset\s*time:\s*(\d+)",
-            
             // 使用量相關
             r"Token\s*quota\s*exceeded",
             r"Daily\s*limit\s*reached",
             r"Usage\s*window\s*expired",
-            
             // ccusage 相關
             r"Time\s*remaining:\s*(\d+)h\s*(\d+)m",
             r"Block\s*resets?\s*in\s*(\d+)\s*minutes?",
@@ -115,7 +111,7 @@ impl ClaudeCooldownDetector {
     fn detect_ccusage_command() -> Option<String> {
         // 嘗試不同的 ccusage 命令
         let commands = ["ccusage", "bunx ccusage", "npx ccusage@latest"];
-        
+
         for cmd in &commands {
             if let Ok(output) = Command::new("sh")
                 .arg("-c")
@@ -127,7 +123,7 @@ impl ClaudeCooldownDetector {
                 }
             }
         }
-        
+
         None
     }
 
@@ -146,7 +142,7 @@ impl ClaudeCooldownDetector {
         if let Some(ccusage_status) = self.check_with_ccusage().await? {
             status = ccusage_status;
         }
-        
+
         // 方法2: 檢查 Claude 會話文件
         if !status.is_cooling {
             if let Some(session_status) = self.check_claude_session_files()? {
@@ -181,11 +177,11 @@ impl ClaudeCooldownDetector {
         }
 
         let output_str = String::from_utf8_lossy(&output.stdout);
-        
+
         // 解析時間剩餘
         if let Some(remaining_minutes) = self.parse_time_remaining(&output_str) {
             let is_cooling = remaining_minutes <= 5; // 5分鐘內視為即將冷卻
-            
+
             return Ok(Some(CooldownStatus {
                 is_cooling,
                 limit_type: Some(LimitType::HourlyQuota),
@@ -230,15 +226,18 @@ impl ClaudeCooldownDetector {
 
         // 尋找最新的會話文件
         let mut latest_file: Option<(std::path::PathBuf, std::time::SystemTime)> = None;
-        
+
         for entry in fs::read_dir(&claude_dir)? {
             let entry = entry?;
             let path = entry.path();
-            
+
             if path.extension().and_then(|s| s.to_str()) == Some("jsonl") {
                 if let Ok(metadata) = entry.metadata() {
                     if let Ok(modified) = metadata.modified() {
-                        if latest_file.as_ref().is_none_or(|(_, time)| modified > *time) {
+                        if latest_file
+                            .as_ref()
+                            .is_none_or(|(_, time)| modified > *time)
+                        {
                             latest_file = Some((path, modified));
                         }
                     }
@@ -257,14 +256,14 @@ impl ClaudeCooldownDetector {
     fn analyze_session_file(&self, file_path: &Path) -> Result<Option<CooldownStatus>> {
         let content = fs::read_to_string(file_path)?;
         let lines: Vec<&str> = content.lines().collect();
-        
+
         // 分析最後幾行，查找錯誤訊息
         for line in lines.iter().rev().take(20) {
             for pattern in &self.error_patterns {
                 if pattern.is_match(line) {
                     // 找到冷卻相關錯誤
                     let remaining_time = self.extract_cooldown_time(line);
-                    
+
                     return Ok(Some(CooldownStatus {
                         is_cooling: true,
                         limit_type: Some(self.detect_limit_type(line)),
@@ -285,7 +284,7 @@ impl ClaudeCooldownDetector {
         // 嘗試提取具體的等待時間
         let wait_patterns = [
             r"(?i)wait\s*(\d+)\s*seconds?",
-            r"(?i)retry\s*in\s*(\d+)\s*seconds?", 
+            r"(?i)retry\s*in\s*(\d+)\s*seconds?",
             r"(?i)retry-after:\s*(\d+)",
             r"(?i)(\d+)\s*minutes?",
         ];
@@ -311,7 +310,7 @@ impl ClaudeCooldownDetector {
     /// 檢測限制類型
     fn detect_limit_type(&self, error_message: &str) -> LimitType {
         let message_lower = error_message.to_lowercase();
-        
+
         if message_lower.contains("daily") {
             LimitType::DailyQuota
         } else if message_lower.contains("minute") {
@@ -331,19 +330,19 @@ impl ClaudeCooldownDetector {
     fn check_time_based_cooldown(&self) -> Result<CooldownStatus> {
         let usage_info = self.usage_tracker.get_current_usage();
         let now = Local::now();
-        
+
         // 檢查是否接近 5 小時邊界（Claude 的計費窗口）
         let hours_since_midnight = now.time().hour();
         let minutes_since_midnight = now.time().minute();
         let total_minutes = (hours_since_midnight * 60 + minutes_since_midnight) as i64;
-        
+
         // Claude 的 5 小時區塊: 0-5, 5-10, 10-15, 15-20, 20-24
         let current_block_start = (total_minutes / 300) * 300; // 300 分鐘 = 5 小時
         let next_block_start = current_block_start + 300;
         let minutes_to_reset = next_block_start - total_minutes;
-        
+
         let is_cooling = minutes_to_reset <= 5 && usage_info.current_5hour_block_usage > 1000000; // 假設超過 100 萬 token 為高使用量
-        
+
         Ok(CooldownStatus {
             is_cooling,
             limit_type: Some(LimitType::HourlyQuota),
@@ -360,7 +359,7 @@ impl ClaudeCooldownDetector {
             if pattern.is_match(error_output) {
                 let remaining_time = self.extract_cooldown_time(error_output);
                 let limit_type = self.detect_limit_type(error_output);
-                
+
                 return Some(CooldownStatus {
                     is_cooling: true,
                     limit_type: Some(limit_type),
@@ -371,7 +370,7 @@ impl ClaudeCooldownDetector {
                 });
             }
         }
-        
+
         None
     }
 
@@ -393,7 +392,7 @@ impl UsageTracker {
 
     fn update_usage(&mut self, tokens_used: u64, request_count: u32) {
         let now = Local::now();
-        
+
         // 重置每日統計（如果需要）
         if now.date_naive() != self.last_reset.date_naive() {
             self.daily_tokens = 0;
@@ -404,11 +403,11 @@ impl UsageTracker {
         // 更新統計
         self.daily_tokens += tokens_used;
         self.daily_requests += request_count;
-        
+
         // 更新分鐘窗口
         let minute_key = now.with_second(0).unwrap().with_nanosecond(0).unwrap();
         *self.minute_window.entry(minute_key).or_insert(0) += request_count;
-        
+
         // 清理舊的分鐘數據（保留最近 5 分鐘）
         let cutoff = now - Duration::minutes(5);
         self.minute_window.retain(|&time, _| time > cutoff);
@@ -417,14 +416,18 @@ impl UsageTracker {
     fn get_current_usage(&self) -> UsageInfo {
         let now = Local::now();
         let current_minute = now.with_second(0).unwrap().with_nanosecond(0).unwrap();
-        
+
         // 計算當前分鐘的請求數
-        let requests_this_minute = self.minute_window.get(&current_minute).copied().unwrap_or(0);
-        
+        let requests_this_minute = self
+            .minute_window
+            .get(&current_minute)
+            .copied()
+            .unwrap_or(0);
+
         // 估算當前 5 小時區塊的使用量（簡化計算）
         let _hours_since_block_start = now.time().hour() % 5;
         let estimated_block_usage = self.daily_tokens / 5; // 簡化估算
-        
+
         // 估算成本 (基於 Claude 3.5 Sonnet 的價格: $3/M input tokens, $15/M output tokens)
         let estimated_cost = (self.daily_tokens as f64 / 1_000_000.0) * 9.0; // 假設平均價格
 
@@ -452,7 +455,7 @@ mod tests {
     #[test]
     fn test_error_pattern_matching() {
         let detector = ClaudeCooldownDetector::new();
-        
+
         let error_messages = [
             "429 Too Many Requests - Rate limit exceeded",
             "Number of request tokens has exceeded your per-minute rate limit",
@@ -461,7 +464,10 @@ mod tests {
         ];
 
         for message in &error_messages {
-            let has_match = detector.error_patterns.iter().any(|pattern| pattern.is_match(message));
+            let has_match = detector
+                .error_patterns
+                .iter()
+                .any(|pattern| pattern.is_match(message));
             assert!(has_match, "應該匹配錯誤訊息: {}", message);
         }
     }
@@ -469,8 +475,11 @@ mod tests {
     #[test]
     fn test_time_extraction() {
         let detector = ClaudeCooldownDetector::new();
-        
-        assert_eq!(detector.extract_cooldown_time("Please wait 120 seconds"), 120);
+
+        assert_eq!(
+            detector.extract_cooldown_time("Please wait 120 seconds"),
+            120
+        );
         assert_eq!(detector.extract_cooldown_time("Retry in 5 minutes"), 300);
         assert_eq!(detector.extract_cooldown_time("Retry-After: 60"), 60);
     }
@@ -478,12 +487,12 @@ mod tests {
     #[test]
     fn test_limit_type_detection() {
         let detector = ClaudeCooldownDetector::new();
-        
+
         assert!(matches!(
             detector.detect_limit_type("daily limit exceeded"),
             LimitType::DailyQuota
         ));
-        
+
         assert!(matches!(
             detector.detect_limit_type("tokens per minute exceeded"),
             LimitType::TokensPerMinute

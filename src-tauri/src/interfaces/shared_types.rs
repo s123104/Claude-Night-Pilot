@@ -180,7 +180,7 @@ impl<T> ApiResponse<T> {
             context,
         }
     }
-    
+
     pub fn error(error: UnifiedError, context: ExecutionContext) -> Self {
         Self {
             success: false,

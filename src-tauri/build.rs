@@ -7,23 +7,23 @@ use std::path::Path;
 fn main() {
     // Standard Tauri build
     tauri_build::build();
-    
+
     // Ensure types directory exists
     let types_dir = "../src/types";
     if !Path::new(types_dir).exists() {
         fs::create_dir_all(types_dir).expect("Failed to create types directory");
     }
-    
+
     // Generate TypeScript types in debug builds only
     if env::var("PROFILE").unwrap_or_default() == "debug" {
         println!("cargo:rerun-if-changed=src/models/");
-        
+
         // TypeScript type generation happens automatically via ts-rs derive macros
         // Types will be exported to src/types/ directory
-        
+
         // Try to generate types explicitly
         generate_ts_types();
-        
+
         println!("cargo:warning=TypeScript types will be generated to src/types/");
         println!("cargo:warning=Run 'cargo check' to update TypeScript types");
     }
@@ -39,7 +39,7 @@ export * from './ExecutionStatus';
 export * from './UsageStats';
 export * from './StreamChunk';
 "#;
-    
+
     let index_path = "../src/types/index.ts";
     if let Err(e) = fs::write(index_path, index_content) {
         println!("cargo:warning=Failed to write index.ts: {}", e);
