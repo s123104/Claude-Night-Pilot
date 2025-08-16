@@ -57,6 +57,12 @@ pub struct EventBus {
     max_history_size: usize,
 }
 
+impl Default for EventBus {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EventBus {
     pub fn new() -> Self {
         let (event_sender, _) = broadcast::channel(10000);
@@ -75,7 +81,7 @@ impl EventBus {
         self.add_to_history(event.clone()).await?;
 
         // 廣播事件
-        if let Err(_) = self.event_sender.send(event.clone()) {
+        if self.event_sender.send(event.clone()).is_err() {
             tracing::warn!("發布事件失敗: 沒有訂閱者 - {}", event.id);
         }
 
@@ -294,7 +300,7 @@ static EVENT_BUS: OnceLock<EventBus> = OnceLock::new();
 
 impl EventBus {
     pub fn global() -> &'static EventBus {
-        EVENT_BUS.get_or_init(|| EventBus::new())
+        EVENT_BUS.get_or_init(EventBus::new)
     }
 }
 

@@ -78,23 +78,29 @@ class StableDevelopmentServer {
       });
     });
 
-    // SPA 路由支持 - 所有其他請求返回 index.html
-    this.app.get("*", (req, res) => {
+    // SPA 路由支持 - 處理所有未匹配的請求，返回 index.html
+    this.app.use((req, res, next) => {
+      // 如果請求是 API 路由或靜態文件，跳過
+      if (req.path.startsWith('/api/') || req.path.includes('.')) {
+        return next();
+      }
+
       const indexPath = path.join(this.srcDir, "index.html");
 
       if (fs.existsSync(indexPath)) {
-        // 讀取並修改 index.html 以支持測試模式
-        let indexContent = fs.readFileSync(indexPath, "utf8");
+        try {
+          // 讀取並修改 index.html 以支持測試模式
+          let indexContent = fs.readFileSync(indexPath, "utf8");
 
-        // 在測試環境中注入測試標記
-        if (process.env.NODE_ENV === "test") {
-          indexContent = indexContent.replace(
-            '<body data-test-mode="false">',
-            '<body data-test-mode="true">'
-          );
+          // 在測試環境中注入測試標記
+          if (process.env.NODE_ENV === "test") {
+            indexContent = indexContent.replace(
+              '<body data-test-mode="false">',
+              '<body data-test-mode="true">'
+            );
 
-          // 注入測試輔助腳本
-          const testScript = `
+            // 注入測試輔助腳本
+            const testScript = `
             <script>
               // 測試模式輔助
               window.__TEST_MODE__ = true;
@@ -152,13 +158,20 @@ class StableDevelopmentServer {
             </script>
           `;
 
-          indexContent = indexContent.replace(
-            "</head>",
-            testScript + "</head>"
-          );
-        }
+            indexContent = indexContent.replace(
+              "</head>",
+              testScript + "</head>"
+            );
+          }
 
-        res.send(indexContent);
+          res.send(indexContent);
+        } catch (error) {
+          console.error('Error serving index.html:', error);
+          res.status(500).json({
+            error: "Error reading index file",
+            message: error.message
+          });
+        }
       } else {
         res.status(404).json({
           error: "Index file not found",
@@ -275,7 +288,8 @@ async function main() {
 }
 
 // 如果直接執行此腳本
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isMainModule = __filename === path.resolve(process.argv[1]);
+if (isMainModule) {
   main().catch(console.error);
 }
 

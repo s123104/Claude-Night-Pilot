@@ -42,6 +42,12 @@ pub struct SyncService {
     config: SyncConfiguration,
 }
 
+impl Default for SyncService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SyncService {
     pub fn new() -> Self {
         let (event_sender, event_receiver) = broadcast::channel(1000);
@@ -110,7 +116,7 @@ impl SyncService {
 
     /// 廣播同步事件
     pub async fn broadcast_event(&self, event: SyncEvent) -> Result<()> {
-        if let Err(_) = self.event_sender.send(event.clone()) {
+        if self.event_sender.send(event.clone()).is_err() {
             tracing::warn!("廣播同步事件失敗: 沒有接收者");
         }
 

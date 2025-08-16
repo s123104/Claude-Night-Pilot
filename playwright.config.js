@@ -25,7 +25,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: "http://localhost:8081",
+    baseURL: "http://localhost:8080",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -107,6 +107,17 @@ export default defineConfig({
       // Run mobile tests only when specifically requested
       grep: process.env.MOBILE_TESTS ? undefined : /^(?!.*mobile).*$/,
     },
+    // Demo tests project
+    {
+      name: "demo-tests",
+      testDir: "./tests/demos",
+      use: {
+        ...devices["Desktop Chrome"],
+        fullyParallel: true,
+      },
+      // Only run when INCLUDE_DEMOS is set
+      testIgnore: process.env.INCLUDE_DEMOS ? [] : ["**/*"],
+    },
   ],
 
   // 全域設定（注意：暫時禁用以避免 ES 模組導入問題）
@@ -116,7 +127,7 @@ export default defineConfig({
   // Optimized development server configuration
   webServer: {
     command: "npm run dev:frontend",
-    port: 8081,
+    url: "http://localhost:8080/health",
     reuseExistingServer: true,
     timeout: 60000, // Increased timeout for slower systems
     env: {

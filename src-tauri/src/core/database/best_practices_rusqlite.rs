@@ -174,7 +174,7 @@ impl RusqliteBestPracticesManager {
         F: FnOnce(&Connection) -> Result<T>,
     {
         let connection = self.connection.read();
-        f(&*connection)
+        f(&connection)
     }
 
     /// 備份數據庫

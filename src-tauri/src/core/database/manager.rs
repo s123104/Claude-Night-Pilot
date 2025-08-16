@@ -56,7 +56,7 @@ impl DatabaseManager {
             let mut config = DatabaseConfig::default();
             let path = std::env::temp_dir().join(format!(
                 "cnp_default_{}.db",
-                uuid::Uuid::new_v4().to_string()
+                uuid::Uuid::new_v4()
             ));
             config.path = path.to_string_lossy().to_string();
             Self::new(config).await
@@ -321,7 +321,7 @@ impl DatabaseManager {
         let snapshot_name = format!(
             "snapshot_{}_{}",
             timestamp.format("%Y%m%d_%H%M%S"),
-            uuid::Uuid::new_v4().to_string()[..8].to_string()
+            &uuid::Uuid::new_v4().to_string()[..8]
         );
 
         let snapshot_path = std::path::PathBuf::from(format!("{}.db", snapshot_name));

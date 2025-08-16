@@ -84,7 +84,7 @@ impl PromptRepository {
 
         let rows = stmt
             .query_map(params![format!("%{}%", pattern)], |row| {
-                Ok(self.map_row_to_prompt(row)?)
+                self.map_row_to_prompt(row)
             })
             .map_err(DatabaseError::Connection)?;
 
@@ -124,7 +124,7 @@ impl PromptRepository {
             .collect();
 
         let rows = stmt
-            .query_map(params.as_slice(), |row| Ok(self.map_row_to_prompt(row)?))
+            .query_map(params.as_slice(), |row| self.map_row_to_prompt(row))
             .map_err(DatabaseError::Connection)?;
 
         let mut prompts = Vec::new();
@@ -171,7 +171,7 @@ impl Repository<Prompt> for PromptRepository {
     async fn create(&self, prompt: &mut Prompt) -> DatabaseResult<EntityId> {
         prompt
             .validate()
-            .map_err(|msg| DatabaseError::validation(msg))?;
+            .map_err(DatabaseError::validation)?;
 
         let now = Utc::now();
         prompt.created_at = now;
@@ -197,7 +197,7 @@ impl Repository<Prompt> for PromptRepository {
         let result = conn.query_row(
             "SELECT id, title, content, tags, created_at, updated_at FROM prompts WHERE id = ?",
             params![id],
-            |row| Ok(self.map_row_to_prompt(row)?),
+            |row| self.map_row_to_prompt(row),
         );
 
         match result {
@@ -210,7 +210,7 @@ impl Repository<Prompt> for PromptRepository {
     async fn update(&self, prompt: &mut Prompt) -> DatabaseResult<bool> {
         prompt
             .validate()
-            .map_err(|msg| DatabaseError::validation(msg))?;
+            .map_err(DatabaseError::validation)?;
 
         let id = prompt
             .id()
@@ -271,7 +271,7 @@ impl Repository<Prompt> for PromptRepository {
 
         let rows = stmt
             .query_map(params![limit, offset], |row| {
-                Ok(self.map_row_to_prompt(row)?)
+                self.map_row_to_prompt(row)
             })
             .map_err(DatabaseError::Connection)?;
 
@@ -320,7 +320,7 @@ impl JobRepository {
             .map_err(DatabaseError::Connection)?;
 
         let rows = stmt
-            .query_map([], |row| Ok(self.map_row_to_job(row)?))
+            .query_map([], |row| self.map_row_to_job(row))
             .map_err(DatabaseError::Connection)?;
 
         let mut jobs = Vec::new();
@@ -346,7 +346,7 @@ impl JobRepository {
 
         let rows = stmt
             .query_map(params![status.to_string()], |row| {
-                Ok(self.map_row_to_job(row)?)
+                self.map_row_to_job(row)
             })
             .map_err(DatabaseError::Connection)?;
 
@@ -475,7 +475,7 @@ impl JobRepository {
 impl Repository<Job> for JobRepository {
     async fn create(&self, job: &mut Job) -> DatabaseResult<EntityId> {
         job.validate()
-            .map_err(|msg| DatabaseError::validation(msg))?;
+            .map_err(DatabaseError::validation)?;
 
         let now = Utc::now();
         job.created_at = now;
@@ -511,7 +511,7 @@ impl Repository<Job> for JobRepository {
                     retry_count, max_retries, created_at, updated_at, last_run_at, next_run_at 
              FROM jobs WHERE id = ?",
             params![id],
-            |row| Ok(self.map_row_to_job(row)?),
+            |row| self.map_row_to_job(row),
         );
 
         match result {
@@ -523,7 +523,7 @@ impl Repository<Job> for JobRepository {
 
     async fn update(&self, job: &mut Job) -> DatabaseResult<bool> {
         job.validate()
-            .map_err(|msg| DatabaseError::validation(msg))?;
+            .map_err(DatabaseError::validation)?;
 
         let id = job
             .id()
@@ -592,7 +592,7 @@ impl Repository<Job> for JobRepository {
             .map_err(DatabaseError::Connection)?;
 
         let rows = stmt
-            .query_map(params![limit, offset], |row| Ok(self.map_row_to_job(row)?))
+            .query_map(params![limit, offset], |row| self.map_row_to_job(row))
             .map_err(DatabaseError::Connection)?;
 
         let mut jobs = Vec::new();
@@ -658,7 +658,7 @@ impl UsageRepository {
 
         let rows = stmt
             .query_map(params![job_id, limit], |row| {
-                Ok(self.map_row_to_execution_result(row)?)
+                self.map_row_to_execution_result(row)
             })
             .map_err(DatabaseError::Connection)?;
 
@@ -721,7 +721,7 @@ impl Repository<ExecutionResult> for UsageRepository {
     async fn create(&self, result: &mut ExecutionResult) -> DatabaseResult<EntityId> {
         result
             .validate()
-            .map_err(|msg| DatabaseError::validation(msg))?;
+            .map_err(DatabaseError::validation)?;
 
         let now = Utc::now();
         result.created_at = now;
@@ -757,7 +757,7 @@ impl Repository<ExecutionResult> for UsageRepository {
                     total_tokens, cost_usd, execution_time_ms, created_at 
              FROM execution_results WHERE id = ?",
             params![id],
-            |row| Ok(self.map_row_to_execution_result(row)?),
+            |row| self.map_row_to_execution_result(row),
         );
 
         match result {
@@ -811,7 +811,7 @@ impl Repository<ExecutionResult> for UsageRepository {
 
         let rows = stmt
             .query_map(params![limit, offset], |row| {
-                Ok(self.map_row_to_execution_result(row)?)
+                self.map_row_to_execution_result(row)
             })
             .map_err(DatabaseError::Connection)?;
 

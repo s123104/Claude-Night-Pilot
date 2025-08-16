@@ -90,8 +90,8 @@ pub async fn get_prompt(_container: Arc<ServiceContainer>, id: String) -> Result
 
     // 模擬獲取提示詞
     let mut prompt = Prompt::new(
-        &format!("Prompt {}", id),
-        &format!("This is the content of prompt {}", id),
+        format!("Prompt {}", id),
+        format!("This is the content of prompt {}", id),
     );
     prompt.id = id;
 

@@ -7,7 +7,7 @@ test.describe("Claude Night Pilot - Prompt 管理測試", () => {
     await setupClaudeMock(page);
     
     // 前往應用主頁
-    await page.goto("http://localhost:8081");
+    await page.goto("http://localhost:8080");
 
     // 等待應用完全載入
     await waitForAppReady(page);
@@ -217,7 +217,7 @@ test.describe("Claude Night Pilot - Prompt 管理測試", () => {
   test("介面載入效能測試", async ({ page }) => {
     // 測量頁面載入時間
     const startTime = Date.now();
-    await page.goto("http://localhost:8081");
+    await page.goto("http://localhost:8080");
     await expect(page.locator("[data-testid='app-title']")).toBeVisible();
     const loadTime = Date.now() - startTime;
 
@@ -233,7 +233,7 @@ test.describe("Claude Night Pilot - Prompt 管理測試", () => {
 
 test.describe("Claude CLI 整合測試", () => {
   test("檢查 Claude CLI 可用性", async ({ page }) => {
-    await page.goto("http://localhost:8081");
+    await page.goto("http://localhost:8080");
     await expect(page.locator("[data-testid='app-title']")).toBeVisible();
 
     // 檢查冷卻狀態
@@ -246,7 +246,7 @@ test.describe("Claude CLI 整合測試", () => {
   });
 
   test("模擬 Claude CLI 冷卻狀態", async ({ page }) => {
-    await page.goto("http://localhost:8081");
+    await page.goto("http://localhost:8080");
     await expect(page.locator("[data-testid='app-title']")).toBeVisible();
 
     // 在開發模式下，應該模擬正常狀態
@@ -258,7 +258,7 @@ test.describe("Claude CLI 整合測試", () => {
   });
 
   test("模擬執行 Claude CLI 指令", async ({ page }) => {
-    await page.goto("http://localhost:8081");
+    await page.goto("http://localhost:8080");
     await expect(page.locator("[data-testid='app-title']")).toBeVisible();
 
     // 建立測試 Prompt，內容參考 Claude Code 使用手冊
@@ -284,7 +284,7 @@ test.describe("Claude CLI 整合測試", () => {
 
 test.describe("資料持久化測試", () => {
   test("Prompts 資料持久化", async ({ page }) => {
-    await page.goto("http://localhost:8081");
+    await page.goto("http://localhost:8080");
     await expect(page.locator("[data-testid='app-title']")).toBeVisible();
 
     // 建立測試 Prompt
@@ -306,7 +306,7 @@ test.describe("資料持久化測試", () => {
   });
 
   test("Jobs 資料持久化", async ({ page }) => {
-    await page.goto("http://localhost:8081");
+    await page.goto("http://localhost:8080");
     await expect(page.locator("[data-testid='app-title']")).toBeVisible();
 
     // 建立並執行測試 Prompt

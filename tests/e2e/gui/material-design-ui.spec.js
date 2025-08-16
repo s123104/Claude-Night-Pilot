@@ -395,7 +395,7 @@ test.describe("Material Design 3.0 任務排程系統驗證", () => {
 
 test.describe("CLI 與 GUI 整合功能測試", () => {
   test("CLI 命令執行狀態在 GUI 中的即時反映", async ({ page }) => {
-    await page.goto("http://localhost:8081");
+    await page.goto("http://localhost:8080");
 
     // 等待應用載入
     await page.waitForSelector(".app-container", { timeout: 30000 });
@@ -433,7 +433,7 @@ test.describe("CLI 與 GUI 整合功能測試", () => {
   });
 
   test("冷卻時間倒數與進度條動畫", async ({ page }) => {
-    await page.goto("http://localhost:8081");
+    await page.goto("http://localhost:8080");
     await page.waitForSelector(".app-container", { timeout: 30000 });
 
     // 檢查冷卻狀態顯示
@@ -471,7 +471,7 @@ test.describe("CLI 與 GUI 整合功能測試", () => {
 
 test.describe("效能與可用性測試", () => {
   test("Material Design 動畫效能測試", async ({ page }) => {
-    await page.goto("http://localhost:8081");
+    await page.goto("http://localhost:8080");
 
     // 測量載入時間
     const startTime = Date.now();
@@ -495,7 +495,7 @@ test.describe("效能與可用性測試", () => {
   });
 
   test("Material Design 組件可訪問性測試", async ({ page }) => {
-    await page.goto("http://localhost:8081");
+    await page.goto("http://localhost:8080");
     await page.waitForSelector(".app-container", { timeout: 30000 });
 
     // 測試鍵盤導航

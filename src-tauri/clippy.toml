@@ -1,0 +1,37 @@
+# Clippy 最佳實踐配置
+# 基於 context7 Rust Clippy 官方文檔
+
+# 性能優化相關
+too-many-arguments-threshold = 5
+cognitive-complexity-threshold = 15
+type-complexity-threshold = 200
+too-many-lines-threshold = 80
+
+# 代碼品質
+disallowed-names = ["foo", "bar", "baz", ".."]
+min-ident-chars-threshold = 2
+single-char-binding-names-threshold = 3
+
+# 允許在測試中使用某些通常被禁止的項目
+allow-expect-in-tests = true
+allow-unwrap-in-tests = true  
+allow-panic-in-tests = true
+allow-dbg-in-tests = true
+allow-print-in-tests = true
+
+# 讓未來保留的字段暫時不產生警告
+# 這是為了處理正在開發中但暫時未使用的功能
+suppress-restriction-lint-in-const = true
+
+# 大小閾值設定
+array-size-threshold = 8192
+large-error-threshold = 128  # 增加 rusqlite::Error 的容忍度
+pass-by-value-size-limit = 128
+vec-box-size-threshold = 2048
+
+# 文檔相關
+missing-docs-allow-unused = true
+check-private-items = false
+
+# 暫時允許某些複雜的警告以專注於核心功能
+# 這些可以在後續版本中逐步改善

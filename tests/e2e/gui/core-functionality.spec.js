@@ -136,7 +136,7 @@ test.describe("Claude Night Pilot 核心功能測試", () => {
     await page.waitForLoadState("networkidle");
     
     // 檢查主要資源是否正確載入
-    const mainPageResponse = responses.find(r => r.url.includes('localhost:8081'));
+    const mainPageResponse = responses.find(r => r.url.includes('localhost:8080'));
     if (mainPageResponse) {
       expect(mainPageResponse.status).toBe(200);
     }

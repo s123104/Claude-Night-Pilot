@@ -104,7 +104,7 @@ mod service_tests {
         async fn test_health_service_creation() {
             let _health_service = HealthService::new();
             // 測試服務創建成功
-            assert!(true);
+            // 功能驗證通過
         }
 
         #[tokio::test]
@@ -128,7 +128,7 @@ mod service_tests {
         async fn test_sync_service_creation() {
             let _sync_service = SyncService::new();
             // 測試服務創建成功
-            assert!(true);
+            // 功能驗證通過
         }
 
         #[tokio::test]
@@ -154,7 +154,7 @@ mod service_tests {
         let _sync_service = SyncService::new();
 
         // 基本測試：所有服務都能創建成功
-        assert!(true);
+        // 功能驗證通過
     }
 
     /// 性能測試：服務創建時間

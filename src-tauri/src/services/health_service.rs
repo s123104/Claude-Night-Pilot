@@ -50,6 +50,12 @@ pub struct HealthService {
     start_time: std::time::Instant,
 }
 
+impl Default for HealthService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HealthService {
     pub fn new() -> Self {
         Self {
@@ -389,7 +395,7 @@ mod tests {
     async fn test_global_health_service_access() {
         // 测试全局健康服务访问
         let global_service = HealthService::global();
-        assert!(global_service.is_poisoned() == false);
+        assert!(!global_service.is_poisoned());
 
         // 测试可以获取锁
         let service_guard = global_service.lock();

@@ -24,7 +24,7 @@ export default defineConfig({
   
   // 全域設定
   use: {
-    baseURL: "http://localhost:8081",
+    baseURL: "http://localhost:8080",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",

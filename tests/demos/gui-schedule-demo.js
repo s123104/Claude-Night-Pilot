@@ -21,7 +21,7 @@ async function demoScheduleCreation() {
     try {
         // 1. 前往應用程式
         console.log('📍 Step 1: 前往 Claude Night Pilot GUI');
-        await page.goto('http://localhost:8081');
+        await page.goto('http://localhost:8080');
         await page.waitForTimeout(2000);
         
         // 2. 驗證介面載入

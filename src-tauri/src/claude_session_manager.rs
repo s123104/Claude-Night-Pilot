@@ -120,7 +120,7 @@ impl ClaudeSessionManager {
             .execute_claude_command(
                 &initial_prompt,
                 &options,
-                worktree_path.as_ref().map(|p| Path::new(p)),
+                worktree_path.as_ref().map(Path::new),
             )
             .await?;
 
@@ -225,7 +225,7 @@ impl ClaudeSessionManager {
             opts
         });
 
-        let working_dir = session.worktree_path.as_ref().map(|p| Path::new(p));
+        let working_dir = session.worktree_path.as_ref().map(Path::new);
         let result = self
             .execute_claude_command(&prompt, &execution_options, working_dir)
             .await?;
@@ -272,7 +272,7 @@ impl ClaudeSessionManager {
 
         // 檢查分支是否存在，如不存在則創建
         let branch_exists = Command::new("git")
-            .args(&[
+            .args([
                 "show-ref",
                 "--verify",
                 "--quiet",
@@ -286,7 +286,7 @@ impl ClaudeSessionManager {
         if !branch_exists {
             // 創建新分支
             let status = Command::new("git")
-                .args(&["checkout", "-b", branch_name])
+                .args(["checkout", "-b", branch_name])
                 .current_dir(&self.project_root)
                 .status()
                 .context("Failed to create new branch")?;
@@ -297,7 +297,7 @@ impl ClaudeSessionManager {
 
             // 切回主分支
             Command::new("git")
-                .args(&["checkout", "main"])
+                .args(["checkout", "main"])
                 .current_dir(&self.project_root)
                 .status()
                 .context("Failed to return to main branch")?;
@@ -305,7 +305,7 @@ impl ClaudeSessionManager {
 
         // 創建 worktree
         let status = Command::new("git")
-            .args(&[
+            .args([
                 "worktree",
                 "add",
                 worktree_path.to_str().unwrap(),
@@ -343,7 +343,7 @@ impl ClaudeSessionManager {
         cmd.arg("-p").arg(prompt);
 
         // 輸出格式
-        cmd.args(&["--output-format", &options.output_format]);
+        cmd.args(["--output-format", &options.output_format]);
 
         // 工具權限
         if !options.allowed_tools.is_empty() {
@@ -360,17 +360,17 @@ impl ClaudeSessionManager {
 
         // 最大輪數
         if let Some(max_turns) = options.max_turns {
-            cmd.args(&["--max-turns", &max_turns.to_string()]);
+            cmd.args(["--max-turns", &max_turns.to_string()]);
         }
 
         // 模型選擇
         if let Some(ref model) = options.model {
-            cmd.args(&["--model", model]);
+            cmd.args(["--model", model]);
         }
 
         // 會話恢復
         if let Some(ref session_id) = options.resume_session_id {
-            cmd.args(&["--resume", session_id]);
+            cmd.args(["--resume", session_id]);
         }
 
         // 工作目錄
@@ -440,7 +440,7 @@ impl ClaudeSessionManager {
     async fn cleanup_worktree(&self, worktree_path: &Path) -> Result<()> {
         if worktree_path.exists() {
             let status = Command::new("git")
-                .args(&["worktree", "remove", worktree_path.to_str().unwrap()])
+                .args(["worktree", "remove", worktree_path.to_str().unwrap()])
                 .current_dir(&self.project_root)
                 .status()
                 .context("Failed to remove worktree")?;

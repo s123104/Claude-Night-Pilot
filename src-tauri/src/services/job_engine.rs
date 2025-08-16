@@ -20,7 +20,8 @@ pub struct JobEngine {
     executor: Arc<JobExecutor>,
     /// 任務儲存庫
     job_repository: Arc<dyn JobRepository + Send + Sync>,
-    /// 通知服務
+    /// 通知服務 - 目前正在開發中，未來版本將啟用
+    #[allow(dead_code)]
     notification_service: Arc<NotificationService>,
     /// 引擎狀態
     state: Arc<RwLock<JobEngineState>>,
@@ -40,6 +41,7 @@ impl std::fmt::Debug for JobEngine {
 
 /// Job 引擎狀態
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct JobEngineState {
     /// 引擎是否運行中
     pub is_running: bool,
@@ -249,6 +251,12 @@ impl Default for TaskMetrics {
     }
 }
 
+impl Default for TaskMonitor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TaskMonitor {
     pub fn new() -> Self {
         Self {
@@ -392,20 +400,7 @@ impl JobExecutionCallback for JobEngineExecutionCallback {
     }
 }
 
-impl Default for JobEngineState {
-    fn default() -> Self {
-        Self {
-            is_running: false,
-            started_at: None,
-            total_jobs: 0,
-            active_jobs: 0,
-            running_jobs: 0,
-            paused_jobs: 0,
-            failed_jobs: 0,
-            last_health_check: None,
-        }
-    }
-}
+// 移除手動實現的 Default，已使用 #[derive(Default)] 自動派生
 
 impl JobEngine {
     /// 創建新的 Job 引擎

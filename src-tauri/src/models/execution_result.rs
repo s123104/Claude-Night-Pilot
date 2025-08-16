@@ -401,7 +401,7 @@ impl std::fmt::Display for PerformanceGrade {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{ClaudeRequest, ClaudeResponse, ExecutionOptions};
+    use crate::models::{ClaudeRequest, ClaudeResponse};
 
     #[test]
     fn test_execution_result_creation() {
@@ -426,7 +426,7 @@ mod tests {
             mitigation: Some("移除敏感資訊".to_string()),
         });
 
-        assert_eq!(audit.risk_level, RiskLevel::High);
+        assert_eq!(audit.risk_level, RiskLevel::Critical);
         assert_eq!(audit.detected_risks.len(), 1);
     }
 

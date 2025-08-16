@@ -128,7 +128,7 @@ impl CooldownDetector {
         // 清理時區資訊和多餘空白
         let clean_time = reset_time_str
             .replace(char::is_whitespace, " ")
-            .replace(|c: char| c == '(' || c == ')', "")
+            .replace(['(', ')'], "")
             .trim()
             .to_lowercase();
 
@@ -171,7 +171,7 @@ impl CooldownDetector {
 
         // 如果時間已過，移到明天 - 使用 <= 以處理精確時間匹配
         if target_dt <= now {
-            target = target + chrono::Duration::days(1);
+            target += chrono::Duration::days(1);
             target_dt = Local.from_local_datetime(&target).single()?;
         }
 

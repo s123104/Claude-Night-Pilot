@@ -4,7 +4,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("調試測試", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("http://localhost:8081", {
+    await page.goto("/", {
       waitUntil: "networkidle",
       timeout: 30000,
     });

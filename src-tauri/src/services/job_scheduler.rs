@@ -28,6 +28,7 @@ pub struct JobScheduler {
 
 /// 排程器狀態
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct SchedulerState {
     /// 是否運行中
     pub is_running: bool,
@@ -84,6 +85,8 @@ pub trait JobExecutionCallback: std::fmt::Debug + Send + Sync {
 /// 預設任務執行回調實現
 #[derive(Debug)]
 pub struct DefaultJobExecutionCallback {
+    /// 任務服務 - 目前正在開發中，未來版本將啟用
+    #[allow(dead_code)]
     job_service: Arc<crate::services::job_service::JobService>,
 }
 
@@ -130,18 +133,6 @@ impl JobExecutionCallback for DefaultJobExecutionCallback {
     }
 }
 
-impl Default for SchedulerState {
-    fn default() -> Self {
-        Self {
-            is_running: false,
-            total_jobs: 0,
-            active_jobs: 0,
-            paused_jobs: 0,
-            last_health_check: None,
-            started_at: None,
-        }
-    }
-}
 
 impl JobScheduler {
     /// 創建新的 Job 排程器

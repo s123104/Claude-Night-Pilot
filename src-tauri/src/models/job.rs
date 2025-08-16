@@ -398,7 +398,7 @@ impl Job {
     /// 檢查是否可以執行
     pub fn can_execute(&self) -> bool {
         matches!(self.status, JobStatus::Active)
-            && self.next_run_time.map_or(false, |time| time <= Utc::now())
+            && self.next_run_time.is_some_and(|time| time <= Utc::now())
     }
 
     /// 檢查是否正在執行

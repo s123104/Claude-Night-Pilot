@@ -6,6 +6,7 @@ use clap::{Parser, Subcommand};
 use serde_json::json;
 use std::io::{self, Read};
 use std::time::Instant;
+
 // 移除懶加載 - 直接使用靜態方法
 
 #[derive(Parser)]
@@ -105,7 +106,7 @@ async fn main() -> Result<()> {
             format,
         } => {
             // 只在執行時才初始化介面
-            execute_prompt_optimized(
+            execute_prompt_optimized(ExecuteOptions {
                 prompt,
                 file,
                 stdin,
@@ -114,7 +115,7 @@ async fn main() -> Result<()> {
                 retry,
                 cooldown_check,
                 format,
-            )
+            })
             .await
         }
 
@@ -158,7 +159,9 @@ async fn main() -> Result<()> {
 
 // 移除懶加載函數 - 直接使用靜態方法
 
-async fn execute_prompt_optimized(
+/// 執行選項結構體，減少函數參數數量 - 符合 Clippy 最佳實踐
+#[derive(Debug, Default)]
+struct ExecuteOptions {
     prompt: Option<String>,
     file: Option<String>,
     stdin: bool,
@@ -167,17 +170,19 @@ async fn execute_prompt_optimized(
     retry: bool,
     cooldown_check: bool,
     format: String,
-) -> Result<()> {
+}
+
+async fn execute_prompt_optimized(options: ExecuteOptions) -> Result<()> {
     let _start_time = Instant::now();
 
     // 獲取prompt內容
-    let prompt_content = if let Some(content) = prompt {
+    let prompt_content = if let Some(content) = options.prompt {
         content
-    } else if let Some(file_path) = file {
+    } else if let Some(file_path) = options.file {
         tokio::fs::read_to_string(&file_path)
             .await
             .with_context(|| format!("無法讀取檔案: {}", file_path))?
-    } else if stdin {
+    } else if options.stdin {
         tokio::task::spawn_blocking(|| -> Result<String> {
             let mut buffer = String::new();
             io::stdin()
@@ -194,23 +199,23 @@ async fn execute_prompt_optimized(
     };
 
     // 準備執行選項
-    let options = claude_night_pilot_lib::unified_interface::UnifiedExecutionOptions {
-        mode,
+    let execution_options = claude_night_pilot_lib::unified_interface::UnifiedExecutionOptions {
+        mode: options.mode,
         cron_expr: None,
-        retry_enabled: Some(retry),
-        cooldown_check: Some(cooldown_check),
-        working_directory: work_dir,
+        retry_enabled: Some(options.retry),
+        cooldown_check: Some(options.cooldown_check),
+        working_directory: options.work_dir,
     };
 
     // 執行命令
-    if format != "json" {
+    if options.format != "json" {
         println!("🚀 正在執行Claude命令...");
     }
 
     let execution_start = Instant::now();
     let result = claude_night_pilot_lib::unified_interface::UnifiedClaudeInterface::execute_claude(
         prompt_content,
-        options,
+        execution_options,
     )
     .await
     .context("執行Claude命令失敗")?;
@@ -220,7 +225,7 @@ async fn execute_prompt_optimized(
     }
 
     // 輸出結果
-    match format.as_str() {
+    match options.format.as_str() {
         "json" => {
             println!("{}", serde_json::to_string_pretty(&result)?);
         }
@@ -282,58 +287,63 @@ async fn health_check_optimized(format: String, use_cache: bool, fast_mode: bool
         }
     }
 
-    let (claude_available, cooldown_working, process_count) = if fast_mode {
-        // 🚀 快速模式 - 只檢查二進位檔案是否存在，無執行
-        let (claude_available, cooldown_working, process_count) = tokio::join!(
-            async {
-                // 檢查 claude 二進位檔案是否在 PATH 中
-                match which::which("claude") {
-                    Ok(_) => true,
-                    Err(_) => false,
+    // 🚀 優化策略：緩存結果以避免重複檢查  
+    use std::sync::OnceLock;
+    static CACHE: OnceLock<std::sync::Mutex<(std::time::Instant, bool, bool, u32)>> = OnceLock::new();
+    
+    let (claude_available, cooldown_working, process_count) = if use_cache {
+        // 檢查緩存 (30秒 TTL)
+        let cache = CACHE.get_or_init(|| std::sync::Mutex::new((
+            std::time::Instant::now() - std::time::Duration::from_secs(60), // 強制第一次檢查
+            false, false, 0
+        )));
+        
+        // 檢查快取，避免持有鎖通過 await 點
+        {
+            if let Ok(cached) = cache.try_lock() {
+                let (cache_time, cached_claude, cached_cooldown, cached_processes) = *cached;
+                if cache_time.elapsed() < std::time::Duration::from_secs(30) {
+                    // 快取有效，使用快取結果
+                    let health_status = json!({
+                        "claude_cli_available": cached_claude,
+                        "cooldown_service_working": cached_cooldown,
+                        "active_processes": cached_processes,
+                        "check_time_ms": 0,
+                        "status": if cached_claude && cached_cooldown { "healthy" } else { "degraded" },
+                        "timestamp": chrono::Utc::now().to_rfc3339(),
+                        "cached": true
+                    });
+                    
+                    match format.as_str() {
+                        "json" => {
+                            println!("{}", serde_json::to_string_pretty(&health_status)?);
+                        }
+                        _ => {
+                            println!("✅ 健康檢查完成 (使用快取)");
+                            println!("Claude CLI 可用: {}", if cached_claude { "✅" } else { "❌" });
+                            println!("冷卻檢測工作: {}", if cached_cooldown { "✅" } else { "❌" });
+                            println!("活躍進程數: {}", cached_processes);
+                        }
+                    }
+                    return Ok(());
                 }
-            },
-            async {
-                true // 假設冷卻檢測工作正常 (快速模式)
-            },
-            async {
-                0u32 // 簡化版本，不檢查進程
+                // 鎖會自動釋放
             }
-        );
-        (claude_available, cooldown_working, process_count)
+            // 如果快取已過期或無法取得，執行實際檢查
+            perform_health_checks(fast_mode).await
+        }
     } else {
-        // ✅ 標準模式 - 並行執行實際命令檢查
-        let (claude_available, cooldown_working, process_count) = tokio::join!(
-            // Claude CLI 可用性檢查
-            async {
-                match tokio::process::Command::new("claude")
-                    .arg("--version")
-                    .output()
-                    .await
-                {
-                    Ok(output) if output.status.success() => true,
-                    _ => false,
-                }
-            },
-            // 冷卻檢測檢查 (輕量級版本)
-            async {
-                // 快速檢查，不進行完整的 doctor 調用
-                match tokio::process::Command::new("claude")
-                    .arg("doctor")
-                    .arg("--help")
-                    .output()
-                    .await
-                {
-                    Ok(output) if output.status.success() => true,
-                    _ => false,
-                }
-            },
-            // 活躍進程計數 (模擬)
-            async {
-                0u32 // 簡化版本，不實際檢查進程
-            }
-        );
-        (claude_available, cooldown_working, process_count)
+        perform_health_checks(fast_mode).await
     };
+
+    // 更新緩存
+    if use_cache {
+        if let Some(cache) = CACHE.get() {
+            if let Ok(mut cached) = cache.try_lock() {
+                *cached = (std::time::Instant::now(), claude_available, cooldown_working, process_count);
+            }
+        }
+    }
 
     let check_time_ms = start_time.elapsed().as_millis();
 
@@ -370,6 +380,54 @@ async fn health_check_optimized(format: String, use_cache: bool, fast_mode: bool
     }
 
     Ok(())
+}
+
+// 🚀 並行健康檢查實現 - 參考 Rust 最佳實踐
+async fn perform_health_checks(fast_mode: bool) -> (bool, bool, u32) {
+    if fast_mode {
+        // 快速模式 - 只檢查二進位檔案是否存在，無執行
+        tokio::join!(
+            async {
+                // 檢查 claude 二進位檔案是否在 PATH 中
+                which::which("claude").is_ok()
+            },
+            async {
+                true // 假設冷卻檢測工作正常 (快速模式)
+            },
+            async {
+                0u32 // 簡化版本，不檢查進程
+            }
+        )
+    } else {
+        // 標準模式 - 並行執行實際命令檢查，加入超時保護
+        let timeout_duration = std::time::Duration::from_millis(1000); // 1秒超時
+        
+        tokio::join!(
+            // Claude CLI 可用性檢查 (添加超時)
+            async {
+                matches!(tokio::time::timeout(
+                    timeout_duration,
+                    tokio::process::Command::new("claude")
+                        .arg("--version")
+                        .output()
+                ).await, Ok(Ok(output)) if output.status.success())
+            },
+            // 冷卻檢測檢查 (輕量級版本，添加超時)
+            async {
+                matches!(tokio::time::timeout(
+                    timeout_duration,
+                    tokio::process::Command::new("claude")
+                        .arg("doctor")
+                        .arg("--help")
+                        .output()
+                ).await, Ok(Ok(output)) if output.status.success())
+            },
+            // 活躍進程計數 (模擬，立即返回)
+            async {
+                0u32 // 簡化版本，避免昂貴的系統調用
+            }
+        )
+    }
 }
 
 // 移除不再需要的快速檢查函數 - 直接使用 UnifiedClaudeInterface

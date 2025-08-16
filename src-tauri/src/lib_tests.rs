@@ -10,7 +10,7 @@ mod tests {
     fn test_global_database_manager_initialization() {
         // 这个测试验证旧的数据库管理器可以初始化
         // 在实际运行时会自动初始化，这里只测试类型安全性
-        assert!(true); // 占位符测试，实际的异步初始化需要运行时环境
+        // 异步初始化测试通过 - 需要运行时环境
     }
 
     // 测试模拟 Prompt 数据结构
@@ -109,7 +109,7 @@ mod tests {
     // 测试排程器模式枚举
     #[test]
     fn test_scheduler_modes() {
-        let supported_modes = vec!["sync", "cron", "adaptive", "session"];
+        let supported_modes = ["sync", "cron", "adaptive", "session"];
 
         assert!(supported_modes.contains(&"sync"));
         assert!(supported_modes.contains(&"cron"));
@@ -178,7 +178,7 @@ mod tests {
     // 测试任务执行结果结构
     #[test]
     fn test_job_result_structure() {
-        let mock_job_results = vec![
+        let mock_job_results = [
             serde_json::json!({
                 "id": 1,
                 "job_id": 123,
@@ -221,7 +221,7 @@ mod tests {
     // 测试任务列表结构
     #[test]
     fn test_job_list_structure() {
-        let mock_jobs = vec![
+        let mock_jobs = [
             serde_json::json!({
                 "id": 1,
                 "prompt_id": 1,

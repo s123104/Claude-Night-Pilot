@@ -11,7 +11,7 @@ test.describe("CLI 壓力測試和 Tauri 命令並發測試", () => {
   const CLI_BINARY = "cd src-tauri && cargo run --bin cnp-unified --";
 
   test.beforeEach(async ({ page }) => {
-    await page.goto("http://localhost:8081", {
+    await page.goto("http://localhost:8080", {
       waitUntil: "networkidle",
       timeout: 30000,
     });

@@ -418,7 +418,7 @@ impl Prompt {
         let content = &self.content;
 
         // 使用正則表達式查找 @file 模式
-        let re = regex::Regex::new(r"@([^\s\,\.\!\?\;]+)").unwrap();
+        let re = regex::Regex::new(r"@([^\s\,\!\?\;]+)").unwrap();
 
         for captures in re.captures_iter(content) {
             if let Some(file_ref) = captures.get(1) {

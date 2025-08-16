@@ -10,6 +10,12 @@ pub struct MonitoringService {
     is_active: std::sync::atomic::AtomicBool,
 }
 
+impl Default for MonitoringService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MonitoringService {
     /// 創建新的監控服務
     pub fn new() -> Self {

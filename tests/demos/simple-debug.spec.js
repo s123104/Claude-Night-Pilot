@@ -3,7 +3,7 @@
 import { test, expect } from "@playwright/test";
 
 test("簡單調試", async ({ page }) => {
-  await page.goto("http://localhost:8081");
+  await page.goto("/");
   // 等待應用就緒（任一條件）
   await Promise.race([
     page.waitForFunction(() => window.__APP_READY__ === true, {

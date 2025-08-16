@@ -306,6 +306,12 @@ struct ScheduledSession {
     status: JobStatus,
 }
 
+impl Default for SessionScheduler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SessionScheduler {
     pub fn new() -> Self {
         Self {
@@ -344,7 +350,7 @@ impl SessionScheduler {
 
         // 如果已過期，安排到明天
         if target <= now {
-            target = target + chrono::Duration::days(1);
+            target += chrono::Duration::days(1);
         }
 
         target

@@ -119,8 +119,8 @@ pub async fn get_job(_container: Arc<ServiceContainer>, id: String) -> Result<St
 
     // 模擬獲取任務
     let mut job = Job::new(
-        &format!("Job {}", id),
-        &format!("prompt_{}", id.chars().take(3).collect::<String>()),
+        format!("Job {}", id),
+        format!("prompt_{}", id.chars().take(3).collect::<String>()),
         "0 9 * * *",
     );
     job.id = id.clone();
@@ -143,11 +143,11 @@ pub async fn update_job(
 
     // 模擬更新
     let mut job = Job::new(
-        &request
+        request
             .name
             .unwrap_or_else(|| format!("Updated Job {}", id)),
-        &format!("prompt_{}", id.chars().take(3).collect::<String>()),
-        &request
+        format!("prompt_{}", id.chars().take(3).collect::<String>()),
+        request
             .cron_expression
             .unwrap_or_else(|| "0 9 * * *".to_string()),
     );
@@ -197,8 +197,8 @@ pub async fn get_job_stats(container: Arc<ServiceContainer>) -> Result<String, S
 
     let stats = JobStats {
         total_jobs: 50,
-        pending_jobs: execution_stats.get("pending").unwrap_or(&0).clone() as u64,
-        running_jobs: execution_stats.get("running").unwrap_or(&0).clone() as u64,
+        pending_jobs: *execution_stats.get("pending").unwrap_or(&0) as u64,
+        running_jobs: *execution_stats.get("running").unwrap_or(&0) as u64,
         completed_jobs: 42,
         failed_jobs: 3,
         success_rate: 93.3,

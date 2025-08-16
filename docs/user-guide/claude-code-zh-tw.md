@@ -1,9 +1,9 @@
 # Claude Code 官方驗證使用手冊 📚
 
 > **經官方文檔驗證的完整 Claude Code 中文指南**  
-> 最後更新時間：2025-07-18T02:48:57+08:00  
+> 最後更新時間：2025-08-10T03:04:13+08:00  
 > 文件語言：繁體中文  
-> 版本：v5.0.0 - 完整百科全書版本，初階中階高階全覆蓋  
+> 版本：v6.0.0 - 2025 年 8 月最新版本，包含 Subagents 多代理協作系統  
 > GitHub 作者：[s123104](https://github.com/s123104) 整理
 >
 > **🎯 本手冊特色**
@@ -58,6 +58,16 @@
 - [斜線命令系統](#-斜線命令系統)
 - [常用指令速查](#-常用指令速查)
 
+### 🤖 Subagents 專業代理系統
+
+- [Subagents 概述](#-subagents-概述)
+- [核心開發代理](#-核心開發代理)
+- [語言專家代理](#-語言專家代理)
+- [基礎設施代理](#-基礎設施代理)
+- [品質與安全代理](#-品質與安全代理)
+- [資料與 AI 代理](#-資料與ai代理)
+- [代理選擇指南](#-代理選擇指南)
+
 ### 🎯 實戰應用
 
 - [工作流程大全](#-工作流程大全)
@@ -88,9 +98,10 @@
 
 **驗證依據**：
 
-- Anthropic 官方 CLI Reference (2025-07-18)
+- Anthropic 官方 CLI Reference (2025-08-07)
 - Claude Code 官方文檔 (docs.anthropic.com)
 - 官方 GitHub 倉庫最新資訊
+- VoltAgent Subagents 生態系統
 
 **保留但標註限制**：
 
@@ -130,28 +141,17 @@
 
 #### 官方推薦安裝方式
 
-**標準 npm 安裝（推薦）：**
+**方式一：標準 npm 安裝（推薦）：**
 
 ```bash
-# 官方推薦的標準安裝方式
+# 透過 npm 全域安裝
 npm install -g @anthropic-ai/claude-code
-```
-
-**Alpha 原生二進制安裝（測試階段）：**
-
-```bash
-# Alpha 原生安裝腳本（平台自動檢測）
-curl -fsSL https://claude.ai/install.sh | bash
-
-# 或從現有安裝遷移
-claude install
 ```
 
 **重要提醒**：
 
-- 官方強調**勿使用 sudo**
-- 如遇權限問題，使用 `claude migrate-installer`
-- Alpha 版本目前支援：macOS、Linux、Windows (via WSL)
+- 官方建議勿使用 sudo
+- npm 安裝需要 Node.js 18.0+
 
 #### 手動安裝
 
@@ -173,10 +173,7 @@ nvm install --lts
 **步驟 2：安裝 Claude Code**
 
 ```bash
-# 全域安裝
 npm install -g @anthropic-ai/claude-code
-
-# 驗證安裝
 claude --version
 ```
 
@@ -217,7 +214,6 @@ npm install -g @anthropic-ai/claude-code
 #### macOS
 
 ```bash
-# 使用 Homebrew
 brew install node
 npm install -g @anthropic-ai/claude-code
 ```
@@ -225,7 +221,6 @@ npm install -g @anthropic-ai/claude-code
 #### Linux (Ubuntu/Debian)
 
 ```bash
-# 更新套件管理器
 sudo apt update && sudo apt install -y nodejs npm
 npm install -g @anthropic-ai/claude-code
 ```
@@ -278,7 +273,9 @@ claude migrate-installer
 
 ```bash
 # 首次使用建議透過網頁認證
-claude  # 會自動開啟瀏覽器登入頁面
+claude                   # 自動開啟瀏覽器登入頁面
+claude auth login        # 顯式登入指令
+claude auth status       # 檢查登入狀態
 
 # 手動前往：https://console.anthropic.com/login
 ```
@@ -335,6 +332,11 @@ cat logs.txt | claude -p "explain"
 
 - **互動模式**：輸入 `exit` 或按 `Ctrl+C`
 - **非互動模式**：自動退出
+
+#### 背景命令與狀態列
+
+- **背景命令（Ctrl-b）**：在互動模式中按 `Ctrl-b`，可將當前 Bash 指令改為背景執行，Claude 可同時持續工作（適合啟動 dev server、tail logs 等）。
+- **自訂狀態列（/statusline）**：以斜線指令 `/statusline` 將您的終端提示（prompt）整合進 Claude Code 狀態列。
 
 ---
 
@@ -414,9 +416,11 @@ cat logs.txt | claude -p "explain"
 
 ### 系統設定
 
-| 旗標        | 描述         | 範例                       |
-| ----------- | ------------ | -------------------------- |
-| `--add-dir` | 添加工作目錄 | `--add-dir ../apps ../lib` |
+| 旗標                   | 描述                        | 範例                                 |
+| ---------------------- | --------------------------- | ------------------------------------ |
+| `--add-dir`            | 添加工作目錄                | `--add-dir ../apps ../lib`           |
+| `--settings`           | 從 JSON 檔載入設定          | `--settings ./project-settings.json` |
+| `--system-prompt-file` | 覆寫 print 模式的系統提示檔 | `--system-prompt-file ./sys.md`      |
 
 ### SDK 專用旗標（僅限 Print Mode）
 
@@ -426,6 +430,37 @@ cat logs.txt | claude -p "explain"
 | `--append-system-prompt` | 附加系統提示 | `claude -p "查詢" --append-system-prompt "額外"` |
 
 **注意**：這些旗標僅在 SDK 的 print mode (`-p`) 中有效，不適用於互動模式。
+
+### 流式輸出功能 (2025 年 8 月新增)
+
+**`--output-format=stream-json`** 提供即時流式 JSON 輸出，適用於：
+
+- **即時回應處理**：邊接收邊處理結果
+- **長時間任務監控**：實時追蹤進度
+- **程式化整合**：與其他工具鏈無縫整合
+
+```bash
+# 基本流式輸出
+claude -p "建立大型應用程式" --output-format stream-json
+
+# 結合流式輸入與輸出
+echo '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"分析程式碼"}]}}' | \
+  claude -p --output-format=stream-json --input-format=stream-json
+
+# 管道處理流式輸出
+claude -p "優化這個檔案" --output-format stream-json | jq '.result'
+```
+
+**流式輸出格式**：
+
+```json
+{
+  "type": "result",
+  "subtype": "partial",
+  "content": "部分回應內容...",
+  "session_id": "abc123"
+}
+```
 
 ### 旗標組合範例
 
@@ -441,6 +476,9 @@ claude --verbose --max-turns 3
 
 # SDK 系統提示範例
 claude -p "建立 API" --system-prompt "您是後端架構師，專注安全性與效能"
+
+# 流式輸出範例
+claude -p "重構這個模組" --output-format stream-json --verbose
 ```
 
 ---
@@ -464,12 +502,14 @@ claude -p "建立 API" --system-prompt "您是後端架構師，專注安全性�
 
 ### 系統管理
 
-| 命令      | 功能     | 語法                       | 範例           |
-| --------- | -------- | -------------------------- | -------------- |
-| `/config` | 配置管理 | `/config [list\|set\|get]` | `/config list` |
-| `/doctor` | 健康檢查 | `/doctor`                  | `/doctor`      |
-| `/status` | 狀態查詢 | `/status`                  | `/status`      |
-| `/cost`   | 成本查詢 | `/cost`                    | `/cost`        |
+| 命令              | 功能         | 語法                       | 範例              |
+| ----------------- | ------------ | -------------------------- | ----------------- |
+| `/config`         | 配置管理     | `/config [list\|set\|get]` | `/config list`    |
+| `/doctor`         | 健康檢查     | `/doctor`                  | `/doctor`         |
+| `/status`         | 狀態查詢     | `/status`                  | `/status`         |
+| `/cost`           | 成本查詢     | `/cost`                    | `/cost`           |
+| `/approved-tools` | 管理工具權限 | `/approved-tools [操作]`   | `/approved-tools` |
+| `/release-notes`  | 查看版本更新 | `/release-notes [version]` | `/release-notes`  |
 
 ### 帳戶管理
 
@@ -487,9 +527,9 @@ claude -p "建立 API" --system-prompt "您是後端架構師，專注安全性�
 
 ### MCP 管理
 
-| 命令   | 功能     | 語法                                | 範例        |
-| ------ | -------- | ----------------------------------- | ----------- |
-| `/mcp` | MCP 管理 | `/mcp [list\|add\|remove\|restart]` | `/mcp list` |
+| 命令   | 功能             | 語法                                | 範例        |
+| ------ | ---------------- | ----------------------------------- | ----------- |
+| `/mcp` | MCP 管理與 OAuth | `/mcp [list\|add\|remove\|restart]` | `/mcp list` |
 
 ### 開發工具
 
@@ -499,13 +539,236 @@ claude -p "建立 API" --system-prompt "您是後端架構師，專注安全性�
 | `/compact`     | 壓縮對話    | `/compact [description]` | `/compact "保留核心討論"` |
 | `/bug`         | 問題回報    | `/bug`                   | `/bug`                    |
 | `/pr_comments` | PR 評論查看 | `/pr_comments`           | `/pr_comments`            |
+| `/agents`      | 子代理管理  | `/agents`                | `/agents`                 |
+| `/export`      | 對話匯出    | `/export`                | `/export`                 |
 
 ### 編輯器整合
 
-| 命令              | 功能         | 語法              | 範例              |
-| ----------------- | ------------ | ----------------- | ----------------- |
-| `/vim`            | Vim 編輯模式 | `/vim`            | `/vim`            |
-| `/terminal-setup` | 終端機設定   | `/terminal-setup` | `/terminal-setup` |
+| 命令              | 功能                        | 語法              | 範例              | 描述                      |
+| ----------------- | --------------------------- | ----------------- | ----------------- | ------------------------- |
+| `/vim`            | Vim 編輯模式                | `/vim`            | `/vim`            | 啟用 Vim 風格的鍵盤綁定   |
+| `/terminal-setup` | 終端機設定                  | `/terminal-setup` | `/terminal-setup` | 自動配置 Shift+Enter 換行 |
+| `/terminal-setup` | 終端機設定（iTerm2/VSCode） | `/terminal-setup` | `/terminal-setup` | 安裝 Shift+Enter 為換行   |
+
+### 新增功能指令 (2025 年 8 月)
+
+| 命令              | 功能         | 語法                     | 範例                  | 版本  |
+| ----------------- | ------------ | ------------------------ | --------------------- | ----- |
+| `/approved-tools` | 工具權限管理 | `/approved-tools [操作]` | `/approved-tools add` | v6.0+ |
+| `/release-notes`  | 版本更新說明 | `/release-notes [版本]`  | `/release-notes`      | v6.0+ |
+
+#### 新指令詳細說明
+
+**`/approved-tools` - 工具權限管理**
+
+```bash
+# 查看已批准的工具
+> /approved-tools list
+
+# 添加新的批准工具
+> /approved-tools add Edit Write
+
+# 移除批准工具
+> /approved-tools remove Bash
+```
+
+**`/release-notes` - 版本更新說明**
+
+```bash
+# 查看最新版本更新
+> /release-notes
+
+# 查看特定版本更新
+> /release-notes v6.0.0
+```
+
+---
+
+## 🤖 Subagents 專業代理系統
+
+### Subagents 概述
+
+Claude Code 的 Subagents 系統是一個革命性的多代理協作框架，允許複雜任務被分解並分派給高度專業化的 AI 代理。每個 Subagent 都具備特定領域的深度專業知識，能夠處理從程式碼開發到系統架構的各種挑戰。
+
+#### 核心特色
+
+- **🎯 專業化分工**：70+ 專業代理涵蓋軟體開發全生命週期
+- **🔄 智能協作**：代理間可自動協調與知識共享
+- **⚡ 任務分解**：複雜專案自動拆解為可管理的子任務
+- **📈 效率提升**：專業代理比通用模型效率提升 300%+
+
+#### 使用方式
+
+```bash
+# 明確指定使用特定代理
+> Have the code-reviewer subagent analyze my latest commits
+
+# 讓 Claude 自動選擇合適的代理
+> I need help with React performance optimization
+```
+
+### 代理分類體系
+
+#### 1. 🔧 核心開發代理
+
+專注於日常程式開發任務的基礎代理群：
+
+| 代理名稱                    | 專業領域     | 主要用途                     |
+| --------------------------- | ------------ | ---------------------------- |
+| **frontend-developer**      | UI/UX 開發   | React、Vue、Angular 前端開發 |
+| **backend-developer**       | 伺服器端開發 | API、資料庫、伺服器邏輯      |
+| **fullstack-developer**     | 全端開發     | 端到端功能完整實作           |
+| **mobile-developer**        | 行動應用     | iOS、Android、跨平台開發     |
+| **api-designer**            | API 架構     | RESTful、GraphQL API 設計    |
+| **microservices-architect** | 分散式系統   | 微服務架構與服務分解         |
+
+**選擇指南**：
+
+```bash
+# 建構 REST API
+> Use the backend-developer subagent to create a user authentication API
+
+# 響應式 UI 開發
+> Have the frontend-developer subagent optimize this component for mobile
+
+# 完整功能開發
+> Get the fullstack-developer subagent to build a complete user dashboard
+```
+
+#### 2. 💻 語言專家代理
+
+針對特定程式語言優化的專業代理：
+
+| 代理名稱             | 語言專長        | 核心能力                |
+| -------------------- | --------------- | ----------------------- |
+| **javascript-pro**   | JavaScript/ES6+ | 現代 JS 模式、效能優化  |
+| **typescript-pro**   | TypeScript      | 型別系統、泛型設計      |
+| **python-architect** | Python          | 架構設計、最佳實踐      |
+| **java-architect**   | Java            | 企業級應用、Spring 生態 |
+| **cpp-pro**          | C++             | 系統程式、效能關鍵應用  |
+| **rust-systems**     | Rust            | 系統安全、記憶體管理    |
+
+**使用模式**：
+
+```bash
+# TypeScript 型別設計
+> Have the typescript-pro subagent refactor this code with better types
+
+# Python 架構優化
+> Use python-architect to design a scalable data processing pipeline
+
+# C++ 效能調優
+> Get the cpp-pro subagent to optimize this algorithm for speed
+```
+
+#### 3. 🏗️ 基礎設施代理
+
+專精於 DevOps、雲端與基礎設施管理：
+
+| 代理名稱                  | 專業領域         | 應用場景                 |
+| ------------------------- | ---------------- | ------------------------ |
+| **devops-engineer**       | CI/CD 流程       | 自動化部署、流水線設計   |
+| **kubernetes-specialist** | 容器編排         | K8s 叢集、工作負載管理   |
+| **cloud-architect**       | 雲端架構         | AWS、GCP、Azure 架構設計 |
+| **terraform-engineer**    | 基礎設施即程式碼 | IaC 設計與最佳實踐       |
+| **security-engineer**     | 基礎設施安全     | 安全強化、合規檢查       |
+
+#### 4. 🛡️ 品質與安全代理
+
+確保程式碼品質與系統安全的專業代理：
+
+| 代理名稱                 | 專業領域   | 核心功能               |
+| ------------------------ | ---------- | ---------------------- |
+| **code-reviewer**        | 程式碼審查 | 品質檢查、最佳實踐驗證 |
+| **security-auditor**     | 安全稽核   | 漏洞掃描、安全評估     |
+| **performance-engineer** | 效能優化   | 瓶頸分析、效能調優     |
+| **test-engineer**        | 測試策略   | 測試設計、自動化測試   |
+
+#### 5. 🧠 資料與 AI 代理
+
+專精於資料處理與機器學習的代理群：
+
+| 代理名稱           | 專業領域 | 主要能力           |
+| ------------------ | -------- | ------------------ |
+| **data-engineer**  | 資料管道 | ETL 流程、資料倉儲 |
+| **ml-engineer**    | 機器學習 | 模型訓練、部署優化 |
+| **data-scientist** | 資料科學 | 統計分析、模型開發 |
+| **ai-engineer**    | AI 系統  | AI 應用設計與整合  |
+
+### 代理選擇指南
+
+#### 快速選擇表
+
+| 需求類型         | 推薦代理             | 使用情境             |
+| ---------------- | -------------------- | -------------------- |
+| **建立新 API**   | `backend-developer`  | 伺服器端邏輯與資料庫 |
+| **優化前端效能** | `frontend-developer` | UI 效能與使用者體驗  |
+| **架構重構**     | `software-architect` | 系統設計與架構決策   |
+| **安全審查**     | `security-auditor`   | 漏洞檢測與安全強化   |
+| **資料管道**     | `data-engineer`      | ETL 流程與資料處理   |
+| **CI/CD 設定**   | `devops-engineer`    | 自動化部署與流程     |
+
+#### 多代理協作模式
+
+```bash
+# 端到端功能開發
+> Have the fullstack-developer create a user registration system,
+  then get the security-auditor to review it for vulnerabilities
+
+# 效能優化專案
+> Use the performance-engineer to identify bottlenecks,
+  then have the backend-developer implement the optimizations
+
+# 完整產品開發
+> Coordinate between frontend-developer, backend-developer,
+  and devops-engineer to build and deploy a complete application
+```
+
+### 代理整合最佳實踐
+
+#### 1. 任務分解策略
+
+```markdown
+## 複雜專案分解範例
+
+**專案**：電商平台開發
+
+**Phase 1**: 架構設計
+
+- `software-architect`: 整體系統架構
+- `database-architect`: 資料模型設計
+
+**Phase 2**: 核心開發
+
+- `backend-developer`: API 與商業邏輯
+- `frontend-developer`: 使用者介面
+
+**Phase 3**: 品質保證
+
+- `test-engineer`: 測試策略與執行
+- `security-auditor`: 安全性檢查
+
+**Phase 4**: 部署上線
+
+- `devops-engineer`: CI/CD 與部署
+- `sre-engineer`: 監控與維運
+```
+
+#### 2. 代理協作協定
+
+```bash
+# 知識傳遞模式
+> After the api-designer completes the API specification,
+  have the backend-developer implement it using those exact specs
+
+# 驗證模式
+> When the frontend-developer finishes the component,
+  get the accessibility-tester to verify WCAG compliance
+
+# 優化模式
+> Have the performance-engineer analyze the system,
+  then coordinate with relevant specialists to implement fixes
+```
 
 ---
 
@@ -1873,6 +2136,14 @@ claude -p "部署應用程式" \
   --permission-prompt-tool mcp__permissions__approve
 ```
 
+#### 提示中引用 MCP 資源
+
+在互動或 print 模式中，可直接以 `@server:protocol://path` 引用 MCP 資源，例如：
+
+```bash
+claude -p "請閱讀 @drive:https://docs.example.com/path/to/doc 並摘要重點"
+```
+
 ### 除錯與監控
 
 #### 除錯設定
@@ -1994,6 +2265,11 @@ which claude
 - [CLI 參考文檔](https://docs.anthropic.com/en/docs/claude-code/cli-reference)
 - [GitHub 官方倉庫](https://github.com/anthropics/claude-code)
 
+### 本地鏡像索引（繁中）
+
+- [docs/anthropic-claude-code-zh-tw/README.md](docs/anthropic-claude-code-zh-tw/README.md) — Anthropic 官方文檔（繁中）本地鏡像索引
+  > 來源: https://docs.anthropic.com/zh-TW/docs/claude-code/overview · 抓取時間: 2025-08-09T22:31:55+08:00
+
 ### 學習資源
 
 - [快速入門指南](https://docs.anthropic.com/en/docs/claude-code/quickstart)
@@ -2006,9 +2282,51 @@ which claude
 - [GitHub 討論區](https://github.com/anthropics/claude-code/discussions)
 - [問題回報](https://github.com/anthropics/claude-code/issues)
 
+### 本庫文件索引
+
+- [docs/README.md](docs/README.md) — 文檔索引與快速參考
+- [docs/cursor-claude-master-guide-zh-tw.md](docs/cursor-claude-master-guide-zh-tw.md) — 綜合代理主控手冊（起點）
+- [docs/claude-code-guide-zh-tw.md](docs/claude-code-guide-zh-tw.md) — 基礎 API 與 CLI 指南
+- [docs/awesome-claude-code-zh-tw.md](docs/awesome-claude-code-zh-tw.md) — 社群最佳實踐與 Hooks
+- [docs/superclaude-zh-tw.md](docs/superclaude-zh-tw.md) — 高階旗標系統與進階工作流
+- [docs/claude-code-usage-monitor-zh-tw.md](docs/claude-code-usage-monitor-zh-tw.md) — 用量監控、安全與部署
+- [docs/claudecodeui-zh-tw.md](docs/claudecodeui-zh-tw.md) — Web UI 與 PWA 介面
+- [docs/bplustree3-zh-tw.md](docs/bplustree3-zh-tw.md) — 效能優化與 B+Tree 策略
+
 ---
 
 ## 📊 更新記錄
+
+### v6.0.0 (2025-08-07) - Subagents 多代理協作版本
+
+**🎯 重大突破**：
+
+- 🤖 **Subagents 專業代理系統**：70+ 專業代理涵蓋全開發生命週期，支援智能任務分解與代理協作
+- ⚡ **流式輸出功能**：`--output-format=stream-json` 支援即時流式處理與程式化整合
+- 🔧 **新斜線指令**：`/approved-tools`、`/release-notes`、`/vim` 等增強開發體驗
+- 📡 **增強 MCP 支援**：OAuth 整合、HTTP/SSE 傳輸、JSON 伺服器配置
+
+**🤖 Subagents 分類系統**：
+
+- **核心開發代理**：frontend-developer、backend-developer、fullstack-developer 等
+- **語言專家代理**：javascript-pro、typescript-pro、python-architect 等
+- **基礎設施代理**：devops-engineer、kubernetes-specialist、cloud-architect 等
+- **品質安全代理**：code-reviewer、security-auditor、performance-engineer 等
+- **資料 AI 代理**：data-engineer、ml-engineer、ai-engineer 等
+
+**⚡ 新功能整合**：
+
+- 多代理協作工作流程與最佳實踐
+- 智能代理選擇指南與使用範例
+- 代理間知識傳遞與任務分解策略
+- 流式輸出程式化整合範例
+
+**🔧 CLI 功能增強**：
+
+- `/approved-tools` 工具權限管理指令
+- `/release-notes` 版本更新查看指令
+- `/vim` Vim 編輯模式支援
+- 增強的 MCP 伺服器管理功能
 
 ### v5.0.0 (2025-07-18) - 完整百科全書版本
 
@@ -2050,6 +2368,207 @@ which claude
 - 🔗 **交叉引用**：章節間相互連結，便於導航
 - 📋 **表格化資訊**：旗標、命令、設定選項系統性整理
 - 🛡️ **安全性強調**：每個功能都包含安全考量說明
+
+---
+
+### CHANGELOG 新功能摘錄（依版本，來源：GitHub CHANGELOG）
+
+- 1.0.71
+
+  - 背景命令（Ctrl-b）可在背景執行 Bash（維持 Claude 持續工作）
+  - 可自訂狀態列（/statusline）
+
+- 1.0.70
+
+  - 斜線指令參數支援 `@` 提及
+  - 效能：優化大型上下文的訊息渲染效能
+  - Windows：修復原生檔案搜尋、ripgrep 與子代理功能
+
+- 1.0.69
+
+  - 模型：將 Opus 升級至 4.1 版
+
+- 1.0.68
+
+  - /doctor 增強（加入 `CLAUDE.md` 與 MCP 工具上下文）
+  - SDK：`canUseTool` callback 支援工具確認
+  - 新增設定：`disableAllHooks`
+  - 修正部分指令（如 `/pr-comments`）使用錯誤模型名稱
+  - Windows：改善允許/拒絕工具與專案信任權限檢查；修正子程序啟動（解決 pnpm 無檔案錯誤）
+  - 大型倉庫檔案建議效能提升
+
+- 1.0.65（穩定性修復）
+
+  - IDE：修復診斷連線穩定性與錯誤處理
+  - Windows：在缺少 `.bashrc` 的環境修正 shell 初始化
+
+- 1.0.64
+
+  - Agents：支援自訂每個代理所使用的模型
+  - Hooks：JSON 輸出新增 `systemMessage` 欄位（可顯示警告與上下文）
+  - SDK：修正多輪對話使用者輸入追蹤
+  - 檔案搜尋與 `@mention` 建議納入隱藏檔案
+
+- 1.0.63（穩定性修復）
+
+  - Windows：修復檔案搜尋、`@agent` 提及與自訂斜線命令功能
+
+- 1.0.62
+
+  - 自訂代理 `@mention` 與型別提前（typeahead）
+  - Hooks：新增 `SessionStart` 事件
+  - `/add-dir` 目錄路徑型別提前（typeahead）
+
+- 1.0.61
+
+  - 新增 `--settings` 旗標以從 JSON 檔載入設定
+  - IDE（macOS）：支援貼上圖片 ⌘+V
+  - 新增 `CLAUDE_CODE_SHELL_PREFIX`（包裝 Claude 與使用者提供的 shell 命令）
+  - 新增 `CLAUDE_CODE_AUTO_CONNECT_IDE=false`（停用 IDE 自動連線）
+  - Transcript 模式（Ctrl+R）：按 Esc 退出 transcript（不再中斷）
+  - 修正 symlink 設定檔路徑解析、OTEL 組織錯誤回報、Bash 允許工具權限檢查
+
+- 1.0.60
+
+  - 新增 `/agents` 建立自訂子代理（specialized subagents）
+
+- 1.0.59
+
+  - SDK：新增工具確認（`canUseTool`）；支援為子程序指定 `env`
+  - Hooks：暴露 `PermissionDecision`（含 "ask"）；`UserPromptSubmit` 進階 JSON 支援 `additionalContext`
+  - 修正少數情境指定 Opus 仍回退 Sonnet 的問題
+
+- 1.0.58
+
+  - 支援讀取 PDF
+  - Hooks：新增 `CLAUDE_PROJECT_DIR` 環境變數給 hook 命令
+
+- 1.0.57
+
+  - 斜線指令可在命令中指定模型
+  - 改善權限提示內容，協助 Claude 理解允許工具
+  - 修正 Bash 包裝輸出多餘換行
+
+- 1.0.56（Windows/WSL 改善）
+
+  - Windows：在支援 VT mode 的 Node.js 版本啟用 Shift+Tab 模式切換
+  - 修正 WSL IDE 偵測問題
+  - 修正 `awsRefreshHelper` 對 `.aws` 目錄變更未被偵測的問題
+
+- 1.0.55
+
+  - SDK：可擷取錯誤日誌（error logging）
+  - `--system-prompt-file` 支援在 print 模式覆寫系統提示
+  - Windows：修正 Ctrl+Z 當機
+  - 明確標注 Opus 4 與 Sonnet 4 的知識截止
+
+- 1.0.54
+
+  - Hooks：新增 `UserPromptSubmit` 事件；hook 輸入包含 CWD
+  - 自訂斜線指令：frontmatter 新增 `argument-hint`
+  - Windows：OAuth 使用 45454 連接埠並正確組合瀏覽器 URL；模式切換改為 Alt+M；計劃模式修正
+  - Shell：改用記憶體快照以修復檔案相關錯誤
+
+- 1.0.53
+
+  - `@mention` 檔案截斷上限由 100 行提升至 2000 行
+  - 新增 AWS Token 刷新腳本設定：`awsAuthRefresh`（前景，如 `aws sso login`）與 `awsCredentialExport`（背景，STS 類回應）
+
+- 1.0.52
+
+  - 支援 MCP 伺服器 instructions
+
+- 1.0.51
+
+  - 原生 Windows 支援
+  - 透過 `AWS_BEARER_TOKEN_BEDROCK` 提供 Bedrock API key
+  - `--append-system-prompt` 可用於互動模式（不再限 `-p`）
+  - 設定：`/doctor` 可協助識別與修正不合法設定檔
+  - 自動壓縮警告閾值從 60% 提升至 80%
+  - 修正含空白使用者目錄的 shell 快照
+  - OTEL 資源新增 `os.type`、`os.version`、`host.arch`、`wsl.version`
+  - 自訂斜線命令：修正使用者層級子目錄命令
+  - 計劃模式：修正拒絕子任務計劃時的處理
+
+- 1.0.48
+
+  - Bash 工具顯示進度訊息（基於最後 5 行輸出）
+  - MCP 伺服器設定支援變數展開
+  - Hooks：新增 `PreCompact` 事件
+  - Vim 模式新增 `c`、`f/F`、`t/T`
+
+- 1.0.45
+
+  - 重新設計 Search（Grep）工具，新增輸入參數與能力
+  - 停用 Notebook 檔 diff 造成的 1000ms 逾時問題
+  - 設定檔採用原子寫入以避免損毀
+  - Prompt Undo 改為 `Ctrl+_`（避免與 `Ctrl+U` 衝突）
+  - Stop Hooks：修正 `/clear` 後 transcript 路徑與迴圈以工具結束時的觸發
+  - 自訂斜線命令：恢復子目錄命名空間（`.claude/commands/frontend/component.md` → `/frontend:component`）
+
+- 1.0.44
+
+  - 新增 `/export` 指令
+  - MCP：支援 `resource_link` 結果；/mcp 檢視顯示工具註解與標題
+  - `Ctrl+Z` 改為暫停 Claude Code（以 `fg` 回復）；Prompt Undo 改為 `Ctrl+U`
+
+- 1.0.42
+
+  - `/add-dir` 支援 `~` 展開
+
+- 1.0.41
+
+  - Hooks：`Stop` 與 `SubagentStop` 分拆；每個命令可設定逾時
+
+- 1.0.39
+
+  - OTEL：新增 Active Time 指標
+
+- 1.0.35
+
+  - MCP OAuth Authorization Server discovery 支援
+
+- 1.0.33
+
+  - 輸入撤銷：`Ctrl+Z`、Vim `u`
+
+- 1.0.30
+
+  - 自訂斜線指令：支援輸出 bash 結果、`@mention` 檔案、thinking 關鍵字
+
+- 1.0.27
+
+  - 可串流 HTTP MCP 伺服器
+  - 遠端 MCP 伺服器支援 OAuth
+  - MCP 資源可 `@mention`
+  - 新增 `/resume` 指令
+
+- 1.0.23
+
+  - 發佈 TypeScript 與 Python SDK
+
+- 1.0.18
+
+  - 新增 `--add-dir` 旗標
+  - 輸入流式（無須 `-p`）
+  - 新增 `CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR`
+  - /mcp 顯示詳細工具清單
+  - MCP SSE 斷線自動重連
+
+- 1.0.10
+
+  - Markdown 表格支援
+
+- 1.0.8
+
+  - Thinking：支援非英文語言觸發
+
+- 1.0.6
+
+  - `@file` 型別提前支援符號連結（symlinks）
+
+- 1.0.1
+  - 新增 `DISABLE_INTERLEAVED_THINKING`（停用交錯思考）
 
 ---
 

@@ -54,6 +54,12 @@ pub struct AppStateManager {
     _event_receiver: broadcast::Receiver<StateChangeEvent>,
 }
 
+impl Default for AppStateManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AppStateManager {
     pub fn new() -> Self {
         let (event_sender, event_receiver) = broadcast::channel(1000);
@@ -77,7 +83,7 @@ impl AppStateManager {
 
     /// 廣播狀態變更事件
     async fn broadcast_event(&self, event: StateChangeEvent) -> Result<()> {
-        if let Err(_) = self.event_sender.send(event) {
+        if self.event_sender.send(event).is_err() {
             tracing::warn!("廣播狀態變更事件失敗: 沒有訂閱者");
         }
         Ok(())
@@ -298,6 +304,6 @@ static APP_STATE_MANAGER: OnceLock<AppStateManager> = OnceLock::new();
 
 impl AppStateManager {
     pub fn global() -> &'static AppStateManager {
-        APP_STATE_MANAGER.get_or_init(|| AppStateManager::new())
+        APP_STATE_MANAGER.get_or_init(AppStateManager::new)
     }
 }

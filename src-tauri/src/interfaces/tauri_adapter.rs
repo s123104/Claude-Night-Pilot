@@ -230,7 +230,7 @@ impl TauriAdapter {
 
         if let Some(page_req) = pagination {
             let page = page_req.page.max(1);
-            let page_size = page_req.page_size.min(1000).max(1); // 限制頁面大小
+            let page_size = page_req.page_size.clamp(1, 1000); // 限制頁面大小
             let start = ((page - 1) * page_size) as usize;
             let end = (start + page_size as usize).min(total);
 
