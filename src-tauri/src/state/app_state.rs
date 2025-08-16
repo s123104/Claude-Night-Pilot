@@ -47,6 +47,7 @@ pub enum StateChangeEvent {
     SyncEventRecorded(crate::services::sync_service::SyncEvent),
 }
 
+#[derive(Debug)]
 pub struct AppStateManager {
     state: Arc<RwLock<AppState>>,
     event_sender: broadcast::Sender<StateChangeEvent>,

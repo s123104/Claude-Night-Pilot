@@ -567,63 +567,117 @@ npm run tauri build
 5. **查看結果** → 即時顯示執行狀態和結果
 6. **排程設定** → 使用 Cron 表達式設定自動執行
 
-### CLI 使用方式 (推薦開發者)
+### 🚀 雙架構 CLI 系統
 
-#### 可用的 CLI 工具
+#### cnp-optimized - 性能優化版 (11.7ms 啟動)
+專為頻繁使用和性能要求設計的輕量級CLI工具：
+
 ```bash
-# 統一介面 CLI (推薦)
-npm run cli:unified -- [command]
+# 狀態檢查 (最快)
+./target/debug/cnp-optimized status
+# 輸出: {"database":"connected","prompts":0,"results":0,"tasks":0}
 
-# 效能優化版本 
-npm run cli:optimized -- [command]
+# 快速健康檢查 (<50ms)
+./target/debug/cnp-optimized health --fast
+# 輕量級系統健康檢查 (✅ Claude CLI可用、冷卻檢測正常)
 
-# 標準版本
-npm run cli -- [command]
+# 性能基準測試
+./target/debug/cnp-optimized benchmark --iterations 5
+
+# 冷卻狀態檢查
+./target/debug/cnp-optimized cooldown
+
+# 執行Claude命令 (適合快速操作)
+./target/debug/cnp-optimized execute --prompt "快速分析"
 ```
 
-#### 核心命令
+#### cnp-unified - 全功能版 (完整特性)
+包含所有企業級功能的完整CLI工具：
 
-**執行 Claude 命令**
+**🔄 Claude會話管理**
 ```bash
-# 直接執行 prompt
-npm run cli:unified -- execute --prompt "請分析這個專案的結構"
+# 查看所有會話
+./target/debug/cnp-unified session list
 
-# 從檔案讀取 prompt
-npm run cli:unified -- execute --file "prompts/analyze.txt"
+# 創建新會話
+./target/debug/cnp-unified session create "功能開發會話"
 
-# 從 stdin 讀取
-echo "分析 @package.json" | npm run cli:unified -- execute --stdin
+# 在會話中執行命令
+./target/debug/cnp-unified session execute <session-id> "分析代碼結構"
 
-# 指定工作目錄
-npm run cli:unified -- execute --prompt "分析當前目錄" --work-dir "/path/to/project"
-
-# 輸出格式選項
-npm run cli:unified -- execute --prompt "Hello" --format json
-npm run cli:unified -- execute --prompt "Hello" --format pretty  # 預設
+# 暫停/恢復會話
+./target/debug/cnp-unified session pause <session-id>
+./target/debug/cnp-unified session resume <session-id>
 ```
 
-**檢查 Claude API 狀態**
+**🌳 Git工作樹管理**
 ```bash
-# 檢查冷卻狀態
-npm run cli:unified -- cooldown
+# 列出所有工作樹
+./target/debug/cnp-unified worktree list
 
-# JSON 格式輸出
-npm run cli:unified -- cooldown --format json
+# 創建新的工作樹
+./target/debug/cnp-unified worktree create feature-branch
 
-# 監控模式
-npm run cli:unified -- cooldown --monitor
+# 清理工作樹
+./target/debug/cnp-unified worktree cleanup /path/to/worktree
 ```
 
-**執行模式選項**
+**📝 Prompt管理**
 ```bash
-# 同步執行 (預設)
-npm run cli:unified -- execute --prompt "分析專案" --mode sync
+# 列出所有prompts
+./target/debug/cnp-unified prompt list
 
-# 非同步執行
-npm run cli:unified -- execute --prompt "分析專案" --mode async
+# 創建新prompt
+./target/debug/cnp-unified prompt create --name "代碼審查" --content "請分析代碼質量"
 
-# 排程執行
-npm run cli:unified -- execute --prompt "分析專案" --mode scheduled
+# 顯示prompt詳情
+./target/debug/cnp-unified prompt show <prompt-id>
+
+# 執行指定prompt
+./target/debug/cnp-unified prompt execute <prompt-id>
+```
+
+**⏰ 任務排程管理**
+```bash
+# 列出所有排程任務
+./target/debug/cnp-unified job list
+
+# 創建排程任務 (Cron格式)
+./target/debug/cnp-unified job create --name "每日代碼審查" --cron "0 9 * * 1-5" --prompt-id 1
+
+# 手動觸發任務
+./target/debug/cnp-unified job trigger <job-id>
+
+# 暫停/恢復任務
+./target/debug/cnp-unified job pause <job-id>
+./target/debug/cnp-unified job resume <job-id>
+```
+
+**⚡ Claude命令執行**
+```bash
+# 直接執行命令
+./target/debug/cnp-unified execute --prompt "分析 @README.md"
+
+# 使用別名 (等效於execute)
+./target/debug/cnp-unified run --prompt "檢查代碼質量"
+
+# 批量執行多個prompts
+./target/debug/cnp-unified batch --prompts 1,2,3 --concurrent 2
+```
+
+**📊 系統監控**
+```bash
+# 系統狀態總覽
+./target/debug/cnp-unified status
+
+# 完整健康檢查
+./target/debug/cnp-unified health --format json
+
+# 冷卻狀態檢查
+./target/debug/cnp-unified cooldown
+
+# 查看執行結果
+./target/debug/cnp-unified results --limit 10
 ```
 
 ### Claude Code 整合

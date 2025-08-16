@@ -23,6 +23,7 @@ pub enum CooldownPattern {
     ClaudeSpecificError { code: String, message: String },
 }
 
+#[derive(Debug)]
 pub struct CooldownDetector {
     usage_limit_regex: Regex,
     time_parsing_regex: Regex,

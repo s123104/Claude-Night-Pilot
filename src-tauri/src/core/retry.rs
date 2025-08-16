@@ -44,6 +44,7 @@ pub enum ErrorType {
     SystemError,
 }
 
+#[derive(Debug)]
 pub struct RetryOrchestrator {
     config: RetryConfig,
     cooldown_detector: CooldownDetector,

@@ -11,6 +11,10 @@ pub mod job_engine;
 pub mod job_executor;
 pub mod job_scheduler;
 
+// 簡化的任務管理器 - 實用優先
+pub mod simple_job_manager;
+pub use simple_job_manager::{SimpleJobManager, ManagerStats};
+
 // 保留原有服務
 pub mod health_service;
 pub mod job_service;
