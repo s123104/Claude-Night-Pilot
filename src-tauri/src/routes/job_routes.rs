@@ -252,7 +252,7 @@ mod tests {
         assert!(result.is_ok());
 
         // 測試帶狀態過濾器的列表
-        let result = list_jobs(container, Some(JobStatus::Pending), None, None).await;
+        let result = list_jobs(container, Some(JobStatus::Active), None, None).await;
         assert!(result.is_ok());
     }
 }
