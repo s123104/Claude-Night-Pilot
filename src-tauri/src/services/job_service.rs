@@ -54,6 +54,7 @@ impl From<SimpleSchedule> for JobServiceResponse {
     }
 }
 
+#[derive(Debug)]
 pub struct JobService {
     db_manager: Arc<OldDatabaseManager>,
     state_manager: Arc<AppStateManager>,

@@ -4,7 +4,7 @@ use crate::enhanced_executor::{EnhancedClaudeExecutor, EnhancedClaudeResponse};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnifiedExecutionOptions {
     pub mode: String,                      // "sync", "async", "scheduled"
     pub cron_expr: Option<String>,         // 排程表達式
@@ -33,9 +33,15 @@ impl From<UnifiedExecutionOptions> for ExecutionOptions {
 }
 
 /// 統一的Claude執行介面 - 供GUI和CLI共用
+#[derive(Debug)]
 pub struct UnifiedClaudeInterface;
 
 impl UnifiedClaudeInterface {
+    /// 創建新的統一介面實例
+    pub async fn new() -> Result<Self> {
+        Ok(Self)
+    }
+    
     /// 執行Claude命令 - GUI和CLI統一入口
     pub async fn execute_claude(
         prompt: String,
@@ -47,6 +53,15 @@ impl UnifiedClaudeInterface {
         executor
             .execute_with_full_enhancement(&prompt, execution_options)
             .await
+    }
+    
+    /// 執行Claude命令 - 實例方法版本
+    pub async fn execute_prompt_with_options(
+        &self,
+        prompt: &str,
+        options: UnifiedExecutionOptions,
+    ) -> Result<EnhancedClaudeResponse> {
+        Self::execute_claude(prompt.to_string(), options).await
     }
 
     /// 檢查冷卻狀態 - GUI和CLI統一入口 (帶重試機制)

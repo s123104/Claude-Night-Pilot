@@ -34,6 +34,7 @@ pub struct ExecutionMetadata {
     pub scheduler_used: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct EnhancedClaudeExecutor {
     cooldown_detector: CooldownDetector,
     retry_orchestrator: RetryOrchestrator,

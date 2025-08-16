@@ -6,6 +6,11 @@ pub mod database_service;
 pub mod monitoring_service;
 pub mod scheduler_service;
 
+// 新的任務管理系統模組 - Context7 最佳實踐
+pub mod job_engine;
+pub mod job_executor;
+pub mod job_scheduler;
+
 // 保留原有服務
 pub mod health_service;
 pub mod job_service;
@@ -20,6 +25,11 @@ pub use claude_service::*;
 pub use database_service::*;
 pub use monitoring_service::*;
 pub use scheduler_service::*;
+
+// 新的任務管理系統導出
+pub use job_engine::{JobEngine, JobEngineState, TaskMetrics};
+pub use job_executor::{JobExecutor, JobExecution, JobExecutionResult};
+pub use job_scheduler::{JobScheduler, JobExecutionCallback};
 
 // 保留原有服務導出
 pub use health_service::HealthService;
