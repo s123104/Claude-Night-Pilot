@@ -10,7 +10,9 @@ use claude_night_pilot_lib::interfaces::CLIAdapter;
 use claude_night_pilot_lib::unified_interface::{UnifiedClaudeInterface, UnifiedExecutionOptions};
 use claude_night_pilot_lib::models::job::{Job, JobStatus, JobType, JobExecutionOptions, RetryConfig};
 use claude_night_pilot_lib::services::database_service::DatabaseService;
+use claude_night_pilot_lib::scheduler::{RealTimeExecutor, SchedulerExecutor};
 use chrono::Utc;
+use rusqlite;
 use serde_json::json;
 use std::io::{self, Read};
 use std::path::PathBuf;
@@ -270,11 +272,13 @@ enum WorktreeAction {
 }
 
 async fn create_schedule_job(prompt_id: u32, cron_expr: &str, description: Option<&str>) -> Result<String> {
-    // 創建資料庫連接
+    use tokio::task;
+    
+    // 基於 Context7 Rusqlite 最佳實踐 - 使用連接池管理
     let db_service = DatabaseService::new().await
         .context("Failed to create database service")?;
     
-    // 創建Job結構
+    // 創建Job結構 - 遵循高可維護性原則
     let job_id = Uuid::new_v4().to_string();
     let now = Utc::now();
     
@@ -285,11 +289,11 @@ async fn create_schedule_job(prompt_id: u32, cron_expr: &str, description: Optio
         cron_expression: cron_expr.to_string(),
         status: JobStatus::Active,
         job_type: JobType::Scheduled,
-        priority: 5, // 默認優先級
+        priority: 5,
         execution_options: JobExecutionOptions::default(),
         retry_config: RetryConfig::default(),
         notification_config: None,
-        next_run_time: None, // 將由排程器計算
+        next_run_time: None,
         last_run_time: None,
         execution_count: 0,
         failure_count: 0,
@@ -300,15 +304,114 @@ async fn create_schedule_job(prompt_id: u32, cron_expr: &str, description: Optio
         created_by: Some("CLI".to_string()),
     };
 
-    // 保存到資料庫 (簡化版實現)
-    println!("📝 模擬保存任務到資料庫: {}", job.name);
+    // 基於 Context7 Tauri async 最佳實踐 - 使用 spawn_blocking 處理 DB 操作
+    let job_clone = job.clone();
+    let result = task::spawn_blocking(move || {
+        // 使用統一的資料庫路徑 - 修復分離問題
+        let conn = rusqlite::Connection::open("claude-night-pilot.db")
+            .context("Failed to open database")?;
+        
+        // 嘗試啟用 WAL 模式提升併發性能 (Context7 Rusqlite 最佳實踐)
+        let _ = conn.execute("PRAGMA journal_mode=WAL", []);
+        
+        // 啟用外鍵約束
+        conn.execute("PRAGMA foreign_keys=ON", [])
+            .context("Failed to enable foreign keys")?;
+        
+        // 使用事務確保 ACID 特性
+        let tx = conn.unchecked_transaction()
+            .context("Failed to begin transaction")?;
+        
+        // 檢查 prompt 是否存在 (FK 約束)
+        let prompt_exists: bool = tx.query_row(
+            "SELECT 1 FROM prompts WHERE id = ?1",
+            [&prompt_id.to_string()],
+            |_| Ok(true)
+        ).unwrap_or(false);
+        
+        if !prompt_exists {
+            return Err(anyhow::anyhow!("Prompt ID {} 不存在", prompt_id));
+        }
+        
+        // 插入 schedule 記錄 - 匹配實際表結構
+        tx.execute(
+            "INSERT INTO schedules (
+                prompt_id, schedule_time, status, created_at, 
+                updated_at, cron_expr, execution_count
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            rusqlite::params![
+                prompt_id, // 使用原始 u32 類型
+                &job_clone.created_at.to_rfc3339(), // schedule_time
+                "Active", // status
+                &job_clone.created_at.to_rfc3339(),
+                &job_clone.updated_at.to_rfc3339(),
+                &job_clone.cron_expression, // cron_expr
+                0 // execution_count
+            ]
+        ).context("Failed to insert schedule")?;
+        
+        // 提交事務
+        tx.commit().context("Failed to commit transaction")?;
+        
+        Ok::<(), anyhow::Error>(())
+    }).await
+    .context("Database task failed")??;
     
-    println!("📝 任務已保存到資料庫");
+    println!("✅ 任務已成功保存到資料庫: {}", job.name);
+    println!("🔗 Job ID: {}", job_id);
+    println!("⏰ 排程表達式: {}", cron_expr);
     
-    // TODO: 啟動實際的排程器
-    println!("⏰ 排程器功能開發中 - 任務將在 {} 執行", cron_expr);
+    // 實際啟動排程器 - 基於 Context7 最佳實踐
+    match start_real_time_scheduler(&job).await {
+        Ok(_) => {
+            println!("🚀 排程器已啟動並註冊任務");
+        }
+        Err(e) => {
+            println!("⚠️  排程器註冊警告: {} (任務已保存，可稍後手動啟動)", e);
+        }
+    }
     
     Ok(job_id)
+}
+
+/// 啟動實時排程器並註冊任務
+/// 基於 Context7 Tauri 最佳實踐的企業級實現
+async fn start_real_time_scheduler(job: &Job) -> Result<()> {
+    use std::sync::OnceLock;
+    static SCHEDULER: OnceLock<RealTimeExecutor> = OnceLock::new();
+    
+    // 使用單例模式確保排程器只創建一次
+    let executor = SCHEDULER.get_or_init(|| {
+        tokio::task::block_in_place(|| {
+            tokio::runtime::Handle::current().block_on(async {
+                RealTimeExecutor::new().await.unwrap_or_else(|e| {
+                    eprintln!("❌ Failed to create scheduler: {}", e);
+                    std::process::exit(1);
+                })
+            })
+        })
+    });
+    
+    // 嘗試啟動排程器 (如果尚未啟動)
+    if let Err(e) = executor.start().await {
+        // 可能已經啟動，忽略錯誤
+        println!("📋 Scheduler start note: {}", e);
+    }
+    
+    // 註冊任務到排程器 - 使用安全的錯誤處理
+    match executor.add_job(job).await {
+        Ok(_) => {
+            println!("🚀 Task registered successfully with real-time scheduler");
+        }
+        Err(e) => {
+            // 基於 Context7 最佳實踐：非致命錯誤不中斷流程
+            println!("⚠️ Scheduler registration warning: {}", e);
+            return Err(anyhow::anyhow!("Failed to add job to real-time scheduler"));
+        }
+    }
+    
+    println!("✅ 任務已成功註冊到實時排程器");
+    Ok(())
 }
 
 #[tokio::main]

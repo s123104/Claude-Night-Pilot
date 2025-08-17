@@ -7,6 +7,7 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::fs;
 use uuid::Uuid;
+use crate::claude_auth_detector::{ClaudeAuthDetector, AuthenticationStatus, AuthenticationMethod};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClaudeSession {
@@ -75,6 +76,8 @@ pub struct ClaudeSessionManager {
     active_sessions: HashMap<Uuid, ClaudeSession>,
     database_path: String,
     project_root: PathBuf,
+    auth_detector: ClaudeAuthDetector,
+    cached_auth_status: Option<AuthenticationStatus>,
 }
 
 impl ClaudeSessionManager {
@@ -83,10 +86,101 @@ impl ClaudeSessionManager {
             active_sessions: HashMap::new(),
             database_path,
             project_root,
+            auth_detector: ClaudeAuthDetector::new(),
+            cached_auth_status: None,
         }
     }
 
+    /// 智能檢測並確保 Claude Code 認證可用
+    pub async fn ensure_authentication(&mut self) -> Result<AuthenticationStatus> {
+        tracing::info!("執行 Claude Code 認證自動檢測...");
+
+        // 如果有快取且在 5 分鐘內，直接使用
+        if let Some(ref cached_status) = self.cached_auth_status {
+            let cache_age = chrono::Utc::now() - cached_status.last_verified;
+            if cache_age.num_minutes() < 5 && cached_status.is_valid {
+                tracing::debug!("使用快取的認證狀態");
+                return Ok(cached_status.clone());
+            }
+        }
+
+        // 執行完整檢測
+        let auth_status = self.auth_detector.detect_authentication().await?;
+        
+        if auth_status.is_valid {
+            tracing::info!("✅ 檢測到有效的 Claude Code 認證: {:?}", auth_status.method);
+            self.log_authentication_info(&auth_status).await;
+        } else {
+            tracing::warn!("❌ 未檢測到有效的 Claude Code 認證");
+            self.log_authentication_recommendations(&auth_status).await;
+        }
+
+        // 更新快取
+        self.cached_auth_status = Some(auth_status.clone());
+        
+        Ok(auth_status)
+    }
+
+    /// 記錄認證資訊
+    async fn log_authentication_info(&self, auth_status: &AuthenticationStatus) {
+        match &auth_status.method {
+            AuthenticationMethod::ApiKey { source, masked_key } => {
+                tracing::info!("🔑 使用 API Key 認證 (來源: {:?}): {}", source, masked_key);
+            }
+            AuthenticationMethod::ConsoleOAuth { token_path, .. } => {
+                tracing::info!("🌐 使用 OAuth 認證 (Token 路徑: {})", token_path.display());
+            }
+            AuthenticationMethod::Bedrock { region, profile } => {
+                tracing::info!("☁️ 使用 AWS Bedrock 認證 (區域: {}, 配置檔: {:?})", region, profile);
+            }
+            AuthenticationMethod::VertexAI { project_id, region } => {
+                tracing::info!("🏢 使用 Google Vertex AI 認證 (專案: {}, 區域: {})", project_id, region);
+            }
+            AuthenticationMethod::ClaudeApp { app_session } => {
+                tracing::info!("📱 使用 Claude App 認證 (會話: {})", app_session);
+            }
+            AuthenticationMethod::None => {
+                tracing::warn!("❌ 未檢測到認證");
+            }
+        }
+
+        if let Some(ref user_info) = auth_status.user_info {
+            if let Some(ref email) = user_info.email {
+                tracing::info!("👤 使用者: {}", email);
+            }
+            if let Some(ref subscription) = user_info.subscription_type {
+                tracing::info!("💼 訂閱類型: {}", subscription);
+            }
+        }
+
+        if !auth_status.capabilities.is_empty() {
+            tracing::info!("🚀 可用功能: {}", auth_status.capabilities.join(", "));
+        }
+    }
+
+    /// 記錄認證建議
+    async fn log_authentication_recommendations(&self, auth_status: &AuthenticationStatus) {
+        if !auth_status.recommendations.is_empty() {
+            tracing::warn!("📋 認證設定建議:");
+            for recommendation in &auth_status.recommendations {
+                tracing::warn!("   • {}", recommendation);
+            }
+        }
+    }
+
+    /// 取得當前認證狀態
+    pub async fn get_authentication_status(&self) -> Result<Option<AuthenticationStatus>> {
+        Ok(self.cached_auth_status.clone())
+    }
+
+    /// 驗證認證是否仍然有效
+    pub async fn verify_authentication(&mut self) -> Result<bool> {
+        let auth_status = self.ensure_authentication().await?;
+        Ok(auth_status.is_valid)
+    }
+
     /// 創建新的 Claude 會話，可選擇性創建 worktree
+    /// 自動檢測並確保 Claude Code 認證可用
     pub async fn create_session(
         &mut self,
         title: String,
@@ -95,6 +189,13 @@ impl ClaudeSessionManager {
         branch_name: Option<String>,
         options: SessionExecutionOptions,
     ) -> Result<ClaudeSession> {
+        // 🔍 自動檢測認證狀態
+        let auth_status = self.ensure_authentication().await?;
+        if !auth_status.is_valid {
+            return Err(anyhow::anyhow!(
+                "❌ Claude Code 認證失效或未設定。請檢查認證狀態或按照建議進行設定。"
+            ));
+        }
         let session_uuid = Uuid::new_v4();
         let now = SystemTime::now();
 
@@ -160,11 +261,17 @@ impl ClaudeSessionManager {
     }
 
     /// 恢復已存在的會話
+    /// 自動檢測並確保 Claude Code 認證可用
     pub async fn resume_session(
         &mut self,
         session_uuid: Uuid,
         options: Option<SessionExecutionOptions>,
     ) -> Result<ClaudeSession> {
+        // 🔍 自動檢測認證狀態
+        let auth_status = self.ensure_authentication().await?;
+        if !auth_status.is_valid {
+            tracing::warn!("認證失效，但嘗試恢復現有會話");
+        }
         let mut session = self
             .get_session_from_db(session_uuid)
             .await?
@@ -207,12 +314,19 @@ impl ClaudeSessionManager {
     }
 
     /// 執行 Claude 命令在指定會話中
+    /// 執行前自動驗證認證狀態
     pub async fn execute_in_session(
         &mut self,
         session_uuid: Uuid,
         prompt: String,
         options: Option<SessionExecutionOptions>,
     ) -> Result<String> {
+        // 🔍 快速驗證認證狀態（使用快取）
+        if !self.verify_authentication().await? {
+            return Err(anyhow::anyhow!(
+                "❌ Claude Code 認證失效。請重新設定認證或檢查網路連線。"
+            ));
+        }
         let mut session = self
             .active_sessions
             .get(&session_uuid)
@@ -627,6 +741,63 @@ pub async fn get_session_stats() -> Result<SessionStats, String> {
     let manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
 
     manager.get_session_stats().await.map_err(|e| e.to_string())
+}
+
+// === 新增：Claude Code 認證自動檢測相關 Tauri Commands ===
+
+#[tauri::command]
+pub async fn check_claude_authentication() -> Result<AuthenticationStatus, String> {
+    let project_root =
+        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
+
+    let mut manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
+    
+    manager
+        .ensure_authentication()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn verify_claude_auth_status() -> Result<bool, String> {
+    let project_root =
+        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
+
+    let mut manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
+    
+    manager
+        .verify_authentication()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_current_auth_status() -> Result<Option<AuthenticationStatus>, String> {
+    let project_root =
+        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
+
+    let manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
+    
+    manager
+        .get_authentication_status()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn force_refresh_authentication() -> Result<AuthenticationStatus, String> {
+    let project_root =
+        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
+
+    let mut manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
+    
+    // 清除快取，強制重新檢測
+    manager.cached_auth_status = None;
+    
+    manager
+        .ensure_authentication()
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

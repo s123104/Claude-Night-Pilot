@@ -69,9 +69,9 @@ colored = "2.0"
 # Removed once_cell and lazy_static - replaced with std::sync::LazyLock for better performance
 uuid = { version = "1.0", features = ["v4", "serde"] }
 async-trait = "0.1"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-rand = "0.8"
+tracing = "0.1"  # 結構化日誌
+tracing-subscriber = { version = "0.3", features = ["env-filter", "time", "json"] }
+rand = "0.8"  # 用於排程器測試
 thiserror = "1.0"
 log = "0.4"
 which = "6.0"

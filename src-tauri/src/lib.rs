@@ -35,9 +35,18 @@ pub mod routes;
 pub mod claude_session_manager;
 pub mod worktree_manager;
 
+// Claude Code 認證自動檢測系統
+pub mod claude_auth_detector;
+
 // 數據庫最佳實踐模組 (保持向後兼容)
 pub mod database_error;
 pub mod database_manager_impl;
+
+// 排程系統模組 - 企業級實時任務執行
+pub mod scheduler;
+
+// 企業級監控與可觀測性模組
+pub mod monitoring;
 
 // === 應用狀態管理 ===
 /// 全局應用狀態，使用 Arc + RwLock 確保線程安全
@@ -855,7 +864,21 @@ pub fn run() {
             services::simple_job_manager::simple_job_manager_status,
             services::simple_job_manager::simple_job_manager_trigger_job,
             services::sync_service::sync_service_get_status,
-            services::sync_service::sync_service_trigger_sync
+            services::sync_service::sync_service_trigger_sync,
+            // === Claude Code 認證自動檢測命令 ===
+            claude_auth_detector::detect_claude_authentication,
+            claude_auth_detector::verify_claude_authentication,
+            claude_auth_detector::get_authentication_recommendations,
+            // === Claude Session 管理命令 ===
+            claude_session_manager::create_claude_session,
+            claude_session_manager::resume_claude_session,
+            claude_session_manager::execute_in_claude_session,
+            claude_session_manager::list_claude_sessions,
+            claude_session_manager::get_session_stats,
+            claude_session_manager::check_claude_authentication,
+            claude_session_manager::verify_claude_auth_status,
+            claude_session_manager::get_current_auth_status,
+            claude_session_manager::force_refresh_authentication
         ])
         .run(tauri::generate_context!())
         .map_err(|e| {

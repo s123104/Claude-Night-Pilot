@@ -401,7 +401,7 @@ pub struct DatabaseConfig {
 impl Default for DatabaseConfig {
     fn default() -> Self {
         Self {
-            path: "claude-pilot.db".to_string(),
+            path: "claude-night-pilot.db".to_string(),
             enable_foreign_keys: true,
             enable_wal_mode: true,
             synchronous_mode: SynchronousMode::Normal,
