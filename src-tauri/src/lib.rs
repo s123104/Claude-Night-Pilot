@@ -578,7 +578,7 @@ async fn list_jobs(_app: tauri::AppHandle) -> Result<Vec<serde_json::Value>, Str
             "id": 1,
             "prompt_id": 1,
             "job_name": "每日自動分析",
-            "cron_expr": "0 9 * * *",
+            "cron_expr": "0 0 9 * * *", // 6欄位格式：每日上夈9點
             "status": "active",
             "last_run_at": "2025-07-22T09:00:00+08:00",
             "next_run_at": "2025-07-23T09:00:00+08:00",
@@ -588,7 +588,7 @@ async fn list_jobs(_app: tauri::AppHandle) -> Result<Vec<serde_json::Value>, Str
             "id": 2,
             "prompt_id": 2,
             "job_name": "週報生成",
-            "cron_expr": "0 18 * * 5",
+            "cron_expr": "0 0 18 * * 5", // 6欄位格式：週五下午6點
             "status": "pending",
             "last_run_at": null,
             "next_run_at": "2025-07-25T18:00:00+08:00",

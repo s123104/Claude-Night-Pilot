@@ -740,7 +740,7 @@ mod tests {
         let config = SchedulingConfig {
             scheduler_type: SchedulerType::Cron,
             cron: Some(CronConfig {
-                expression: "0 9 * * *".to_string(),
+                expression: "0 0 9 * * *".to_string(),
                 timezone: "Asia/Shanghai".to_string(),
                 max_concurrent: 3,
                 timeout_seconds: 300,
@@ -759,7 +759,7 @@ mod tests {
         assert!(deserialized.session.is_none());
 
         let cron_config = deserialized.cron.unwrap();
-        assert_eq!(cron_config.expression, "0 9 * * *");
+        assert_eq!(cron_config.expression, "0 0 9 * * *");
         assert_eq!(cron_config.timezone, "Asia/Shanghai");
         assert_eq!(cron_config.max_concurrent, 3);
         assert_eq!(cron_config.timeout_seconds, 300);

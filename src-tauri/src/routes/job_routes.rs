@@ -49,8 +49,8 @@ pub async fn list_jobs(
 
     // 模擬任務數據
     let mock_jobs = vec![
-        Job::new("Daily Report Job", "prompt_1", "0 9 * * *").with_priority(5),
-        Job::new("Code Review Job", "prompt_2", "0 */2 * * *").with_priority(7),
+        Job::new("Daily Report Job", "prompt_1", "0 0 9 * * *").with_priority(5), // 6欄位格式
+        Job::new("Code Review Job", "prompt_2", "0 0 */2 * * *").with_priority(7), // 6欄位格式
         Job::one_time(
             "Immediate Analysis",
             "prompt_3",
@@ -121,7 +121,7 @@ pub async fn get_job(_container: Arc<ServiceContainer>, id: String) -> Result<St
     let mut job = Job::new(
         format!("Job {}", id),
         format!("prompt_{}", id.chars().take(3).collect::<String>()),
-        "0 9 * * *",
+        "0 0 9 * * *", // 6欄位格式
     );
     job.id = id.clone();
     job.update_status(JobStatus::Completed);
@@ -149,7 +149,7 @@ pub async fn update_job(
         format!("prompt_{}", id.chars().take(3).collect::<String>()),
         request
             .cron_expression
-            .unwrap_or_else(|| "0 9 * * *".to_string()),
+            .unwrap_or_else(|| "0 0 9 * * *".to_string()), // 6欄位預設值
     );
     job.id = id.clone();
 
@@ -223,7 +223,7 @@ mod tests {
             name: "Test Job".to_string(),
             prompt_id: "".to_string(),
             job_type: JobType::OneTime,
-            cron_expression: "0 9 * * *".to_string(),
+            cron_expression: "0 0 9 * * *".to_string(), // 6欄位格式
             priority: None,
         };
 

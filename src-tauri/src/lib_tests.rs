@@ -226,7 +226,7 @@ mod tests {
                 "id": 1,
                 "prompt_id": 1,
                 "job_name": "每日自動分析",
-                "cron_expr": "0 9 * * *",
+                "cron_expr": "0 0 9 * * *",
                 "status": "active",
                 "last_run_at": "2025-07-22T09:00:00+08:00",
                 "next_run_at": "2025-07-23T09:00:00+08:00",
@@ -250,7 +250,7 @@ mod tests {
         let active_job = &mock_jobs[0];
         assert_eq!(active_job["status"], "active");
         assert_eq!(active_job["job_name"], "每日自動分析");
-        assert_eq!(active_job["cron_expr"], "0 9 * * *");
+        assert_eq!(active_job["cron_expr"], "0 0 9 * * *");
         assert!(active_job["last_run_at"].is_string());
 
         // 验证待执行任务
@@ -267,14 +267,14 @@ mod tests {
 
         let options = UnifiedExecutionOptions {
             mode: "sync".to_string(),
-            cron_expr: Some("0 9 * * *".to_string()),
+            cron_expr: Some("0 0 9 * * *".to_string()),
             retry_enabled: Some(true),
             cooldown_check: Some(true),
             working_directory: Some("/tmp".to_string()),
         };
 
         assert_eq!(options.mode, "sync");
-        assert_eq!(options.cron_expr, Some("0 9 * * *".to_string()));
+        assert_eq!(options.cron_expr, Some("0 0 9 * * *".to_string()));
         assert_eq!(options.retry_enabled, Some(true));
         assert_eq!(options.cooldown_check, Some(true));
         assert_eq!(options.working_directory, Some("/tmp".to_string()));

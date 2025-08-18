@@ -81,12 +81,12 @@ mod database_integration_tests {
         // 先創建一個Prompt
         let prompt_id = insert_test_prompt(&conn, "排程測試Prompt", "內容")?;
         
-        // Create - 插入測試Schedule
-        let schedule_id = insert_test_schedule(&conn, prompt_id, "0 9 * * *")?;
+        // Create - 插入測試Schedule (6欄位格式)
+        let schedule_id = insert_test_schedule(&conn, prompt_id, "0 0 9 * * *")?;
         
         // Read - 讀取Schedule
         let schedule = get_schedule_by_id(&conn, schedule_id)?;
-        assert_eq!(schedule.cron_expr, "0 9 * * *");
+        assert_eq!(schedule.cron_expr, "0 0 9 * * *");
         assert_eq!(schedule.prompt_id, prompt_id);
         
         // Update - 更新Schedule狀態
@@ -123,7 +123,7 @@ mod database_integration_tests {
                 "Active",
                 Utc::now().to_rfc3339(),
                 Utc::now().to_rfc3339(),
-                "0 * * * *",
+                "0 0 * * * *", // 6欄位格式：每小時執行
                 0
             ]
         );

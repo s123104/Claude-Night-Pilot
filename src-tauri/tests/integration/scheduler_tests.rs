@@ -49,8 +49,8 @@ mod scheduler_integration_tests {
     async fn test_job_creation_and_validation() -> Result<()> {
         let executor = RealTimeExecutor::new().await?;
         
-        // 創建測試任務
-        let job = create_test_job("*/5 * * * *", "測試任務 - 每5分鐘");
+        // 創建測試任務 (6欄位Cron格式)
+        let job = create_test_job("0 */5 * * * *", "測試任務 - 每5分鐘");
         
         // 測試任務添加（預期會失敗，但驗證錯誤處理）
         let add_result = executor.add_job(&job).await;
@@ -67,11 +67,11 @@ mod scheduler_integration_tests {
     async fn test_concurrent_job_operations() -> Result<()> {
         let executor = RealTimeExecutor::new().await?;
         
-        // 創建多個任務
+        // 創建多個任務 (6欄位Cron格式)
         let jobs = vec![
-            create_test_job("0 * * * *", "任務1 - 每小時"),
-            create_test_job("*/10 * * * *", "任務2 - 每10分鐘"),
-            create_test_job("0 0 * * *", "任務3 - 每日"),
+            create_test_job("0 0 * * * *", "任務1 - 每小時"),
+            create_test_job("0 */10 * * * *", "任務2 - 每10分鐘"),
+            create_test_job("0 0 0 * * *", "任務3 - 每日"),
         ];
         
         // 並發添加任務
@@ -102,11 +102,11 @@ mod scheduler_integration_tests {
     async fn test_cron_expression_validation() -> Result<()> {
         let executor = RealTimeExecutor::new().await?;
         
-        // 測試有效的Cron表達式
+        // 測試有效的Cron表達式 (6欄位格式)
         let valid_jobs = vec![
-            create_test_job("0 0 * * *", "每日午夜"),
-            create_test_job("*/5 * * * *", "每5分鐘"),
-            create_test_job("0 9-17 * * 1-5", "工作日9-17點"),
+            create_test_job("0 0 0 * * *", "每日午夜"),
+            create_test_job("0 */5 * * * *", "每5分鐘"),
+            create_test_job("0 0 9-17 * * 1-5", "工作日9-17點"),
         ];
         
         for job in valid_jobs {
@@ -120,7 +120,7 @@ mod scheduler_integration_tests {
         // 測試無效的Cron表達式
         let invalid_jobs = vec![
             create_test_job("invalid cron", "無效表達式"),
-            create_test_job("* * * * * *", "過多欄位"),
+            create_test_job("* * * * * * *", "過多欄位"), // 7欄位應該失敗
         ];
         
         for job in invalid_jobs {
@@ -142,8 +142,8 @@ mod scheduler_integration_tests {
             let executor = RealTimeExecutor::new().await?;
             executors.push(executor);
             
-            // 每個實例添加一個測試任務
-            let job = create_test_job("*/1 * * * *", &format!("測試任務 {}", i));
+            // 每個實例添加一個測試任務 (6欄位Cron格式)
+            let job = create_test_job("0 */1 * * * *", &format!("測試任務 {}", i));
             let _ = executors[i].add_job(&job).await; // 忽略錯誤
         }
         
@@ -188,8 +188,8 @@ mod scheduler_integration_tests {
         let result = executor.add_job(&invalid_job).await;
         assert!(result.is_err(), "應該正確處理無效任務");
         
-        // 驗證系統仍可正常運行
-        let valid_job = create_test_job("0 0 * * *", "有效任務");
+        // 驗證系統仍可正常運行 (6欄位Cron格式)
+        let valid_job = create_test_job("0 0 0 * * *", "有效任務");
         let _ = executor.add_job(&valid_job).await; // 可能失敗但不應panic
         
         Ok(())
@@ -261,7 +261,7 @@ mod performance_benchmarks {
         
         // 添加任務到每個排程器
         for (i, executor) in executors.iter().enumerate() {
-            let job = create_test_job("*/5 * * * *", &format!("記憶體測試任務 {}", i));
+            let job = create_test_job("0 */5 * * * *", &format!("記憶體測試任務 {}", i));
             let _ = executor.add_job(&job).await; // 忽略錯誤
         }
         

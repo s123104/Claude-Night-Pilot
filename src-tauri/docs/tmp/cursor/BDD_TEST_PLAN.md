@@ -45,9 +45,9 @@ Feature: CLI job management via schedules
 
   Scenario: Create a job for an existing prompt
     Given a prompt exists with id 15 and title "企業級架構分析測試"
-    When I run "cnp-unified job create 15 '*/5 * * * *' --description 'E2E BDD 測試'"
+    When I run "cnp-unified job create 15 '0 */5 * * * *' --description 'E2E BDD 測試'"
     Then the command should succeed
-    And the schedules table should contain a new row with prompt_id 15 and cron_expr "*/5 * * * *"
+    And the schedules table should contain a new row with prompt_id 15 and cron_expr "0 */5 * * * *"
     And "job list" should display at least 1 job
 ```
 

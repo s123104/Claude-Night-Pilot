@@ -525,12 +525,12 @@ mod tests {
 
     #[test]
     fn test_job_creation() {
-        let job = Job::new("測試工作", "prompt123", "0 0 * * *");
+        let job = Job::new("測試工作", "prompt123", "0 0 0 * * *");
 
         assert!(!job.id.is_empty());
         assert_eq!(job.name, "測試工作");
         assert_eq!(job.prompt_id, "prompt123");
-        assert_eq!(job.cron_expression, "0 0 * * *");
+        assert_eq!(job.cron_expression, "0 0 0 * * *");
         assert_eq!(job.status, JobStatus::Active);
     }
 
@@ -545,7 +545,7 @@ mod tests {
 
     #[test]
     fn test_job_status_transitions() {
-        let mut job = Job::new("狀態測試", "prompt789", "0 * * * *");
+        let mut job = Job::new("狀態測試", "prompt789", "0 0 * * * *");
 
         // 開始執行
         job.start_execution();
@@ -565,7 +565,7 @@ mod tests {
 
     #[test]
     fn test_success_rate_calculation() {
-        let mut job = Job::new("成功率測試", "prompt101", "0 * * * *");
+        let mut job = Job::new("成功率測試", "prompt101", "0 0 * * * *");
 
         // 執行 3 次，2 次成功
         job.start_execution();
@@ -584,7 +584,7 @@ mod tests {
 
     #[test]
     fn test_retry_time_calculation() {
-        let mut job = Job::new("重試測試", "prompt202", "0 * * * *");
+        let mut job = Job::new("重試測試", "prompt202", "0 0 * * * *");
         job.retry_config.retry_strategy = RetryStrategy::ExponentialBackoff;
         job.retry_config.retry_interval_seconds = 10;
         job.retry_config.backoff_multiplier = 2.0;

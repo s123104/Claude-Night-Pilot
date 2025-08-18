@@ -515,7 +515,7 @@ mod tests {
 
         // 创建排程
         let schedule_id = db
-            .create_schedule(prompt_id, "2025-01-01T09:00:00Z", Some("0 9 * * *"))
+            .create_schedule(prompt_id, "2025-01-01T09:00:00Z", Some("0 0 9 * * *")) // 6欄位格式：每日上夈9點
             .unwrap();
         assert!(schedule_id > 0);
 
@@ -528,7 +528,7 @@ mod tests {
         assert_eq!(schedule.prompt_id, prompt_id);
         assert_eq!(schedule.schedule_time, "2025-01-01T09:00:00Z");
         assert_eq!(schedule.status, "pending");
-        assert_eq!(schedule.cron_expr, Some("0 9 * * *".to_string()));
+        assert_eq!(schedule.cron_expr, Some("0 0 9 * * *".to_string())); // 6欄位格式
         assert_eq!(schedule.execution_count, 0);
     }
 
@@ -771,7 +771,7 @@ mod tests {
             last_run_at: None,
             next_run_at: Some("2025-01-02T09:00:00Z".to_string()),
             updated_at: None,
-            cron_expr: Some("0 9 * * *".to_string()),
+            cron_expr: Some("0 0 9 * * *".to_string()), // 6欄位格式
             execution_count: 0,
         };
 

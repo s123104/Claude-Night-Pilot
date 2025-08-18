@@ -68,7 +68,7 @@ mod cli_integration_tests {
     /// 測試任務創建命令
     #[tokio::test]
     async fn test_job_creation() -> Result<()> {
-        let test_cron = "*/30 * * * *";
+        let test_cron = "0 */30 * * * *"; // 6欄位格式：每30分鐘
         let test_desc = "CLI測試任務 - 每30分鐘";
         
         let output = Command::new("cargo")
@@ -238,7 +238,7 @@ mod cli_performance_tests {
             let output = Command::new("cargo")
                 .args(&[
                     "run", "--bin", "cnp-unified", "--",
-                    "job", "create", "1", "*/1 * * * *",
+                    "job", "create", "1", "0 */1 * * * *", // 6欄位格式
                     "--description", &format!("批量測試任務 {}", i)
                 ])
                 .output()?;

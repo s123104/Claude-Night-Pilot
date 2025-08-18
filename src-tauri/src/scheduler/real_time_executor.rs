@@ -501,7 +501,7 @@ mod tests {
             id: "test-job-1".to_string(),
             name: "Test Job".to_string(),
             prompt_id: "1".to_string(),
-            cron_expression: "0 */5 * * * *".to_string(), // 每5分鐘
+            cron_expression: "0 */5 * * * *".to_string(), // 每5分鐘 (6欄位格式)
             status: JobStatus::Active,
             job_type: JobType::Scheduled,
             priority: 5,
