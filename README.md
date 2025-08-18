@@ -51,7 +51,7 @@
 
 #### 4. 智慧排程系統
 
-- **完整 Cron 支援**：Unix cron 表達式，精確控制執行時間
+- **完整 6 欄位 Cron 支援**：標準格式「秒 分 時 日 月 週」，精確控制執行時間
 - **智慧重試機制**：指數退避演算法，自動處理暫時性錯誤
 - **API 冷卻感知**：自動檢測 Claude API 限制並調整排程
 - **狀態管道**：pending → queued → running → completed/failed/cancelled
