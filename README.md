@@ -172,6 +172,12 @@ npm run cli:optimized -- status
 
 # 驗證 Claude Code 整合
 npm run cli:optimized -- health --format json
+
+# （進階）驗證排程旗標與 Cron（6 欄位）
+# 注意：tokio-cron-scheduler 使用 6 欄位格式：秒 分 時 日 月 週
+# 建議直接以 cargo 執行 unified 版本進行排程相關驗證
+cd src-tauri && cargo run --bin cnp-unified -- job create 1 "0/30 * * * * *" --description "README 驗證 dry-run" --dry-run
+cd src-tauri && cargo run --bin cnp-unified -- job create 1 "0/30 * * * * *" --description "README 驗證 no-register" --no-register
 ```
 
 ## 📚 文檔生態系統
