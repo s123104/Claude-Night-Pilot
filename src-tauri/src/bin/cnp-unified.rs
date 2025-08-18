@@ -283,6 +283,7 @@ async fn create_schedule_job(
     prompt_id: u32,
     cron_expr: &str,
     description: Option<&str>,
+    no_register: bool,
 ) -> Result<String> {
     use tokio::task;
 
@@ -380,12 +381,16 @@ async fn create_schedule_job(
     println!("⏰ 排程表達式: {}", cron_expr);
 
     // 實際啟動排程器 - 基於 Context7 最佳實踐
-    match start_real_time_scheduler(&job).await {
-        Ok(_) => {
-            println!("🚀 排程器已啟動並註冊任務");
-        }
-        Err(e) => {
-            println!("⚠️  排程器註冊警告: {} (任務已保存，可稍後手動啟動)", e);
+    if no_register {
+        println!("--no-register 啟用：已跳過實時排程器註冊");
+    } else {
+        match start_real_time_scheduler(&job).await {
+            Ok(_) => {
+                println!("🚀 排程器已啟動並註冊任務");
+            }
+            Err(e) => {
+                println!("⚠️  排程器註冊警告: {} (任務已保存，可稍後手動啟動)", e);
+            }
         }
     }
 
@@ -848,13 +853,9 @@ async fn handle_job_command(action: JobAction) -> Result<()> {
             }
 
             // 實際的創建邏輯
-            match create_schedule_job(prompt_id, &cron_expr, description.as_deref()).await {
+            match create_schedule_job(prompt_id, &cron_expr, description.as_deref(), no_register).await {
                 Ok(job_id) => {
                     println!("✅ 成功創建排程任務 ID: {}", job_id);
-                    if no_register {
-                        println!("--no-register 啟用：已跳過實時排程器註冊");
-                        return Ok(());
-                    }
                 }
                 Err(e) => {
                     eprintln!("❌ 創建排程任務失敗: {}", e);
