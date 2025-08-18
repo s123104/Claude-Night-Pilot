@@ -35,29 +35,29 @@ pub trait SchedulerExecutor: Send + Sync {
 
 impl SchedulerExecutor for RealTimeExecutor {
     async fn start(&self) -> anyhow::Result<()> {
-        self.start().await
+        RealTimeExecutor::start(self).await
     }
 
     async fn stop(&self) -> anyhow::Result<()> {
-        self.stop().await
+        RealTimeExecutor::stop(self).await
     }
 
     async fn add_job(&self, job: &crate::models::job::Job) -> anyhow::Result<String> {
-        self.add_job(job).await
+        RealTimeExecutor::add_job(self, job).await
     }
 
     async fn remove_job(&self, job_id: &str) -> anyhow::Result<bool> {
-        self.remove_job(job_id).await
+        RealTimeExecutor::remove_job(self, job_id).await
     }
 
     async fn get_job_status(
         &self,
         job_id: &str,
     ) -> anyhow::Result<Option<crate::models::job::JobStatus>> {
-        self.get_job_status(job_id).await
+        RealTimeExecutor::get_job_status(self, job_id).await
     }
 
     async fn get_active_jobs(&self) -> anyhow::Result<Vec<String>> {
-        self.get_active_jobs().await
+        RealTimeExecutor::get_active_jobs(self).await
     }
 }
