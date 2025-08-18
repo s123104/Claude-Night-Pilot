@@ -118,7 +118,10 @@ impl std::fmt::Debug for ProcessOrchestrator {
         f.debug_struct("ProcessOrchestrator")
             .field("active_processes", &self.active_processes)
             .field("_process_dependencies", &self._process_dependencies)
-            .field("completion_callbacks_count", &self.completion_callbacks.len())
+            .field(
+                "completion_callbacks_count",
+                &self.completion_callbacks.len(),
+            )
             .field("_retry_orchestrator", &self._retry_orchestrator)
             .finish()
     }

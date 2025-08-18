@@ -16,7 +16,7 @@ use claude_night_pilot_lib::services::{
 async fn test_types_compilation() {
     // 測試 DatabaseConfig 結構
     let config = DatabaseConfig::default();
-    assert_eq!(config.path, "claude-pilot.db");
+    assert_eq!(config.path, "claude-night-pilot.db");
 
     // 測試 CreatePromptRequest 結構
     let request = CreatePromptRequest {

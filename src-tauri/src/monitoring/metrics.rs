@@ -2,12 +2,12 @@
 // 基於Context7最佳實踐的效能監控
 // 創建時間: 2025-08-17T05:20:00+00:00
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use serde::{Serialize, Deserialize};
 
 /// 企業級指標收集器
-/// 
+///
 /// 收集指標類型：
 /// - 操作指標（響應時間、成功率）
 /// - 系統指標（CPU、記憶體）
@@ -16,16 +16,16 @@ use serde::{Serialize, Deserialize};
 pub struct MetricsCollector {
     /// 操作統計
     operations: HashMap<String, OperationStats>,
-    
+
     /// 錯誤統計
     errors: HashMap<String, ErrorStats>,
-    
+
     /// 系統啟動時間
     start_time: Instant,
-    
+
     /// 總操作數
     total_operations: u64,
-    
+
     /// 總錯誤數
     total_errors: u64,
 }
@@ -35,22 +35,22 @@ pub struct MetricsCollector {
 pub struct OperationStats {
     /// 操作名稱
     pub name: String,
-    
+
     /// 執行次數
     pub count: u64,
-    
+
     /// 成功次數
     pub success_count: u64,
-    
+
     /// 總執行時間
     pub total_duration: Duration,
-    
+
     /// 最小執行時間
     pub min_duration: Duration,
-    
+
     /// 最大執行時間
     pub max_duration: Duration,
-    
+
     /// 最後執行時間
     pub last_execution: Instant,
 }
@@ -60,16 +60,16 @@ pub struct OperationStats {
 pub struct ErrorStats {
     /// 錯誤類型
     pub error_type: String,
-    
+
     /// 發生次數
     pub count: u64,
-    
+
     /// 首次發生時間
     pub first_occurrence: Instant,
-    
+
     /// 最後發生時間
     pub last_occurrence: Instant,
-    
+
     /// 相關組件
     pub components: HashMap<String, u64>,
 }
@@ -79,22 +79,22 @@ pub struct ErrorStats {
 pub struct MetricsSummary {
     /// 系統運行時間（秒）
     pub uptime_seconds: u64,
-    
+
     /// 總操作數
     pub total_operations: u64,
-    
+
     /// 總錯誤數
     pub error_count: u64,
-    
+
     /// 成功率 (0.0 - 1.0)
     pub success_rate: f64,
-    
+
     /// 平均響應時間（毫秒）
     pub avg_response_time: f64,
-    
+
     /// 操作統計
     pub operations: Vec<OperationSummary>,
-    
+
     /// 錯誤統計
     pub errors: Vec<ErrorSummary>,
 }
@@ -129,13 +129,15 @@ impl MetricsCollector {
             total_errors: 0,
         }
     }
-    
+
     /// 記錄操作指標
     pub fn record_operation(&mut self, operation: &str, duration: Duration, success: bool) {
         self.total_operations += 1;
-        
-        let stats = self.operations.entry(operation.to_string()).or_insert_with(|| {
-            OperationStats {
+
+        let stats = self
+            .operations
+            .entry(operation.to_string())
+            .or_insert_with(|| OperationStats {
                 name: operation.to_string(),
                 count: 0,
                 success_count: 0,
@@ -143,9 +145,8 @@ impl MetricsCollector {
                 min_duration: duration,
                 max_duration: duration,
                 last_execution: Instant::now(),
-            }
-        });
-        
+            });
+
         stats.count += 1;
         if success {
             stats.success_count += 1;
@@ -155,51 +156,58 @@ impl MetricsCollector {
         stats.max_duration = stats.max_duration.max(duration);
         stats.last_execution = Instant::now();
     }
-    
+
     /// 記錄錯誤
     pub fn record_error(&mut self, component: &str, error_type: &str) {
         self.total_errors += 1;
-        
-        let stats = self.errors.entry(error_type.to_string()).or_insert_with(|| {
-            ErrorStats {
+
+        let stats = self
+            .errors
+            .entry(error_type.to_string())
+            .or_insert_with(|| ErrorStats {
                 error_type: error_type.to_string(),
                 count: 0,
                 first_occurrence: Instant::now(),
                 last_occurrence: Instant::now(),
                 components: HashMap::new(),
-            }
-        });
-        
+            });
+
         stats.count += 1;
         stats.last_occurrence = Instant::now();
         *stats.components.entry(component.to_string()).or_insert(0) += 1;
     }
-    
+
     /// 獲取指標摘要
     pub fn get_summary(&self) -> MetricsSummary {
         let uptime = self.start_time.elapsed().as_secs();
-        
-        let success_count: u64 = self.operations.values()
+
+        let success_count: u64 = self
+            .operations
+            .values()
             .map(|stats| stats.success_count)
             .sum();
-        
+
         let success_rate = if self.total_operations > 0 {
             success_count as f64 / self.total_operations as f64
         } else {
             1.0
         };
-        
-        let total_duration: Duration = self.operations.values()
+
+        let total_duration: Duration = self
+            .operations
+            .values()
             .map(|stats| stats.total_duration)
             .sum();
-        
+
         let avg_response_time = if self.total_operations > 0 {
             total_duration.as_millis() as f64 / self.total_operations as f64
         } else {
             0.0
         };
-        
-        let operations = self.operations.values()
+
+        let operations = self
+            .operations
+            .values()
             .map(|stats| OperationSummary {
                 name: stats.name.clone(),
                 count: stats.count,
@@ -217,15 +225,17 @@ impl MetricsCollector {
                 max_duration_ms: stats.max_duration.as_millis() as f64,
             })
             .collect();
-        
-        let errors = self.errors.values()
+
+        let errors = self
+            .errors
+            .values()
             .map(|stats| ErrorSummary {
                 error_type: stats.error_type.clone(),
                 count: stats.count,
                 components: stats.components.clone(),
             })
             .collect();
-        
+
         MetricsSummary {
             uptime_seconds: uptime,
             total_operations: self.total_operations,
@@ -236,7 +246,7 @@ impl MetricsCollector {
             errors,
         }
     }
-    
+
     /// 重置所有指標
     pub fn reset(&mut self) {
         self.operations.clear();
@@ -245,36 +255,38 @@ impl MetricsCollector {
         self.total_operations = 0;
         self.total_errors = 0;
     }
-    
+
     /// 獲取特定操作的統計
     pub fn get_operation_stats(&self, operation: &str) -> Option<&OperationStats> {
         self.operations.get(operation)
     }
-    
+
     /// 獲取特定錯誤的統計
     pub fn get_error_stats(&self, error_type: &str) -> Option<&ErrorStats> {
         self.errors.get(error_type)
     }
-    
+
     /// 獲取系統運行時間
     pub fn get_uptime(&self) -> Duration {
         self.start_time.elapsed()
     }
-    
+
     /// 獲取操作總數
     pub fn get_total_operations(&self) -> u64 {
         self.total_operations
     }
-    
+
     /// 獲取錯誤總數
     pub fn get_total_errors(&self) -> u64 {
         self.total_errors
     }
-    
+
     /// 獲取成功率
     pub fn get_success_rate(&self) -> f64 {
         if self.total_operations > 0 {
-            let success_count: u64 = self.operations.values()
+            let success_count: u64 = self
+                .operations
+                .values()
                 .map(|stats| stats.success_count)
                 .sum();
             success_count as f64 / self.total_operations as f64
@@ -287,17 +299,17 @@ impl MetricsCollector {
 /// 指標宏，用於簡化指標記錄
 #[macro_export]
 macro_rules! record_operation {
-    ($collector:expr, $operation:expr, $code:block) => {
-        {
-            let start = std::time::Instant::now();
-            let result = $code;
-            let duration = start.elapsed();
-            let success = result.is_ok();
-            
-            $collector.record_operation($operation, duration, success).await;
-            result
-        }
-    };
+    ($collector:expr, $operation:expr, $code:block) => {{
+        let start = std::time::Instant::now();
+        let result = $code;
+        let duration = start.elapsed();
+        let success = result.is_ok();
+
+        $collector
+            .record_operation($operation, duration, success)
+            .await;
+        result
+    }};
 }
 
 /// 企業級效能基準
@@ -308,14 +320,15 @@ impl PerformanceBenchmarks {
     pub const MAX_RESPONSE_TIME_MS: f64 = 200.0;
     pub const MIN_SUCCESS_RATE: f64 = 0.99;
     pub const MAX_ERROR_RATE: f64 = 0.01;
-    
+
     /// 檢查是否符合企業級標準
     pub fn meets_enterprise_standards(summary: &MetricsSummary) -> bool {
-        summary.avg_response_time <= Self::MAX_RESPONSE_TIME_MS &&
-        summary.success_rate >= Self::MIN_SUCCESS_RATE &&
-        (summary.error_count as f64 / summary.total_operations as f64) <= Self::MAX_ERROR_RATE
+        summary.avg_response_time <= Self::MAX_RESPONSE_TIME_MS
+            && summary.success_rate >= Self::MIN_SUCCESS_RATE
+            && (summary.error_count as f64 / summary.total_operations as f64)
+                <= Self::MAX_ERROR_RATE
     }
-    
+
     /// 生成效能評估報告
     pub fn generate_assessment(summary: &MetricsSummary) -> PerformanceAssessment {
         PerformanceAssessment {
@@ -323,12 +336,12 @@ impl PerformanceBenchmarks {
             response_time_grade: Self::grade_response_time(summary.avg_response_time),
             success_rate_grade: Self::grade_success_rate(summary.success_rate),
             error_rate_grade: Self::grade_error_rate(
-                summary.error_count as f64 / summary.total_operations as f64
+                summary.error_count as f64 / summary.total_operations as f64,
             ),
             recommendations: Self::generate_recommendations(summary),
         }
     }
-    
+
     fn grade_response_time(avg_ms: f64) -> Grade {
         match avg_ms {
             t if t <= 50.0 => Grade::Excellent,
@@ -338,7 +351,7 @@ impl PerformanceBenchmarks {
             _ => Grade::Critical,
         }
     }
-    
+
     fn grade_success_rate(rate: f64) -> Grade {
         match rate {
             r if r >= 0.999 => Grade::Excellent,
@@ -348,7 +361,7 @@ impl PerformanceBenchmarks {
             _ => Grade::Critical,
         }
     }
-    
+
     fn grade_error_rate(rate: f64) -> Grade {
         match rate {
             r if r <= 0.001 => Grade::Excellent,
@@ -358,26 +371,26 @@ impl PerformanceBenchmarks {
             _ => Grade::Critical,
         }
     }
-    
+
     fn generate_recommendations(summary: &MetricsSummary) -> Vec<String> {
         let mut recommendations = vec![];
-        
+
         if summary.avg_response_time > Self::MAX_RESPONSE_TIME_MS {
             recommendations.push("優化系統響應時間，考慮快取或非同步處理".to_string());
         }
-        
+
         if summary.success_rate < Self::MIN_SUCCESS_RATE {
             recommendations.push("提升系統可靠性，加強錯誤處理機制".to_string());
         }
-        
+
         if summary.error_count > 0 {
             recommendations.push("分析錯誤模式，實施預防性維護".to_string());
         }
-        
+
         if recommendations.is_empty() {
             recommendations.push("系統效能表現優秀，維持當前標準".to_string());
         }
-        
+
         recommendations
     }
 }

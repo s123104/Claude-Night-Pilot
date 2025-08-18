@@ -244,7 +244,7 @@ mod database_tests {
     fn test_database_config_default() {
         let config = DatabaseConfig::default();
         
-        assert_eq!(config.path, "claude-pilot.db");
+        assert_eq!(config.path, "claude-night-pilot.db");
         assert_eq!(config.enable_foreign_keys, true);
         assert_eq!(config.wal_mode, true);
         assert_eq!(config.synchronous_mode, "NORMAL");

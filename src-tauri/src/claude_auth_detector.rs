@@ -17,9 +17,7 @@ pub enum AuthenticationMethod {
         expires_at: Option<String>,
     },
     /// Claude App Pro/Max 訂閱
-    ClaudeApp {
-        app_session: String,
-    },
+    ClaudeApp { app_session: String },
     /// API Key 認證
     ApiKey {
         source: ApiKeySource,
@@ -31,10 +29,7 @@ pub enum AuthenticationMethod {
         profile: Option<String>,
     },
     /// Google Vertex AI 企業認證
-    VertexAI {
-        project_id: String,
-        region: String,
-    },
+    VertexAI { project_id: String, region: String },
     /// 未檢測到認證
     None,
 }
@@ -72,7 +67,7 @@ pub struct ClaudeAuthDetector {
 impl ClaudeAuthDetector {
     pub fn new() -> Self {
         let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-        
+
         let config_paths = vec![
             home_dir.join(".claude"),
             home_dir.join(".config/claude"),
@@ -207,7 +202,7 @@ impl ClaudeAuthDetector {
             // 檢查 OAuth token 檔案
             let oauth_token_file = token_path.join("oauth_token");
             let session_file = token_path.join("session.json");
-            
+
             if oauth_token_file.exists() || session_file.exists() {
                 let token_file = if oauth_token_file.exists() {
                     oauth_token_file
@@ -220,7 +215,7 @@ impl ClaudeAuthDetector {
                     if let Ok(modified) = metadata.modified() {
                         let modified_time = chrono::DateTime::<chrono::Utc>::from(modified);
                         let now = chrono::Utc::now();
-                        
+
                         // 如果 token 檔案在過去 24 小時內修改過，認為可能有效
                         if (now - modified_time).num_hours() < 24 {
                             return Ok(Some(AuthenticationMethod::ConsoleOAuth {
@@ -261,10 +256,7 @@ impl ClaudeAuthDetector {
             let region = env::var("CLOUD_ML_REGION").unwrap_or_else(|_| "us-east5".to_string());
 
             if !project_id.is_empty() && self.check_gcp_credentials().await {
-                return Ok(Some(AuthenticationMethod::VertexAI {
-                    project_id,
-                    region,
-                }));
+                return Ok(Some(AuthenticationMethod::VertexAI { project_id, region }));
             }
         }
 
@@ -280,12 +272,15 @@ impl ClaudeAuthDetector {
     }
 
     /// 驗證認證方法是否有效
-    async fn verify_authentication(&self, auth_method: &AuthenticationMethod) -> Result<AuthenticationStatus> {
+    async fn verify_authentication(
+        &self,
+        auth_method: &AuthenticationMethod,
+    ) -> Result<AuthenticationStatus> {
         tracing::debug!("驗證認證方法: {:?}", auth_method);
 
         // 使用 claude doctor 命令來驗證認證
         let verification_result = self.run_claude_doctor().await?;
-        
+
         let is_valid = verification_result.success;
         let user_info = self.extract_user_info(&verification_result).await;
         let capabilities = self.extract_capabilities(&verification_result).await;
@@ -330,7 +325,7 @@ impl ClaudeAuthDetector {
     /// 遮罩 API Key 敏感資訊
     fn mask_api_key(&self, key: &str) -> String {
         if key.len() > 10 {
-            format!("{}...{}", &key[..10], &key[key.len()-4..])
+            format!("{}...{}", &key[..10], &key[key.len() - 4..])
         } else {
             "***".to_string()
         }
@@ -343,11 +338,14 @@ impl ClaudeAuthDetector {
             if settings_file.exists() {
                 if let Ok(content) = fs::read_to_string(&settings_file).await {
                     if let Ok(settings) = serde_json::from_str::<serde_json::Value>(&content) {
-                        if let Some(helper_path) = settings.get("apiKeyHelper").and_then(|v| v.as_str()) {
+                        if let Some(helper_path) =
+                            settings.get("apiKeyHelper").and_then(|v| v.as_str())
+                        {
                             // 測試執行 helper
                             if let Ok(output) = Command::new(helper_path).output() {
                                 if output.status.success() {
-                                    let key = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                                    let key =
+                                        String::from_utf8_lossy(&output.stdout).trim().to_string();
                                     if self.is_valid_api_key(&key) {
                                         return Ok(Some(AuthenticationMethod::ApiKey {
                                             source: ApiKeySource::Helper,
@@ -393,10 +391,22 @@ impl ClaudeAuthDetector {
     /// 提取使用者資訊
     async fn extract_user_info(&self, doctor_result: &DoctorResult) -> Option<UserInfo> {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&doctor_result.stdout) {
-            let user_id = json.get("user_id").and_then(|v| v.as_str()).map(|s| s.to_string());
-            let email = json.get("email").and_then(|v| v.as_str()).map(|s| s.to_string());
-            let subscription = json.get("subscription").and_then(|v| v.as_str()).map(|s| s.to_string());
-            let org = json.get("organization").and_then(|v| v.as_str()).map(|s| s.to_string());
+            let user_id = json
+                .get("user_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let email = json
+                .get("email")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let subscription = json
+                .get("subscription")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let org = json
+                .get("organization")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
 
             if user_id.is_some() || email.is_some() {
                 return Some(UserInfo {
@@ -418,7 +428,7 @@ impl ClaudeAuthDetector {
             capabilities.push("基本 Claude 查詢".to_string());
             capabilities.push("檔案讀寫操作".to_string());
             capabilities.push("Git 整合".to_string());
-            
+
             // 根據 doctor 結果檢測額外功能
             if doctor_result.stdout.contains("mcp") {
                 capabilities.push("MCP 伺服器支援".to_string());
@@ -495,7 +505,7 @@ pub async fn verify_claude_authentication() -> Result<bool, String> {
         .detect_authentication()
         .await
         .map_err(|e| e.to_string())?;
-    
+
     Ok(status.is_valid)
 }
 
@@ -506,7 +516,7 @@ pub async fn get_authentication_recommendations() -> Result<Vec<String>, String>
         .detect_authentication()
         .await
         .map_err(|e| e.to_string())?;
-    
+
     Ok(status.recommendations)
 }
 
@@ -517,7 +527,7 @@ mod tests {
     #[test]
     fn test_api_key_validation() {
         let detector = ClaudeAuthDetector::new();
-        
+
         assert!(detector.is_valid_api_key("sk-ant-apiXX-XXXXXXXXXXXXXXXXXXXXXXX"));
         assert!(!detector.is_valid_api_key("invalid-key"));
         assert!(!detector.is_valid_api_key(""));
@@ -528,7 +538,7 @@ mod tests {
         let detector = ClaudeAuthDetector::new();
         let key = "sk-ant-apiXX-ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         let masked = detector.mask_api_key(key);
-        
+
         assert!(masked.contains("sk-ant-api"));
         assert!(masked.contains("..."));
         assert!(!masked.contains("ABCDEFGHIJKLMNOPQRST"));

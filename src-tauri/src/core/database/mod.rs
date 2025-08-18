@@ -53,6 +53,6 @@ pub const DATABASE_VERSION: u32 = 1;
 pub const SCHEMA_VERSION: &str = "1.0.0";
 
 // 默认配置
-pub const DEFAULT_DATABASE_PATH: &str = "claude-pilot.db";
+pub const DEFAULT_DATABASE_PATH: &str = "claude-night-pilot.db";
 pub const DEFAULT_CONNECTION_TIMEOUT: u64 = 30; // seconds
 pub const DEFAULT_RETRY_ATTEMPTS: u32 = 3;

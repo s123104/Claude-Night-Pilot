@@ -41,7 +41,7 @@ impl UnifiedClaudeInterface {
     pub async fn new() -> Result<Self> {
         Ok(Self)
     }
-    
+
     /// 執行Claude命令 - GUI和CLI統一入口
     pub async fn execute_claude(
         prompt: String,
@@ -54,7 +54,7 @@ impl UnifiedClaudeInterface {
             .execute_with_full_enhancement(&prompt, execution_options)
             .await
     }
-    
+
     /// 執行Claude命令 - 實例方法版本
     pub async fn execute_prompt_with_options(
         &self,

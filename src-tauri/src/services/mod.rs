@@ -13,7 +13,7 @@ pub mod job_scheduler;
 
 // 簡化的任務管理器 - 實用優先
 pub mod simple_job_manager;
-pub use simple_job_manager::{SimpleJobManager, ManagerStats};
+pub use simple_job_manager::{ManagerStats, SimpleJobManager};
 
 // 保留原有服務
 pub mod health_service;
@@ -32,8 +32,8 @@ pub use scheduler_service::*;
 
 // 新的任務管理系統導出
 pub use job_engine::{JobEngine, JobEngineState, TaskMetrics};
-pub use job_executor::{JobExecutor, JobExecution, JobExecutionResult};
-pub use job_scheduler::{JobScheduler, JobExecutionCallback};
+pub use job_executor::{JobExecution, JobExecutionResult, JobExecutor};
+pub use job_scheduler::{JobExecutionCallback, JobScheduler};
 
 // 保留原有服務導出
 pub use health_service::HealthService;

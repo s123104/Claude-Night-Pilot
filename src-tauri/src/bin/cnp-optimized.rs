@@ -287,17 +287,22 @@ async fn health_check_optimized(format: String, use_cache: bool, fast_mode: bool
         }
     }
 
-    // 🚀 優化策略：緩存結果以避免重複檢查  
+    // 🚀 優化策略：緩存結果以避免重複檢查
     use std::sync::OnceLock;
-    static CACHE: OnceLock<std::sync::Mutex<(std::time::Instant, bool, bool, u32)>> = OnceLock::new();
-    
+    static CACHE: OnceLock<std::sync::Mutex<(std::time::Instant, bool, bool, u32)>> =
+        OnceLock::new();
+
     let (claude_available, cooldown_working, process_count) = if use_cache {
         // 檢查緩存 (30秒 TTL)
-        let cache = CACHE.get_or_init(|| std::sync::Mutex::new((
-            std::time::Instant::now() - std::time::Duration::from_secs(60), // 強制第一次檢查
-            false, false, 0
-        )));
-        
+        let cache = CACHE.get_or_init(|| {
+            std::sync::Mutex::new((
+                std::time::Instant::now() - std::time::Duration::from_secs(60), // 強制第一次檢查
+                false,
+                false,
+                0,
+            ))
+        });
+
         // 檢查快取，避免持有鎖通過 await 點
         {
             if let Ok(cached) = cache.try_lock() {
@@ -313,15 +318,21 @@ async fn health_check_optimized(format: String, use_cache: bool, fast_mode: bool
                         "timestamp": chrono::Utc::now().to_rfc3339(),
                         "cached": true
                     });
-                    
+
                     match format.as_str() {
                         "json" => {
                             println!("{}", serde_json::to_string_pretty(&health_status)?);
                         }
                         _ => {
                             println!("✅ 健康檢查完成 (使用快取)");
-                            println!("Claude CLI 可用: {}", if cached_claude { "✅" } else { "❌" });
-                            println!("冷卻檢測工作: {}", if cached_cooldown { "✅" } else { "❌" });
+                            println!(
+                                "Claude CLI 可用: {}",
+                                if cached_claude { "✅" } else { "❌" }
+                            );
+                            println!(
+                                "冷卻檢測工作: {}",
+                                if cached_cooldown { "✅" } else { "❌" }
+                            );
                             println!("活躍進程數: {}", cached_processes);
                         }
                     }
@@ -340,7 +351,12 @@ async fn health_check_optimized(format: String, use_cache: bool, fast_mode: bool
     if use_cache {
         if let Some(cache) = CACHE.get() {
             if let Ok(mut cached) = cache.try_lock() {
-                *cached = (std::time::Instant::now(), claude_available, cooldown_working, process_count);
+                *cached = (
+                    std::time::Instant::now(),
+                    claude_available,
+                    cooldown_working,
+                    process_count,
+                );
             }
         }
     }
@@ -401,7 +417,7 @@ async fn perform_health_checks(fast_mode: bool) -> (bool, bool, u32) {
     } else {
         // 標準模式 - 並行執行實際命令檢查，加入超時保護
         let timeout_duration = std::time::Duration::from_millis(1000); // 1秒超時
-        
+
         tokio::join!(
             // Claude CLI 可用性檢查 (添加超時)
             async {

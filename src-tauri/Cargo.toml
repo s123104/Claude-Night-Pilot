@@ -33,6 +33,10 @@ path = "src/bin/cnp-unified.rs"
 name = "cnp-optimized"
 path = "src/bin/cnp-optimized.rs"
 
+[[bin]]
+name = "cron-test"
+path = "src/bin/cron_test.rs"
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

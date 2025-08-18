@@ -54,10 +54,8 @@ impl DatabaseManager {
         // 在測試環境下，使用臨時檔案避免寫入專案根目錄，也避免路徑被清理導致檔案大小為0
         if cfg!(test) {
             let mut config = DatabaseConfig::default();
-            let path = std::env::temp_dir().join(format!(
-                "cnp_default_{}.db",
-                uuid::Uuid::new_v4()
-            ));
+            let path =
+                std::env::temp_dir().join(format!("cnp_default_{}.db", uuid::Uuid::new_v4()));
             config.path = path.to_string_lossy().to_string();
             Self::new(config).await
         } else {

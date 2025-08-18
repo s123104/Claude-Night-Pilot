@@ -1,4 +1,5 @@
 // Claude Session Manager - 整合 Git Worktree 和 Claude Code Session 管理
+use crate::claude_auth_detector::{AuthenticationMethod, AuthenticationStatus, ClaudeAuthDetector};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -7,7 +8,6 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::fs;
 use uuid::Uuid;
-use crate::claude_auth_detector::{ClaudeAuthDetector, AuthenticationStatus, AuthenticationMethod};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClaudeSession {
@@ -106,7 +106,7 @@ impl ClaudeSessionManager {
 
         // 執行完整檢測
         let auth_status = self.auth_detector.detect_authentication().await?;
-        
+
         if auth_status.is_valid {
             tracing::info!("✅ 檢測到有效的 Claude Code 認證: {:?}", auth_status.method);
             self.log_authentication_info(&auth_status).await;
@@ -117,7 +117,7 @@ impl ClaudeSessionManager {
 
         // 更新快取
         self.cached_auth_status = Some(auth_status.clone());
-        
+
         Ok(auth_status)
     }
 
@@ -131,10 +131,18 @@ impl ClaudeSessionManager {
                 tracing::info!("🌐 使用 OAuth 認證 (Token 路徑: {})", token_path.display());
             }
             AuthenticationMethod::Bedrock { region, profile } => {
-                tracing::info!("☁️ 使用 AWS Bedrock 認證 (區域: {}, 配置檔: {:?})", region, profile);
+                tracing::info!(
+                    "☁️ 使用 AWS Bedrock 認證 (區域: {}, 配置檔: {:?})",
+                    region,
+                    profile
+                );
             }
             AuthenticationMethod::VertexAI { project_id, region } => {
-                tracing::info!("🏢 使用 Google Vertex AI 認證 (專案: {}, 區域: {})", project_id, region);
+                tracing::info!(
+                    "🏢 使用 Google Vertex AI 認證 (專案: {}, 區域: {})",
+                    project_id,
+                    region
+                );
             }
             AuthenticationMethod::ClaudeApp { app_session } => {
                 tracing::info!("📱 使用 Claude App 認證 (會話: {})", app_session);
@@ -750,8 +758,9 @@ pub async fn check_claude_authentication() -> Result<AuthenticationStatus, Strin
     let project_root =
         std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
-    let mut manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
-    
+    let mut manager =
+        ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
+
     manager
         .ensure_authentication()
         .await
@@ -763,8 +772,9 @@ pub async fn verify_claude_auth_status() -> Result<bool, String> {
     let project_root =
         std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
-    let mut manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
-    
+    let mut manager =
+        ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
+
     manager
         .verify_authentication()
         .await
@@ -777,7 +787,7 @@ pub async fn get_current_auth_status() -> Result<Option<AuthenticationStatus>, S
         std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
     let manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
-    
+
     manager
         .get_authentication_status()
         .await
@@ -789,11 +799,12 @@ pub async fn force_refresh_authentication() -> Result<AuthenticationStatus, Stri
     let project_root =
         std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
-    let mut manager = ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
-    
+    let mut manager =
+        ClaudeSessionManager::new("./claude-night-pilot.db".to_string(), project_root);
+
     // 清除快取，強制重新檢測
     manager.cached_auth_status = None;
-    
+
     manager
         .ensure_authentication()
         .await

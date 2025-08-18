@@ -169,9 +169,7 @@ impl PromptRepository {
 #[async_trait]
 impl Repository<Prompt> for PromptRepository {
     async fn create(&self, prompt: &mut Prompt) -> DatabaseResult<EntityId> {
-        prompt
-            .validate()
-            .map_err(DatabaseError::validation)?;
+        prompt.validate().map_err(DatabaseError::validation)?;
 
         let now = Utc::now();
         prompt.created_at = now;
@@ -208,9 +206,7 @@ impl Repository<Prompt> for PromptRepository {
     }
 
     async fn update(&self, prompt: &mut Prompt) -> DatabaseResult<bool> {
-        prompt
-            .validate()
-            .map_err(DatabaseError::validation)?;
+        prompt.validate().map_err(DatabaseError::validation)?;
 
         let id = prompt
             .id()
@@ -270,9 +266,7 @@ impl Repository<Prompt> for PromptRepository {
             .map_err(DatabaseError::Connection)?;
 
         let rows = stmt
-            .query_map(params![limit, offset], |row| {
-                self.map_row_to_prompt(row)
-            })
+            .query_map(params![limit, offset], |row| self.map_row_to_prompt(row))
             .map_err(DatabaseError::Connection)?;
 
         let mut prompts = Vec::new();
@@ -345,9 +339,7 @@ impl JobRepository {
             .map_err(DatabaseError::Connection)?;
 
         let rows = stmt
-            .query_map(params![status.to_string()], |row| {
-                self.map_row_to_job(row)
-            })
+            .query_map(params![status.to_string()], |row| self.map_row_to_job(row))
             .map_err(DatabaseError::Connection)?;
 
         let mut jobs = Vec::new();
@@ -474,8 +466,7 @@ impl JobRepository {
 #[async_trait]
 impl Repository<Job> for JobRepository {
     async fn create(&self, job: &mut Job) -> DatabaseResult<EntityId> {
-        job.validate()
-            .map_err(DatabaseError::validation)?;
+        job.validate().map_err(DatabaseError::validation)?;
 
         let now = Utc::now();
         job.created_at = now;
@@ -522,8 +513,7 @@ impl Repository<Job> for JobRepository {
     }
 
     async fn update(&self, job: &mut Job) -> DatabaseResult<bool> {
-        job.validate()
-            .map_err(DatabaseError::validation)?;
+        job.validate().map_err(DatabaseError::validation)?;
 
         let id = job
             .id()
@@ -719,9 +709,7 @@ impl UsageRepository {
 #[async_trait]
 impl Repository<ExecutionResult> for UsageRepository {
     async fn create(&self, result: &mut ExecutionResult) -> DatabaseResult<EntityId> {
-        result
-            .validate()
-            .map_err(DatabaseError::validation)?;
+        result.validate().map_err(DatabaseError::validation)?;
 
         let now = Utc::now();
         result.created_at = now;
