@@ -11,8 +11,16 @@ pub mod job_engine;
 pub mod job_executor;
 pub mod job_scheduler;
 
-// 簡化的任務管理器 - 實用優先
+// 簡化的任務管理器 - 已棄用，請使用 UnifiedScheduler
+#[deprecated(
+    since = "0.2.0",
+    note = "請使用 crate::scheduler::UnifiedScheduler 替代。此實作將在 v3.0.0 移除。詳見遷移指南。"
+)]
 pub mod simple_job_manager;
+#[deprecated(
+    since = "0.2.0", 
+    note = "請使用 crate::scheduler::UnifiedScheduler 替代。此實作將在 v3.0.0 移除。詳見遷移指南。"
+)]
 pub use simple_job_manager::{ManagerStats, SimpleJobManager};
 
 // 保留原有服務
@@ -33,6 +41,10 @@ pub use scheduler_service::*;
 // 新的任務管理系統導出
 pub use job_engine::{JobEngine, JobEngineState, TaskMetrics};
 pub use job_executor::{JobExecution, JobExecutionResult, JobExecutor};
+#[deprecated(
+    since = "0.2.0",
+    note = "請使用 crate::scheduler::UnifiedScheduler 替代。此實作將在 v3.0.0 移除。詳見遷移指南。"
+)]
 pub use job_scheduler::{JobExecutionCallback, JobScheduler};
 
 // 保留原有服務導出

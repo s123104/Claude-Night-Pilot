@@ -11,7 +11,7 @@ use claude_night_pilot_lib::interfaces::CLIAdapter;
 use claude_night_pilot_lib::models::job::{
     Job, JobExecutionOptions, JobStatus, JobType, RetryConfig,
 };
-use claude_night_pilot_lib::scheduler::{RealTimeExecutor, SchedulerExecutor};
+use claude_night_pilot_lib::scheduler::RealTimeExecutor;
 use claude_night_pilot_lib::services::database_service::DatabaseService;
 use claude_night_pilot_lib::unified_interface::{UnifiedClaudeInterface, UnifiedExecutionOptions};
 use rusqlite;
@@ -288,7 +288,7 @@ async fn create_schedule_job(
     use tokio::task;
 
     // 基於 Context7 Rusqlite 最佳實踐 - 使用連接池管理
-    let db_service = DatabaseService::new()
+    let _db_service = DatabaseService::new()
         .await
         .context("Failed to create database service")?;
 
@@ -320,7 +320,7 @@ async fn create_schedule_job(
 
     // 基於 Context7 Tauri async 最佳實踐 - 使用 spawn_blocking 處理 DB 操作
     let job_clone = job.clone();
-    let result = task::spawn_blocking(move || {
+    let _result = task::spawn_blocking(move || {
         // 使用統一的資料庫路徑 - 修復分離問題
         let conn = rusqlite::Connection::open("claude-night-pilot.db")
             .context("Failed to open database")?;

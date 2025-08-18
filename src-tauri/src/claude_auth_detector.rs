@@ -3,9 +3,8 @@
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 use tokio::fs;
 
@@ -479,6 +478,7 @@ impl ClaudeAuthDetector {
 struct DoctorResult {
     success: bool,
     stdout: String,
+    #[allow(dead_code)]  // May be used in future implementation  
     stderr: String,
 }
 

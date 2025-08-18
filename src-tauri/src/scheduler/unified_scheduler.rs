@@ -135,8 +135,10 @@ pub struct MetricsCollector {
     /// 實時指標
     realtime_metrics: HashMap<String, MetricValue>,
     /// 歷史指標緩存
+    #[allow(dead_code)]  // Future implementation for metrics history
     historical_metrics: Vec<HistoricalMetric>,
     /// 告警配置
+    #[allow(dead_code)]  // Future implementation for alerting
     alert_configs: Vec<AlertConfig>,
 }
 
@@ -146,6 +148,7 @@ pub struct UsageTracker {
     /// 即時使用量統計
     realtime_usage: HashMap<String, UsageData>,
     /// 成本計算器
+    #[allow(dead_code)]  // Future implementation for cost calculation
     cost_calculator: CostCalculator,
     /// 使用量歷史記錄
     usage_history: Vec<UsageRecord>,

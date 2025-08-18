@@ -27,6 +27,7 @@ pub struct MonitoringManager {
     health_checker: Arc<health::HealthChecker>,
 
     /// 日誌配置
+    #[allow(dead_code)]  // Used for configuration management
     log_config: logging::LogConfig,
 
     /// 監控是否啟用

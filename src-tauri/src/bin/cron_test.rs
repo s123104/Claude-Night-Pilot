@@ -8,7 +8,7 @@ async fn main() -> Result<()> {
     println!("🔍 Testing tokio-cron-scheduler...");
     
     // 創建排程器
-    let scheduler = JobScheduler::new().await?;
+    let _scheduler = JobScheduler::new().await?;
     println!("✅ Scheduler created successfully");
     
     // 測試不同的cron表達式 (可能需要6部分格式)

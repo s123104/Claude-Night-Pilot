@@ -252,6 +252,7 @@ impl HealthChecker {
     }
 
     /// 註冊默認健康檢查
+    #[allow(dead_code)]  // Future implementation for default health checks
     async fn register_default_checks(&self) {
         // 資料庫連接檢查
         self.register_check(
@@ -290,6 +291,7 @@ impl HealthChecker {
 }
 
 /// 資料庫連接健康檢查
+#[allow(dead_code)]  // Future implementation for database health checks
 fn check_database_connection() -> HealthCheckResult {
     let start = Instant::now();
 
@@ -315,6 +317,7 @@ fn check_database_connection() -> HealthCheckResult {
 }
 
 /// 記憶體使用健康檢查
+#[allow(dead_code)]  // Future implementation for memory health checks
 fn check_memory_usage() -> HealthCheckResult {
     let start = Instant::now();
 
@@ -343,6 +346,7 @@ fn check_memory_usage() -> HealthCheckResult {
 }
 
 /// 磁碟空間健康檢查
+#[allow(dead_code)]  // Future implementation for disk health checks
 fn check_disk_space() -> HealthCheckResult {
     let start = Instant::now();
 
@@ -374,6 +378,7 @@ fn check_disk_space() -> HealthCheckResult {
 }
 
 /// 排程器狀態健康檢查
+#[allow(dead_code)]  // Future implementation for scheduler health checks
 fn check_scheduler_status() -> HealthCheckResult {
     let start = Instant::now();
 
