@@ -201,6 +201,12 @@ enum JobAction {
         cron_expr: String,
         #[arg(long)]
         description: Option<String>,
+        /// 僅顯示將要執行的動作，不進行實際寫入或註冊
+        #[arg(long)]
+        dry_run: bool,
+        /// 僅寫入資料庫，不註冊到實時排程器（便於 CI 驗證）
+        #[arg(long)]
+        no_register: bool,
     },
     /// 更新任務
     Update {
@@ -825,6 +831,8 @@ async fn handle_job_command(action: JobAction) -> Result<()> {
             prompt_id,
             cron_expr,
             description,
+            dry_run,
+            no_register,
         } => {
             println!("📅 創建新的排程任務");
             println!("Prompt ID: {}", prompt_id);
@@ -834,10 +842,19 @@ async fn handle_job_command(action: JobAction) -> Result<()> {
                 println!("描述: {}", desc);
             }
 
+            if dry_run {
+                println!("--dry-run 啟用：將不會寫入資料庫或註冊排程器");
+                return Ok(());
+            }
+
             // 實際的創建邏輯
             match create_schedule_job(prompt_id, &cron_expr, description.as_deref()).await {
                 Ok(job_id) => {
                     println!("✅ 成功創建排程任務 ID: {}", job_id);
+                    if no_register {
+                        println!("--no-register 啟用：已跳過實時排程器註冊");
+                        return Ok(());
+                    }
                 }
                 Err(e) => {
                     eprintln!("❌ 創建排程任務失敗: {}", e);
