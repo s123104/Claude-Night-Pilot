@@ -478,7 +478,7 @@ impl ClaudeAuthDetector {
 struct DoctorResult {
     success: bool,
     stdout: String,
-    #[allow(dead_code)]  // May be used in future implementation  
+    #[allow(dead_code)] // May be used in future implementation
     stderr: String,
 }
 

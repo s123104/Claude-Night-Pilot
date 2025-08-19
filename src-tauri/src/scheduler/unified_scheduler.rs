@@ -135,10 +135,10 @@ pub struct MetricsCollector {
     /// 實時指標
     realtime_metrics: HashMap<String, MetricValue>,
     /// 歷史指標緩存
-    #[allow(dead_code)]  // Future implementation for metrics history
+    #[allow(dead_code)] // Future implementation for metrics history
     historical_metrics: Vec<HistoricalMetric>,
     /// 告警配置
-    #[allow(dead_code)]  // Future implementation for alerting
+    #[allow(dead_code)] // Future implementation for alerting
     alert_configs: Vec<AlertConfig>,
 }
 
@@ -148,7 +148,7 @@ pub struct UsageTracker {
     /// 即時使用量統計
     realtime_usage: HashMap<String, UsageData>,
     /// 成本計算器
-    #[allow(dead_code)]  // Future implementation for cost calculation
+    #[allow(dead_code)] // Future implementation for cost calculation
     cost_calculator: CostCalculator,
     /// 使用量歷史記錄
     usage_history: Vec<UsageRecord>,
@@ -714,37 +714,31 @@ impl MetricsCollector {
 
     pub async fn start_monitoring(&mut self) -> Result<()> {
         info!("📊 Starting comprehensive metrics collection...");
-        
+
         // 初始化實時指標
         self.realtime_metrics.insert(
             "collection_started_at".to_string(),
-            MetricValue::Timestamp(Utc::now())
+            MetricValue::Timestamp(Utc::now()),
         );
-        
+
         // 初始化系統指標
-        self.realtime_metrics.insert(
-            "memory_usage_mb".to_string(),
-            MetricValue::Gauge(0.0)
-        );
-        
-        self.realtime_metrics.insert(
-            "active_jobs_count".to_string(),
-            MetricValue::Gauge(0.0)
-        );
-        
+        self.realtime_metrics
+            .insert("memory_usage_mb".to_string(), MetricValue::Gauge(0.0));
+
+        self.realtime_metrics
+            .insert("active_jobs_count".to_string(), MetricValue::Gauge(0.0));
+
         // 初始化計數器
-        self.realtime_metrics.insert(
-            "jobs_executed_total".to_string(),
-            MetricValue::Counter(0)
+        self.realtime_metrics
+            .insert("jobs_executed_total".to_string(), MetricValue::Counter(0));
+
+        self.realtime_metrics
+            .insert("jobs_failed_total".to_string(), MetricValue::Counter(0));
+
+        info!(
+            "✅ Metrics collection started successfully with {} initial metrics",
+            self.realtime_metrics.len()
         );
-        
-        self.realtime_metrics.insert(
-            "jobs_failed_total".to_string(),
-            MetricValue::Counter(0)
-        );
-        
-        info!("✅ Metrics collection started successfully with {} initial metrics", 
-              self.realtime_metrics.len());
         Ok(())
     }
 
@@ -766,7 +760,7 @@ impl UsageTracker {
 
     pub async fn start_tracking(&mut self) -> Result<()> {
         info!("📈 Starting comprehensive usage tracking...");
-        
+
         // 初始化系統使用追蹤
         let current_time = Utc::now();
         self.realtime_usage.insert(
@@ -783,9 +777,9 @@ impl UsageTracker {
                 execution_duration_ms: 0,
                 timestamp: current_time,
                 last_updated: current_time,
-            }
+            },
         );
-        
+
         // 記錄追蹤開始時間
         self.usage_history.push(UsageRecord {
             job_id: "system".to_string(),
@@ -808,7 +802,7 @@ impl UsageTracker {
             },
             recorded_at: current_time,
         });
-        
+
         info!("✅ Usage tracking started successfully");
         Ok(())
     }
@@ -825,7 +819,7 @@ impl UsageTracker {
 pub enum MetricValue {
     /// 計數器類型
     Counter(u64),
-    /// 量表類型 
+    /// 量表類型
     Gauge(f64),
     /// 時間戳類型
     Timestamp(DateTime<Utc>),

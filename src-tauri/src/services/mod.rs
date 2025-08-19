@@ -18,7 +18,7 @@ pub mod job_scheduler;
 )]
 pub mod simple_job_manager;
 #[deprecated(
-    since = "0.2.0", 
+    since = "0.2.0",
     note = "請使用 crate::scheduler::UnifiedScheduler 替代。此實作將在 v3.0.0 移除。詳見遷移指南。"
 )]
 pub use simple_job_manager::{ManagerStats, SimpleJobManager};

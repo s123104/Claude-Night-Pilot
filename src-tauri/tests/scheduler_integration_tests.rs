@@ -245,7 +245,11 @@ mod performance_tests {
         for i in 0..100 {
             let scheduler_clone = std::sync::Arc::clone(&scheduler);
             let handle = tokio::spawn(async move {
-                let mut job = Job::new(format!("並發任務 {}", i), format!("prompt-{}", i), "0 */30 * * * *"); // 每30分鐘
+                let mut job = Job::new(
+                    format!("並發任務 {}", i),
+                    format!("prompt-{}", i),
+                    "0 */30 * * * *",
+                ); // 每30分鐘
                 job.id = format!("concurrent-job-{}", i);
 
                 scheduler_clone.add_job(&job).await.unwrap();
@@ -319,7 +323,11 @@ mod error_handling {
 
         // 添加一些任務
         for i in 0..5 {
-            let mut job = Job::new(format!("一致性任務 {}", i), format!("prompt-{}", i), "0 */20 * * * *"); // 每20分鐘
+            let mut job = Job::new(
+                format!("一致性任務 {}", i),
+                format!("prompt-{}", i),
+                "0 */20 * * * *",
+            ); // 每20分鐘
             job.id = format!("consistency-job-{}", i);
 
             scheduler.add_job(&job).await.unwrap();

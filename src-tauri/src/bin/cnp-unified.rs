@@ -853,7 +853,9 @@ async fn handle_job_command(action: JobAction) -> Result<()> {
             }
 
             // 實際的創建邏輯
-            match create_schedule_job(prompt_id, &cron_expr, description.as_deref(), no_register).await {
+            match create_schedule_job(prompt_id, &cron_expr, description.as_deref(), no_register)
+                .await
+            {
                 Ok(job_id) => {
                     println!("✅ 成功創建排程任務 ID: {}", job_id);
                 }
