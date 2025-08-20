@@ -120,6 +120,26 @@ pub enum ProcessStatus {
     Retrying,
 }
 
+/// 統一排程器專用的執行記錄結構 (替代 SimpleJobExecution)
+///
+/// 這個結構完全自包含，不依賴任何舊架構的模組
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UnifiedJobExecution {
+    pub job_id: String,
+    pub job_name: String,
+    pub started_at: DateTime<Utc>,
+    pub status: UnifiedExecutionStatus,
+    pub cron_job_id: Option<Uuid>,
+}
+
+/// 統一排程器專用的執行狀態 (替代 ExecutionStatus)
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum UnifiedExecutionStatus {
+    Running,
+    Completed,
+    Failed,
+}
+
 /// 任務階層管理 (基於 vibe-kanban 模式)
 #[derive(Debug, Default)]
 pub struct TaskHierarchy {
@@ -553,32 +573,24 @@ impl UnifiedScheduler {
         }
     }
 
-    /// 相容性方法：get_running_jobs (對應舊 SimpleJobManager::get_running_jobs)
-    pub async fn get_running_jobs(
-        &self,
-    ) -> HashMap<String, crate::services::simple_job_manager::SimpleJobExecution> {
+    /// 相容性方法：get_running_jobs (已重構為自包含實作)
+    pub async fn get_running_jobs(&self) -> HashMap<String, UnifiedJobExecution> {
         let mut running_jobs = HashMap::new();
         let states = self.job_states.read().await;
 
         for (job_id, state) in states.iter() {
             if let Some(process) = state.execution_processes.last() {
                 if process.status == ProcessStatus::Running {
-                    // 轉換為舊格式以保持相容性
-                    let execution = crate::services::simple_job_manager::SimpleJobExecution {
+                    // 使用統一排程器自己的執行記錄結構
+                    let execution = UnifiedJobExecution {
                         job_id: job_id.clone(),
                         job_name: state.job.name.clone(),
                         started_at: process.start_time,
                         status: match process.status {
-                            ProcessStatus::Running => {
-                                crate::services::simple_job_manager::ExecutionStatus::Running
-                            }
-                            ProcessStatus::Completed => {
-                                crate::services::simple_job_manager::ExecutionStatus::Completed
-                            }
-                            ProcessStatus::Failed => {
-                                crate::services::simple_job_manager::ExecutionStatus::Failed
-                            }
-                            _ => crate::services::simple_job_manager::ExecutionStatus::Running,
+                            ProcessStatus::Running => UnifiedExecutionStatus::Running,
+                            ProcessStatus::Completed => UnifiedExecutionStatus::Completed,
+                            ProcessStatus::Failed => UnifiedExecutionStatus::Failed,
+                            _ => UnifiedExecutionStatus::Running,
                         },
                         cron_job_id: None, // UnifiedScheduler不使用cron_job_id
                     };

@@ -859,10 +859,7 @@ pub fn run() {
             services::job_service::job_service_list_jobs,
             services::job_service::job_service_create_job,
             services::job_service::job_service_delete_job,
-            // === 簡化任務管理命令 ===
-            services::simple_job_manager::simple_job_manager_start,
-            services::simple_job_manager::simple_job_manager_status,
-            services::simple_job_manager::simple_job_manager_trigger_job,
+            // === 簡化任務管理命令已移除 - 請使用 UnifiedScheduler ===
             services::sync_service::sync_service_get_status,
             services::sync_service::sync_service_trigger_sync,
             // === Claude Code 認證自動檢測命令 ===

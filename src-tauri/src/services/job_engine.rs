@@ -3,7 +3,8 @@
 
 use crate::models::job::{Job, JobStatus, NotificationChannel};
 use crate::services::job_executor::{JobExecutionResult, JobExecutor};
-use crate::services::job_scheduler::{JobExecutionCallback, JobScheduler};
+use crate::scheduler::unified_scheduler::{UnifiedScheduler};
+use tokio_cron_scheduler::JobScheduler;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -12,10 +13,20 @@ use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 use tracing::{error, info};
 
+/// Job 執行回調 trait - 定義任務執行生命週期的回調函數
+#[async_trait::async_trait]
+pub trait JobExecutionCallback: Send + Sync {
+    async fn on_job_start(&self, job_id: &str) -> Result<()>;
+    async fn on_job_complete(&self, job_id: &str, success: bool, output: Option<String>) -> Result<()>;
+    async fn on_job_error(&self, job_id: &str, error: &str) -> Result<()>;
+    async fn get_job_details(&self, job_id: &str) -> Result<Option<Job>>;
+    async fn execute_job(&self, job: &Job) -> Result<String>;
+}
+
 /// Job 引擎 - 管理整個任務系統的核心組件
 pub struct JobEngine {
-    /// 任務排程器
-    scheduler: Arc<JobScheduler>,
+    /// 統一排程器
+    scheduler: Arc<UnifiedScheduler>,
     /// 任務執行器
     executor: Arc<JobExecutor>,
     /// 任務儲存庫
@@ -433,7 +444,7 @@ impl JobEngine {
             Arc::clone(&monitor),
         ));
 
-        let scheduler = Arc::new(JobScheduler::with_callback(callback).await?);
+        let scheduler = Arc::new(UnifiedScheduler::new().await?);
 
         Ok(Self {
             scheduler,
@@ -458,7 +469,7 @@ impl JobEngine {
             Arc::clone(&monitor),
         ));
 
-        let scheduler = Arc::new(JobScheduler::with_callback(callback).await?);
+        let scheduler = Arc::new(UnifiedScheduler::new().await?);
 
         Ok(Self {
             scheduler,
@@ -503,8 +514,8 @@ impl JobEngine {
     pub async fn shutdown(&self) -> Result<()> {
         info!("停止 Job 引擎");
 
-        // 停止排程器
-        self.scheduler.shutdown().await?;
+        // 停止排程器 (使用stop方法)
+        self.scheduler.stop().await?;
 
         // 更新狀態
         {

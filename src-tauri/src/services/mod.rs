@@ -9,19 +9,9 @@ pub mod scheduler_service;
 // 新的任務管理系統模組 - Context7 最佳實踐
 pub mod job_engine;
 pub mod job_executor;
-pub mod job_scheduler;
+// job_scheduler 已移除 - 請使用 crate::scheduler::UnifiedScheduler 替代
 
-// 簡化的任務管理器 - 已棄用，請使用 UnifiedScheduler
-#[deprecated(
-    since = "0.2.0",
-    note = "請使用 crate::scheduler::UnifiedScheduler 替代。此實作將在 v3.0.0 移除。詳見遷移指南。"
-)]
-pub mod simple_job_manager;
-#[deprecated(
-    since = "0.2.0",
-    note = "請使用 crate::scheduler::UnifiedScheduler 替代。此實作將在 v3.0.0 移除。詳見遷移指南。"
-)]
-pub use simple_job_manager::{ManagerStats, SimpleJobManager};
+// 簡化的任務管理器已移除 - 請使用 crate::scheduler::UnifiedScheduler 替代
 
 // 保留原有服務
 pub mod health_service;
@@ -41,11 +31,7 @@ pub use scheduler_service::*;
 // 新的任務管理系統導出
 pub use job_engine::{JobEngine, JobEngineState, TaskMetrics};
 pub use job_executor::{JobExecution, JobExecutionResult, JobExecutor};
-#[deprecated(
-    since = "0.2.0",
-    note = "請使用 crate::scheduler::UnifiedScheduler 替代。此實作將在 v3.0.0 移除。詳見遷移指南。"
-)]
-pub use job_scheduler::{JobExecutionCallback, JobScheduler};
+// job_scheduler 已移除 - 請使用 crate::scheduler::UnifiedScheduler 替代
 
 // 保留原有服務導出
 pub use health_service::HealthService;
