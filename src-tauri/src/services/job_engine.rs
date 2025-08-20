@@ -4,7 +4,6 @@
 use crate::models::job::{Job, JobStatus, NotificationChannel};
 use crate::services::job_executor::{JobExecutionResult, JobExecutor};
 use crate::scheduler::unified_scheduler::{UnifiedScheduler};
-use tokio_cron_scheduler::JobScheduler;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -436,8 +435,8 @@ impl JobEngine {
         let monitor = Arc::new(TaskMonitor::new());
         let executor = Arc::new(JobExecutor::new().await?);
 
-        // 創建執行回調
-        let callback = Arc::new(JobEngineExecutionCallback::new(
+        // 創建執行回調 (暫未使用，預留給未來版本)
+        let _callback = Arc::new(JobEngineExecutionCallback::new(
             Arc::clone(&executor),
             Arc::clone(&repository) as Arc<dyn JobRepository + Send + Sync>,
             Arc::clone(&notification_service),
@@ -462,7 +461,7 @@ impl JobEngine {
         let monitor = Arc::new(TaskMonitor::new());
         let executor = Arc::new(JobExecutor::new().await?);
 
-        let callback = Arc::new(JobEngineExecutionCallback::new(
+        let _callback = Arc::new(JobEngineExecutionCallback::new(
             Arc::clone(&executor),
             Arc::clone(&repository),
             Arc::clone(&notification_service),
