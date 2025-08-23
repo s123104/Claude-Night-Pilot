@@ -1,4 +1,4 @@
-use crate::simple_db::{SimpleDatabase, SimplePrompt, SimpleSchedule, TokenUsageStats};
+use crate::simple_db::{DbStats, SimpleDatabase, SimplePrompt, SimpleSchedule, TokenUsageStats};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task;
@@ -81,20 +81,12 @@ impl DatabaseManager {
     
     /// 異步獲取所有 prompts
     pub async fn list_prompts_async(&self) -> Result<Vec<SimplePrompt>, DatabaseError> {
-        self.with_db("list_prompts", |_db| {
-            // 這裡需要實現 list_prompts 方法
-            // 暫時返回空列表
-            Ok(Vec::new())
-        }).await
+        self.with_db("list_prompts", |db| db.list_prompts()).await
     }
-    
+
     /// 異步獲取特定 prompt
-    pub async fn get_prompt_async(&self, _id: i64) -> Result<Option<SimplePrompt>, DatabaseError> {
-        self.with_db("get_prompt", move |_db| {
-            // 這裡需要實現 get_prompt 方法
-            // 暫時返回 None
-            Ok(None)
-        }).await
+    pub async fn get_prompt_async(&self, id: i64) -> Result<Option<SimplePrompt>, DatabaseError> {
+        self.with_db("get_prompt", move |db| db.get_prompt(id)).await
     }
     
     /// 異步創建新的排程
@@ -210,18 +202,14 @@ impl DatabaseManager {
         }).await
     }
     
-    /// 獲取數據庫統計信息 (暫時使用模擬數據)
+    /// 獲取數據庫統計信息
     pub async fn get_stats(&self) -> Result<DatabaseStats, DatabaseError> {
-        let db_path = self.db_path.clone();
-        self.with_db("get_stats", move |_db| {
-            // TODO: 需要在 SimpleDatabase 中添加統計方法
-            Ok(DatabaseStats {
-                prompt_count: 0,
-                schedule_count: 0,
-                execution_count: 0,
-                db_path,
-            })
-        }).await
+        let stats = self.with_db("get_stats", |db| db.get_stats()).await?;
+        Ok(DatabaseStats {
+            prompt_count: stats.prompts,
+            schedule_count: stats.schedules,
+            execution_count: stats.execution_results,
+        })
     }
 }
 
@@ -231,7 +219,6 @@ pub struct DatabaseStats {
     pub prompt_count: i64,
     pub schedule_count: i64,
     pub execution_count: i64,
-    pub db_path: String,
 }
 
 /// 為 tauri 命令提供的全域數據庫管理器實例
@@ -341,12 +328,40 @@ mod tests {
     #[tokio::test]
     async fn test_database_stats() {
         let db = setup_test_db().await;
-        
-        // 創建一些測試數據
-        db.create_prompt_async("測試1".to_string(), "內容1".to_string()).await.unwrap();
-        db.create_prompt_async("測試2".to_string(), "內容2".to_string()).await.unwrap();
-        
+
+        // Initial state
+        let stats = db.get_stats().await.unwrap();
+        assert_eq!(stats.prompt_count, 0);
+        assert_eq!(stats.schedule_count, 0);
+        assert_eq!(stats.execution_count, 0);
+
+        // Add some data
+        let prompt_id = db
+            .create_prompt_async("Test".to_string(), "Content".to_string())
+            .await
+            .unwrap();
+        let schedule_id = db
+            .create_schedule_async(prompt_id, "time".to_string(), None)
+            .await
+            .unwrap();
+        db.record_execution_result_async(
+            schedule_id,
+            "result".to_string(),
+            "success".to_string(),
+            None,
+            None,
+            100,
+        )
+        .await
+        .unwrap();
+        db.create_prompt_async("Test 2".to_string(), "Content 2".to_string())
+            .await
+            .unwrap();
+
+        // Final state
         let stats = db.get_stats().await.unwrap();
         assert_eq!(stats.prompt_count, 2);
+        assert_eq!(stats.schedule_count, 1);
+        assert_eq!(stats.execution_count, 1);
     }
 }

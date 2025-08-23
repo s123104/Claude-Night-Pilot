@@ -138,14 +138,31 @@ async fn main() -> Result<()> {
             run_performance_benchmark(iterations).await
         }
         Commands::Status => {
-            let summary = json!({
-                "database": "connected",
-                "prompts": 0,
-                "tasks": 0,
-                "results": 0,
-            });
-            println!("{}", summary.to_string());
-            Ok(())
+            // 實現真實的數據庫狀態檢查
+            async fn get_real_status() -> Result<()> {
+                use claude_night_pilot_lib::database_manager::DatabaseManager;
+
+                const DB_PATH: &str = "./claude-night-pilot.db";
+
+                let db_manager = DatabaseManager::new(DB_PATH).await.with_context(|| {
+                    format!("無法連接到數據庫: {}", DB_PATH)
+                })?;
+
+                let stats = db_manager.get_stats().await.with_context(|| "獲取數據庫統計信息失敗")?;
+
+                let summary = json!({
+                    "database_path": DB_PATH,
+                    "prompts": stats.prompt_count,
+                    "schedules": stats.schedule_count,
+                    "execution_results": stats.execution_count,
+                    "status": "connected"
+                });
+
+                println!("{}", serde_json::to_string_pretty(&summary)?);
+                Ok(())
+            }
+
+            get_real_status().await
         }
     };
 

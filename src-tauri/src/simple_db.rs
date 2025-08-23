@@ -49,6 +49,13 @@ pub struct TokenUsageStats {
     pub last_updated: String,
 }
 
+#[derive(Debug, Default, Serialize)]
+pub struct DbStats {
+    pub prompts: i64,
+    pub schedules: i64,
+    pub execution_results: i64,
+}
+
 #[derive(Debug)]
 pub struct SimpleDatabase {
     conn: Connection,
@@ -437,6 +444,26 @@ impl SimpleDatabase {
 
         let rows_affected = stmt.execute([id])?;
         Ok(rows_affected > 0)
+    }
+
+    pub fn get_stats(&self) -> Result<DbStats> {
+        let prompts_count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM prompts", [], |row| row.get(0))?;
+        let schedules_count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM schedules", [], |row| row.get(0))?;
+        let execution_results_count: i64 = self.conn.query_row(
+            "SELECT COUNT(*) FROM execution_results",
+            [],
+            |row| row.get(0),
+        )?;
+
+        Ok(DbStats {
+            prompts: prompts_count,
+            schedules: schedules_count,
+            execution_results: execution_results_count,
+        })
     }
 }
 
@@ -877,5 +904,29 @@ mod tests {
         let db = db.lock().unwrap();
         let prompts = db.list_prompts().unwrap();
         assert_eq!(prompts.len(), 5);
+    }
+
+    #[test]
+    fn test_get_stats() {
+        let db = create_test_database().unwrap();
+
+        // Initial state
+        let stats = db.get_stats().unwrap();
+        assert_eq!(stats.prompts, 0);
+        assert_eq!(stats.schedules, 0);
+        assert_eq!(stats.execution_results, 0);
+
+        // Add some data
+        let prompt_id = db.create_prompt("Test", "Content").unwrap();
+        let schedule_id = db.create_schedule(prompt_id, "time", None).unwrap();
+        db.record_execution_result(schedule_id, "result", "success", None, None, 100)
+            .unwrap();
+        db.create_prompt("Test 2", "Content 2").unwrap();
+
+        // Final state
+        let stats = db.get_stats().unwrap();
+        assert_eq!(stats.prompts, 2);
+        assert_eq!(stats.schedules, 1);
+        assert_eq!(stats.execution_results, 1);
     }
 }
