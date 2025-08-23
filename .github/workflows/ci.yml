@@ -1,4 +1,7 @@
 name: CI
+## 說明：
+## - 本地開發使用 Husky + lint-staged：pre-commit 只檢查暫存檔案（更快），pre-push 執行完整測試（更安全）。
+## - CI 環境始終執行完整檢查與測試，不依賴 lint-staged。
 
 on:
   push:
