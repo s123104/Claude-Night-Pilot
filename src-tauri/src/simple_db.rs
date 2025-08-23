@@ -331,6 +331,68 @@ impl SimpleDatabase {
         Ok(result_id)
     }
 
+    // 查詢特定排程的執行結果
+    pub fn get_execution_results(&self, schedule_id: i64) -> Result<Vec<ExecutionResult>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, schedule_id, content, status, token_usage, cost_usd, execution_time_ms, created_at 
+             FROM execution_results 
+             WHERE schedule_id = ?1 
+             ORDER BY created_at DESC"
+        )?;
+
+        let result_iter = stmt.query_map(params![schedule_id], |row| {
+            Ok(ExecutionResult {
+                id: row.get(0)?,
+                schedule_id: row.get(1)?,
+                content: row.get(2)?,
+                status: row.get(3)?,
+                token_usage: row.get(4)?,
+                cost_usd: row.get(5)?,
+                execution_time_ms: row.get(6)?,
+                created_at: row.get(7)?,
+            })
+        })?;
+
+        let mut results = Vec::new();
+        for result in result_iter {
+            results.push(result?);
+        }
+
+        Ok(results)
+    }
+
+    // 查詢所有執行結果（用於總覽）
+    pub fn list_all_execution_results(&self, limit: Option<i64>) -> Result<Vec<ExecutionResult>> {
+        let limit_clause = limit.map(|l| format!(" LIMIT {}", l)).unwrap_or_default();
+        let sql = format!(
+            "SELECT id, schedule_id, content, status, token_usage, cost_usd, execution_time_ms, created_at 
+             FROM execution_results 
+             ORDER BY created_at DESC{}",
+            limit_clause
+        );
+
+        let mut stmt = self.conn.prepare(&sql)?;
+        let result_iter = stmt.query_map([], |row| {
+            Ok(ExecutionResult {
+                id: row.get(0)?,
+                schedule_id: row.get(1)?,
+                content: row.get(2)?,
+                status: row.get(3)?,
+                token_usage: row.get(4)?,
+                cost_usd: row.get(5)?,
+                execution_time_ms: row.get(6)?,
+                created_at: row.get(7)?,
+            })
+        })?;
+
+        let mut results = Vec::new();
+        for result in result_iter {
+            results.push(result?);
+        }
+
+        Ok(results)
+    }
+
     pub fn update_token_usage_stats(
         &self,
         input_tokens: i64,
