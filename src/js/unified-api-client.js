@@ -31,16 +31,27 @@ class UnifiedApiClient {
   async initializeAPI() {
     if (this.isProduction) {
       try {
-        // Test basic API connectivity
-        await this.invokeCommand("health_check").catch(() => {
-           
+        // Test basic API connectivity with real Tauri commands
+        await this.invokeCommandDirect("health_check").catch((error) => {
           console.warn(
-            "Tauri API health check failed, falling back to development mode",
+            "Tauri API health check failed, falling back to development mode:",
+            error,
           );
           this.isProduction = false;
         });
+        
+        // Additional test for database connectivity
+        if (this.isProduction) {
+          try {
+            await this.invokeCommandDirect("list_prompts");
+            console.log("Database connectivity confirmed");
+          } catch (error) {
+            console.warn("Database connectivity test failed:", error);
+            // Don't fall back to dev mode for database issues, 
+            // but log the warning for debugging
+          }
+        }
       } catch (error) {
-         
         console.warn("API initialization failed:", error);
         this.isProduction = false;
       }
@@ -73,8 +84,7 @@ class UnifiedApiClient {
   }
 
   getMockResponse(command, args) {
-     
-    console.log(`Using mock response for: ${command}`);
+    console.warn(`⚠️  MOCK DATA: Using mock response for command '${command}' - this should only happen in development mode`);
     return this.mockResponse(command, args);
   }
 
