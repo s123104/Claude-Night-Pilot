@@ -14,6 +14,7 @@ use claude_night_pilot_lib::models::job::{
 use claude_night_pilot_lib::scheduler::RealTimeExecutor;
 use claude_night_pilot_lib::services::database_service::DatabaseService;
 use claude_night_pilot_lib::unified_interface::{UnifiedClaudeInterface, UnifiedExecutionOptions};
+use claude_night_pilot_lib::simple_db::SimpleDatabase;
 use rusqlite;
 use serde_json::json;
 use std::io::{self, Read};
@@ -595,7 +596,21 @@ async fn execute_prompt(
 async fn check_cooldown(format: String) -> Result<()> {
     if format != "json" {
         println!("🕐 檢查 Claude CLI 冷卻狀態");
-        println!("Claude CLI 版本: mock-0.0.0");
+        // 嘗試獲取真實的 Claude CLI 版本資訊
+        match std::process::Command::new("npx")
+            .arg("@anthropic-ai/claude-code@latest")
+            .arg("--version")
+            .output()
+        {
+            Ok(output) if output.status.success() => {
+                let version_str = String::from_utf8_lossy(&output.stdout);
+                let version = version_str.trim();
+                println!("Claude CLI 版本: {}", version);
+            },
+            _ => {
+                println!("Claude CLI 版本: 未安裝或無法檢測");
+            }
+        }
     }
 
     let cooldown_info = UnifiedClaudeInterface::check_cooldown()
@@ -794,11 +809,41 @@ fn print_pretty_batch_results(results: &[serde_json::Value]) {
 }
 
 fn print_status_summary() {
+    use claude_night_pilot_lib::database_adapter::get_database_adapter;
+    
     println!("Claude Night Pilot 狀態摘要");
-    println!("資料庫連接: connected");
-    println!("Prompts: 2");
-    println!("Tasks: 2");
-    println!("Results: 2");
+    
+    // 嘗試連接資料庫並獲取真實狀態
+    match get_database_adapter() {
+        Ok(db_adapter) => {
+            println!("資料庫連接: ✅ 已連接");
+            
+            // 獲取真實的 Prompts 數量
+            match db_adapter.list_prompts() {
+                Ok(prompts) => println!("Prompts: {}", prompts.len()),
+                Err(_) => println!("Prompts: 無法查詢")
+            }
+            
+            // 獲取真實的 Tasks 數量
+            match db_adapter.list_schedules() {
+                Ok(schedules) => println!("Tasks: {}", schedules.len()),
+                Err(_) => println!("Tasks: 無法查詢")
+            }
+            
+            // 獲取 Token 使用統計
+            match db_adapter.get_token_usage_stats() {
+                Ok(Some(stats)) => println!("Total Sessions: {}", stats.session_count),
+                Ok(None) => println!("Total Sessions: 0"),
+                Err(_) => println!("Total Sessions: 無法查詢")
+            }
+        },
+        Err(_) => {
+            println!("資料庫連接: ❌ 連接失敗");
+            println!("Prompts: 無法查詢");
+            println!("Tasks: 無法查詢");
+            println!("Total Sessions: 無法查詢");
+        }
+    }
 }
 
 // 新的統一化命令處理函數 - 使用CLI適配器
@@ -871,26 +916,147 @@ async fn handle_job_command(action: JobAction) -> Result<()> {
             description,
         } => {
             println!("📝 更新排程任務 ID: {}", job_id);
-
-            if let Some(expr) = &cron_expr {
-                println!("新的 Cron 表達式: {}", expr);
+            
+            // 創建數據庫連接
+            let db_path = "claude_pilot.db";
+            let db = match SimpleDatabase::new(db_path) {
+                Ok(db) => db,
+                Err(e) => {
+                    eprintln!("❌ 無法連接數據庫: {}", e);
+                    return Ok(());
+                }
+            };
+            
+            // 檢查任務是否存在
+            match db.get_schedule(job_id as i64) {
+                Ok(Some(schedule)) => {
+                    if let Some(expr) = &cron_expr {
+                        println!("新的 Cron 表達式: {}", expr);
+                        match db.update_schedule(job_id as i64, None, None, Some(expr)) {
+                            Ok(()) => println!("✅ 任務更新成功"),
+                            Err(e) => eprintln!("❌ 更新任務失敗: {}", e),
+                        }
+                    } else if let Some(desc) = &description {
+                        println!("新的描述: {}", desc);
+                        // Note: SimpleDatabase doesn't have description field
+                        println!("⚠️ SimpleDatabase 模型沒有描述欄位，請使用 cron_expr 更新");
+                    } else {
+                        println!("⚠️ 未提供更新內容");
+                    }
+                }
+                Ok(None) => {
+                    eprintln!("❌ 任務 ID {} 不存在", job_id);
+                }
+                Err(e) => {
+                    eprintln!("❌ 查詢任務失敗: {}", e);
+                }
             }
-
-            if let Some(desc) = &description {
-                println!("新的描述: {}", desc);
-            }
-
-            println!("⚠️ 更新任務功能正在開發中");
         }
 
         JobAction::Delete { job_id } => {
             println!("🗑️ 刪除排程任務 ID: {}", job_id);
-            println!("⚠️ 刪除任務功能正在開發中");
+            
+            // 創建數據庫連接
+            let db_path = "claude_pilot.db";
+            let db = match SimpleDatabase::new(db_path) {
+                Ok(db) => db,
+                Err(e) => {
+                    eprintln!("❌ 無法連接數據庫: {}", e);
+                    return Ok(());
+                }
+            };
+            
+            // 刪除任務
+            match db.delete_schedule(job_id as i64) {
+                Ok(true) => {
+                    println!("✅ 任務刪除成功");
+                }
+                Ok(false) => {
+                    eprintln!("❌ 任務 ID {} 不存在", job_id);
+                }
+                Err(e) => {
+                    eprintln!("❌ 刪除任務失敗: {}", e);
+                }
+            }
         }
 
         JobAction::Show { job_id } => {
             println!("🔍 顯示排程任務詳情 ID: {}", job_id);
-            println!("⚠️ 顯示任務詳情功能正在開發中");
+            
+            // 創建數據庫連接
+            let db_path = "claude_pilot.db";
+            let db = match SimpleDatabase::new(db_path) {
+                Ok(db) => db,
+                Err(e) => {
+                    eprintln!("❌ 無法連接數據庫: {}", e);
+                    return Ok(());
+                }
+            };
+            
+            // 查詢任務詳情
+            match db.get_schedule(job_id as i64) {
+                Ok(Some(schedule)) => {
+                    println!("\n📋 任務詳情");
+                    println!("═══════════════════════════════════════");
+                    println!("📊 ID: {}", schedule.id);
+                    println!("📝 Prompt ID: {}", schedule.prompt_id);
+                    println!("⏰ 排程時間: {}", schedule.schedule_time);
+                    println!("📈 狀態: {}", schedule.status);
+                    println!("📅 創建時間: {}", schedule.created_at);
+                    
+                    if let Some(cron_expr) = &schedule.cron_expr {
+                        println!("⚙️ Cron 表達式: {}", cron_expr);
+                    }
+                    
+                    if let Some(last_run) = &schedule.last_run_at {
+                        println!("🔄 上次執行: {}", last_run);
+                    }
+                    
+                    if let Some(next_run) = &schedule.next_run_at {
+                        println!("⏭️ 下次執行: {}", next_run);
+                    }
+                    
+                    println!("🔢 執行次數: {}", schedule.execution_count);
+                    
+                    // 查詢相關的執行結果
+                    match db.get_execution_results(schedule.id) {
+                        Ok(results) => {
+                            if !results.is_empty() {
+                                println!("\n📊 執行歷史 (最近 5 次):");
+                                println!("═══════════════════════════════════════");
+                                for (i, result) in results.iter().take(5).enumerate() {
+                                    let status_icon = match result.status.as_str() {
+                                        "success" => "✅",
+                                        "failed" => "❌",
+                                        "timeout" => "⏰",
+                                        _ => "❓",
+                                    };
+                                    println!(
+                                        "{} {} #{}: {} ({}ms) - {}",
+                                        i + 1,
+                                        status_icon,
+                                        result.id,
+                                        result.status,
+                                        result.execution_time_ms,
+                                        result.created_at
+                                    );
+                                }
+                            } else {
+                                println!("\n📊 執行歷史: 暫無執行記錄");
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("⚠️ 無法查詢執行歷史: {}", e);
+                        }
+                    }
+                }
+                Ok(None) => {
+                    eprintln!("❌ 任務 ID {} 不存在", job_id);
+                }
+                Err(e) => {
+                    eprintln!("❌ 查詢任務失敗: {}", e);
+                }
+            }
         }
     }
 
@@ -974,18 +1140,112 @@ fn print_comprehensive_health(
 }
 
 fn print_results_summary(format: String) {
-    match format.as_str() {
-        "json" => {
-            let json = serde_json::json!({
-                "results": [
-                    {"id":1, "status":"success"},
-                    {"id":2, "status":"failed"}
-                ]
-            });
-            println!("{}", serde_json::to_string_pretty(&json).unwrap());
+    // 創建數據庫連接
+    let db_path = "claude_pilot.db";
+    let db = match SimpleDatabase::new(db_path) {
+        Ok(db) => db,
+        Err(e) => {
+            eprintln!("❌ 無法連接數據庫: {}", e);
+            return;
         }
-        _ => {
-            println!("執行結果\n- #1 成功\n- #2 失敗");
+    };
+    
+    // 查詢所有排程任務的執行結果
+    match db.list_schedules() {
+        Ok(_schedules) => {
+            let mut all_results = Vec::new();
+            
+            // 直接使用 list_all_execution_results 方法
+            match db.list_all_execution_results(None) {
+                Ok(mut results) => {
+                    all_results.append(&mut results);
+                }
+                Err(e) => {
+                    eprintln!("⚠️ 無法查詢執行結果: {}", e);
+                    return;
+                }
+            }
+            
+            // 按時間排序（最新的在前）
+            all_results.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+            
+            match format.as_str() {
+                "json" => {
+                    let json_results: Vec<serde_json::Value> = all_results.iter().take(10).map(|r| {
+                        serde_json::json!({
+                            "id": r.id,
+                            "schedule_id": r.schedule_id,
+                            "status": r.status,
+                            "token_usage": r.token_usage,
+                            "cost_usd": r.cost_usd,
+                            "execution_time_ms": r.execution_time_ms,
+                            "created_at": r.created_at
+                        })
+                    }).collect();
+                    
+                    let json = serde_json::json!({
+                        "total_results": all_results.len(),
+                        "showing": json_results.len(),
+                        "results": json_results
+                    });
+                    
+                    println!("{}", serde_json::to_string_pretty(&json).unwrap());
+                }
+                _ => {
+                    if all_results.is_empty() {
+                        println!("📊 執行結果: 暫無執行記錄");
+                    } else {
+                        println!("📊 執行結果摘要 (最近 10 筆)");
+                        println!("════════════════════════════════════════");
+                        
+                        let success_count = all_results.iter().filter(|r| r.status == "success").count();
+                        let failed_count = all_results.iter().filter(|r| r.status == "failed").count();
+                        let timeout_count = all_results.iter().filter(|r| r.status == "timeout").count();
+                        
+                        println!("📊 統計摘要: 成功 {} | 失敗 {} | 超時 {} | 總計 {}", 
+                                 success_count, failed_count, timeout_count, all_results.len());
+                        
+                        println!("\n🔍 最近執行結果:");
+                        for (i, result) in all_results.iter().take(10).enumerate() {
+                            let status_icon = match result.status.as_str() {
+                                "success" => "✅",
+                                "failed" => "❌",
+                                "timeout" => "⏰",
+                                _ => "❓",
+                            };
+                            
+                            let cost_info = match result.cost_usd {
+                                Some(cost) => format!(" (${})", format!("{:.4}", cost).trim_end_matches('0').trim_end_matches('.')),
+                                None => String::new(),
+                            };
+                            
+                            let token_info = match result.token_usage {
+                                Some(tokens) => format!(" [{}t]", tokens),
+                                None => String::new(),
+                            };
+                            
+                            println!(
+                                "  {} {} 任務#{} 執行#{} - {} ({}ms){}{}",
+                                i + 1,
+                                status_icon,
+                                result.schedule_id,
+                                result.id,
+                                result.status,
+                                result.execution_time_ms,
+                                token_info,
+                                cost_info
+                            );
+                        }
+                        
+                        if all_results.len() > 10 {
+                            println!("\n(共 {} 筆結果，顯示最近 10 筆)", all_results.len());
+                        }
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("❌ 無法查詢排程任務: {}", e);
         }
     }
 }
