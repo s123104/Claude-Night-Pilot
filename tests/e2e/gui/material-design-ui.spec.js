@@ -388,8 +388,9 @@ test.describe("Material Design 3.0 任務排程系統驗證", () => {
     await page.click('[data-tab="scheduler"]');
     await page.waitForTimeout(1000);
 
-    const listContainer = page.locator(".md-list-container");
-    await expect(listContainer).toBeVisible();
+    // 使用 first() 避免多元素選擇器衝突
+    const listContainer = page.locator(".md-list-container").first();
+    await expect(listContainer).toBeVisible({ timeout: 10000 });
   });
 });
 

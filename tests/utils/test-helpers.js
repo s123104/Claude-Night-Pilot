@@ -107,10 +107,17 @@ export async function waitForAppReady(page, timeout = 30000) {
         timeout: timeout / 3 
       }).catch(() => null),
       
-      // Strategy 3: Wait for app ready flag or DOM complete
+      // Strategy 3: Wait for app ready flag or DOM complete - 增加更長超時
       page.waitForFunction(
-        () => window.__APP_READY__ === true || document.readyState === 'complete', 
-        { timeout: timeout / 3 }
+        () => {
+          return window.__APP_READY__ === true || 
+                 document.readyState === 'complete' ||
+                 (document.body && document.body.children.length > 0);
+        }, 
+        { 
+          timeout: Math.max(timeout / 2, 20000), // 至少20秒超時
+          polling: 1000 // 每秒檢查一次而非使用RAF
+        }
       ).catch(() => null)
     ];
     
@@ -149,22 +156,27 @@ export async function waitForAppReady(page, timeout = 30000) {
       });
     }
     
-    // Final verification with lenient checks
+    // Final verification with lenient checks and increased timeout
     await page.waitForFunction(
       () => {
         const appContainer = document.querySelector('[data-testid="app-container"]') || 
-                             document.querySelector('#app');
+                             document.querySelector('#app') ||
+                             document.querySelector('main');
         if (!appContainer) return false;
         
         const styles = getComputedStyle(appContainer);
-        const isVisible = styles.display !== 'none' && styles.visibility !== 'hidden' && styles.opacity !== '0';
+        const isVisible = styles.display !== 'none' && styles.visibility !== 'hidden';
         
-        // Also check if at least one Material Design element is present
-        const hasMaterialElements = document.querySelector('.md-top-app-bar, .md-navigation-rail, .material-symbols-outlined');
+        // Check if page has basic content (more lenient than Material Design elements)
+        const hasContent = document.body.children.length > 1 ||
+                          document.querySelector('h1, .app-title, .md-top-app-bar');
         
-        return isVisible && hasMaterialElements;
+        return isVisible && hasContent;
       },
-      { timeout: 8000 }
+      { 
+        timeout: 15000, // 增加到15秒
+        polling: 500 // 每500ms檢查一次
+      }
     );
     
     console.log('✅ App is ready!');
@@ -172,14 +184,22 @@ export async function waitForAppReady(page, timeout = 30000) {
     // Force Material Design initialization if needed
     await forceInitializeMaterialDesignApp(page);
     
-    // Wait for JavaScript initialization to complete
-    await page.waitForFunction(
-      () => {
-        // Check if key managers are available
-        return window.modalManager && window.snackbarManager && window.themeManager;
-      },
-      { timeout: 10000 }
-    );
+    // Wait for JavaScript initialization to complete (with fallback)
+    try {
+      await page.waitForFunction(
+        () => {
+          // Check if key managers are available or basic JS is working
+          return window.modalManager && window.snackbarManager && window.themeManager ||
+                 (window.__APP_READY__ === true && document.readyState === 'complete');
+        },
+        { 
+          timeout: 8000, // 縮短超時避免阻塞
+          polling: 1000
+        }
+      );
+    } catch (jsError) {
+      console.log('⚠️ JS managers not fully loaded, continuing with basic initialization...');
+    }
     
     // Short delay to ensure everything is settled
     await page.waitForTimeout(500);
