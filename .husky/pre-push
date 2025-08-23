@@ -1,0 +1,24 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🚀 Running pre-push checks..."
+
+# 執行完整的 Rust 測試
+echo "🔍 Running Rust tests..."
+npm run test:rust
+if [ $? -ne 0 ]; then
+    echo "❌ Rust tests failed. Push aborted."
+    exit 1
+fi
+
+# 執行完整的 Playwright E2E 測試
+echo "🔍 Running Playwright E2E tests..."
+npm test
+if [ $? -ne 0 ]; then
+    echo "❌ E2E tests failed. Push aborted."
+    exit 1
+fi
+
+echo "✅ All checks passed. Pushing to remote..."
+exit 0
+

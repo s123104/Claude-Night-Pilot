@@ -43,6 +43,11 @@ scripts/            # 連接埠工具、precompile、驗證腳本
 - 分支命名：`feat/...`、`fix/...`；PR 聚焦且附說明。
 - 環境變數：使用 `.env` 管理敏感資料；連接埠工具：`npm run port:status|port:cleanup`。
 
+### Git Hooks 與 lint-staged（最佳實踐）
+- pre-commit：使用 `lint-staged` 僅檢查暫存區檔案（JS 執行 `eslint --fix`；Rust 執行 `cargo fmt` 與 `cargo clippy --fix -- -D warnings`）。
+- pre-push：於推送前執行完整驗證（`npm run test:rust` 與 `npm test`）。
+- 目的：加速 commit 階段、把較耗時的驗證移到 push，提升開發流暢度且確保品質。
+
 ## 測試策略
 - Playwright：規格於 `tests/**`（`*.spec.js`）；可用 `playwright test tests/integration/` 或以 `package.json` 專案旗標篩選。
 - Rust：`cd src-tauri && cargo test`；整合測試位於 `src-tauri/tests/**`。

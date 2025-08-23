@@ -73,6 +73,13 @@
     "analyze:cli": "node analysis/tools/cli-analyzer.js",
     "analyze:files": "node analysis/tools/file-analyzer.js"
   },
+  "lint-staged": {
+    "src/**/*.js": "eslint --fix",
+    "src-tauri/**/*.rs": [
+      "cargo fmt --",
+      "cargo clippy --fix -- -D warnings"
+    ]
+  },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
@@ -82,6 +89,7 @@
     "express": "^5.1.0",
     "get-port": "^7.1.0",
     "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
     "playwright": "^1.54.1"
   },
   "dependencies": {
