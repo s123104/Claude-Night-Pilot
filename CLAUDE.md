@@ -112,6 +112,17 @@ echo "feat(core): add new feature" | npx commitlint
 
 **Project Scopes**: `core`, `gui`, `cli`, `db`, `scheduler`, `executor`, `security`, `test`, `docs`, `deps`, `config`, `ci`, `release`
 
+### Git Hooks 與 lint-staged（最佳實踐）
+
+為了提升提交速度並確保程式碼品質：
+
+- pre-commit：使用 `lint-staged` 僅檢查本次暫存檔案（JS 執行 `eslint --fix`；Rust 執行 `cargo fmt --` 與 `cargo clippy --fix -- -D warnings`）。
+- pre-push：推送前執行完整驗證（`npm run test:rust` 與 `npm test`）。
+
+使用方式：在專案根目錄執行 `npm install`，若本機尚未初始化 Husky hooks，請執行 `npm run prepare`。之後 `git commit` 只跑快速檢查，`git push` 會跑完整 Rust 與 Playwright 測試。`commit-msg` hook 維持 `commitlint` 驗證。
+
+更完整說明請參見 `AGENTS.md` 與 `README.md` 中對應段落。
+
 ### Backend Development
 ```bash
 # Inside src-tauri directory:
