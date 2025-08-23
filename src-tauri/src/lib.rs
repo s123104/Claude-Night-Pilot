@@ -11,6 +11,7 @@ use tracing::{debug, error, info, instrument, warn};
 // === 核心模組系統 ===
 // 公開模組供 CLI 和 GUI 共享使用
 pub mod simple_db;
+pub mod database_adapter; // 資料庫適配器，消除技術債務
 // pub mod high_perf_db; // 暫時禁用以解決 r2d2 依賴衝突
 pub mod claude_cooldown_detector;
 pub mod executor;
@@ -564,38 +565,49 @@ async fn create_scheduled_job(
     cron_expr: String,
     job_name: String,
 ) -> Result<i64, String> {
-    println!(
-        "建立排程任務: {}, Prompt ID: {}, Cron: {}",
-        job_name, prompt_id, cron_expr
-    );
-    Ok(456) // 模擬的 Job ID
+    use crate::database_adapter::get_database_adapter;
+    
+    info!("建立排程任務: {}, Prompt ID: {}, Cron: {}", job_name, prompt_id, cron_expr);
+    
+    let db_adapter = get_database_adapter()
+        .map_err(|e| format!("資料庫連接失敗: {}", e))?;
+    
+    // 檢查提示詞是否存在
+    let prompt_exists = db_adapter
+        .get_prompt(prompt_id)
+        .map_err(|e| format!("查詢提示詞失敗: {}", e))?
+        .is_some();
+        
+    if !prompt_exists {
+        return Err(format!("提示詞 ID {} 不存在", prompt_id));
+    }
+    
+    // 使用當前時間作為排程時間，如果是 cron 表達式則計算下次執行時間
+    let schedule_time = chrono::Utc::now().to_rfc3339();
+    
+    let job_id = db_adapter
+        .create_schedule(prompt_id, &schedule_time, Some(&cron_expr))
+        .map_err(|e| format!("建立排程任務失敗: {}", e))?;
+    
+    info!("成功建立排程任務 ID: {} ({})", job_id, job_name);
+    Ok(job_id)
 }
 
 #[tauri::command]
 async fn list_jobs(_app: tauri::AppHandle) -> Result<Vec<serde_json::Value>, String> {
-    let mock_jobs = vec![
-        serde_json::json!({
-            "id": 1,
-            "prompt_id": 1,
-            "job_name": "每日自動分析",
-            "cron_expr": "0 0 9 * * *", // 6欄位格式：每日上夈9點
-            "status": "active",
-            "last_run_at": "2025-07-22T09:00:00+08:00",
-            "next_run_at": "2025-07-23T09:00:00+08:00",
-            "created_at": "2025-07-22T21:41:13+08:00"
-        }),
-        serde_json::json!({
-            "id": 2,
-            "prompt_id": 2,
-            "job_name": "週報生成",
-            "cron_expr": "0 0 18 * * 5", // 6欄位格式：週五下午6點
-            "status": "pending",
-            "last_run_at": null,
-            "next_run_at": "2025-07-25T18:00:00+08:00",
-            "created_at": "2025-07-22T20:41:13+08:00"
-        }),
-    ];
-    Ok(mock_jobs)
+    use crate::database_adapter::get_database_adapter;
+    
+    debug!("列出所有排程任務");
+    
+    let db_adapter = get_database_adapter()
+        .map_err(|e| format!("資料庫連接失敗: {}", e))?;
+    
+    let jobs = db_adapter
+        .list_jobs_json()
+        .map_err(|e| format!("查詢排程任務失敗: {}", e))?;
+    
+    info!("成功查詢 {} 個排程任務", jobs.len());
+    Ok(jobs)
 }
 
 #[tauri::command]
@@ -604,28 +616,20 @@ async fn get_job_results(
     job_id: i64,
     limit: Option<i64>,
 ) -> Result<Vec<serde_json::Value>, String> {
+    use crate::database_adapter::get_database_adapter;
+    
     let limit = limit.unwrap_or(10);
-    println!("取得 Job {} 的結果，限制 {} 筆", job_id, limit);
+    debug!("取得 Job {} 的結果，限制 {} 筆", job_id, limit);
 
-    let mock_results = vec![
-        serde_json::json!({
-            "id": 1,
-            "job_id": job_id,
-            "content": "執行成功！分析結果：系統運行正常，性能指標在預期範圍內。",
-            "status": "success",
-            "execution_time": 1.25,
-            "created_at": "2025-07-22T21:41:13+08:00"
-        }),
-        serde_json::json!({
-            "id": 2,
-            "job_id": job_id,
-            "content": "執行失敗：Claude API 冷卻中，預計 15 分鐘後重試。",
-            "status": "failed",
-            "execution_time": 0.1,
-            "created_at": "2025-07-22T20:41:13+08:00"
-        }),
-    ];
-    Ok(mock_results)
+    let db_adapter = get_database_adapter()
+        .map_err(|e| format!("資料庫連接失敗: {}", e))?;
+    
+    let results = db_adapter
+        .get_job_results_json(job_id, Some(limit))
+        .map_err(|e| format!("查詢任務執行結果失敗: {}", e))?;
+    
+    info!("成功查詢 Job {} 的 {} 個執行結果", job_id, results.len());
+    Ok(results)
 }
 
 #[tauri::command]
